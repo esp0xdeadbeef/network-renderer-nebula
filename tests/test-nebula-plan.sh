@@ -23,9 +23,9 @@ nix eval --impure --no-warn-dirty --json --expr '
 
 jq -e '
   .overlays["espbranch::site-b::east-west"].lighthouse.endpoint == "46.224.173.254" and
-  .nodes["hostile-node01"].overlayAddresses[0] == "100.96.10.30/24" and
-  .nodes["hostile-node01"].overlayAddresses[1] == "fd42:dead:beef:ee::30/64" and
-  .nodes["branch-node01"].materialization.container.hostBridge == "branch"
+  .nodes["b-router-core"].overlayAddresses[0] == "100.96.10.2/24" and
+  .nodes["b-router-core"].overlayAddresses[1] == "fd42:dead:beef:ee::2/64" and
+  .nodes["b-router-core"].materialization.container.targetContainer == "b-router-core"
 ' "$tmp_dir/plan.json" >/dev/null
 
 echo "PASS test-nebula-plan"
