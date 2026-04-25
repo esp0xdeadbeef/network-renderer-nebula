@@ -2,8 +2,6 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-labs_root="$(nix flake metadata --json "$repo_root" | jq -r '.locks.nodes.network-labs.original.owner' >/dev/null 2>&1 && true)"
-
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -15,7 +13,7 @@ nix eval --impure --no-warn-dirty --json --expr '
     flake = builtins.getFlake (toString '"$repo_root"');
     api = flake.libBySystem.x86_64-linux.renderer;
   in
-    api.buildNebulaPlanFromPaths {
+  api.buildNebulaPlanFromPaths {
       intentPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     }
@@ -23,9 +21,10 @@ nix eval --impure --no-warn-dirty --json --expr '
 
 jq -e '
   .overlays["espbranch::site-b::east-west"].lighthouse.endpoint == "46.224.173.254" and
-  .nodes["b-router-core"].overlayAddresses[0] == "100.96.10.2/24" and
-  .nodes["b-router-core"].overlayAddresses[1] == "fd42:dead:beef:ee::2/64" and
-  .nodes["b-router-core"].materialization.container.targetContainer == "b-router-core"
+  .nodes["b-router-core-nebula"].overlayAddresses[0] == "100.96.10.2/24" and
+  .nodes["b-router-core-nebula"].overlayAddresses[1] == "fd42:dead:beef:ee::2/64" and
+  .nodes["b-router-core-nebula"].materialization.container.targetContainer == "b-router-core-nebula" and
+  (.nodes | has("b-router-core") | not)
 ' "$tmp_dir/plan.json" >/dev/null
 
 echo "PASS test-nebula-plan"
