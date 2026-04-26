@@ -24,6 +24,11 @@ jq -e '
   .nodes["b-router-core-nebula"].overlayAddresses[0] == "100.96.10.2/24" and
   .nodes["b-router-core-nebula"].overlayAddresses[1] == "fd42:dead:beef:ee::2/64" and
   .nodes["b-router-core-nebula"].materialization.container.targetContainer == "b-router-core-nebula" and
+  (
+    .nodes["b-router-core-nebula"].unsafeRoutes
+    | map(select((.route == "::/1" or .route == "8000::/1") and .install == true))
+    | length
+  ) == 2 and
   (.nodes | has("b-router-core") | not)
 ' "$tmp_dir/plan.json" >/dev/null
 
