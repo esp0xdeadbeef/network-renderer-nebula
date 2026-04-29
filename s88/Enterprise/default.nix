@@ -43,6 +43,24 @@ let
   withPrefixLength = cidr: prefixLength: "${stripPrefixLength cidr}/${builtins.toString prefixLength}";
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
 
+  collectHostUplinkBridgeNames =
+    inventory:
+    let
+      hosts = (((inventory.deployment or { }).hosts or { }));
+    in
+    lib.unique (
+      builtins.concatLists (
+        map (
+          hostName:
+          let
+            host = hosts.${hostName};
+            uplinks = host.uplinks or { };
+          in
+          map (uplinkName: uplinks.${uplinkName}.bridge or null) (sortedAttrNames uplinks)
+        ) (sortedAttrNames hosts)
+      )
+    );
+
   buildNebulaPlanImpl =
     {
       controlPlane,
@@ -58,6 +76,27 @@ let
 
       cpmData = cpm.data or { };
       inventorySites = ((inventory.controlPlane or { }).sites or { });
+      hostUplinkBridgeNames = collectHostUplinkBridgeNames inventory;
+
+      validateRuntimeMaterialization =
+        path: runtimeNode:
+        let
+          materialization = builtins.removeAttrs runtimeNode [
+            "groups"
+            "unsafeRoutes"
+            "service"
+          ];
+          container = materialization.container or { };
+          hostBridge = container.hostBridge or null;
+        in
+        if builtins.isString hostBridge && builtins.elem hostBridge hostUplinkBridgeNames then
+          throw ''
+            network-renderer-nebula: ${path}.container.hostBridge must not attach a Nebula runtime node directly to deployment host uplink bridge '${hostBridge}'
+
+            Use a tenant/access bridge or an explicit targetContainer so underlay reachability traverses the modeled access, policy, selector, and core path.
+          ''
+        else
+          materialization;
 
       overlayEntries = builtins.concatLists (
         map (
@@ -170,6 +209,8 @@ let
                     requireAttr
                       "inventory.controlPlane.sites.${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}"
                       (runtimeNodes.${nodeName} or null);
+                  runtimeNodePath =
+                    "inventory.controlPlane.sites.${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
                   renderedNode =
                     requireAttr
                       "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nodes.${nodeName}"
@@ -197,11 +238,7 @@ let
                       name = runtimeNode.service.name or "nebula-runtime";
                       interface = runtimeNode.service.interface or "nebula1";
                     };
-                    materialization = builtins.removeAttrs runtimeNode [
-                      "groups"
-                      "unsafeRoutes"
-                      "service"
-                    ];
+                    materialization = validateRuntimeMaterialization runtimeNodePath runtimeNode;
                     lighthouse = {
                       node = lighthouseNodeName;
                       endpoint = requireString "${overlayName}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
