@@ -5,8 +5,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-intent_path="/home/deadbeef/github/network-labs/examples/tri-site-dual-wan-overlay-integration-bgp/intent.nix"
-inventory_path="/home/deadbeef/github/network-labs/examples/tri-site-dual-wan-overlay-integration-static/inventory-base.nix"
+intent_path="/home/deadbeef/github/network-labs/examples/s-router-test-three-site/intent.nix"
+inventory_path="/home/deadbeef/github/network-labs/examples/s-router-test-three-site/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
