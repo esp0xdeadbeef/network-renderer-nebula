@@ -44,4 +44,32 @@ jq -e '
   (.nodes | has("b-router-core") | not)
 ' "$tmp_dir/plan.json" >/dev/null
 
+nix eval --impure --no-warn-dirty --json --expr '
+  let
+    flake = builtins.getFlake (toString '"$repo_root"');
+    system = "x86_64-linux";
+    api = flake.libBySystem.${system}.renderer;
+    pkgs = import flake.inputs.nixpkgs { inherit system; };
+    plan = api.buildNebulaPlanFromPaths {
+      intentPath = "'"$intent_path"'";
+      inventoryPath = "'"$inventory_path"'";
+    };
+    module = api.buildNebulaBootstrapNixosModule {
+      inherit pkgs;
+      nebulaRuntimePlan = plan;
+      hetznerIpv4NatCidrs = [ "10.70.10.0/24" ];
+    };
+  in
+  {
+    profileServiceType = module.systemd.services.nebula-profile-bootstrap.serviceConfig.Type;
+    spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
+  }
+' > "$tmp_dir/bootstrap.json"
+
+jq -e '
+  .profileServiceType == "oneshot" and
+  (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
+  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null)
+' "$tmp_dir/bootstrap.json" >/dev/null
+
 echo "PASS test-nebula-plan"

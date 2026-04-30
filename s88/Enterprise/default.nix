@@ -56,10 +56,29 @@ let
       );
     in
     { inherit overlays nodes; };
+
+  buildNebulaBootstrapNixosModule =
+    {
+      pkgs,
+      nebulaRuntimePlan ? {
+        overlays = { };
+        nodes = { };
+      },
+      hetznerIpv4NatCidrs ? [ ],
+    }:
+    import ./bootstrap/nixos-module.nix {
+      inherit
+        lib
+        pkgs
+        nebulaRuntimePlan
+        hetznerIpv4NatCidrs
+        ;
+    };
 in
 {
   renderer = {
     buildNebulaPlan = buildNebulaPlan;
+    buildNebulaBootstrapNixosModule = buildNebulaBootstrapNixosModule;
 
     buildNebulaPlanFromPaths =
       {
