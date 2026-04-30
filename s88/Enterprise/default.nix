@@ -42,6 +42,7 @@ let
 
   withPrefixLength = cidr: prefixLength: "${stripPrefixLength cidr}/${builtins.toString prefixLength}";
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
+  uniqueStrings = values: lib.unique (lib.filter (value: builtins.isString value && value != "") values);
 
   collectHostUplinkBridgeNames =
     inventory:
@@ -215,6 +216,24 @@ let
                     requireAttr
                       "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nodes.${nodeName}"
                       (overlayNodes.${nodeName} or null);
+                  unsafeRoutes =
+                    if builtins.isList (runtimeNode.unsafeRoutes or null) then
+                      lib.filter builtins.isAttrs runtimeNode.unsafeRoutes
+                    else
+                      [ ];
+                  routePreparation = {
+                    removeRoutes = uniqueStrings (
+                      map (route: route.route or null) (lib.filter (route: (route.install or true)) unsafeRoutes)
+                    );
+                    overlayHosts = uniqueStrings [
+                      (stripPrefixLength (requireString "${lighthouseNodeName}.addr4" (lighthouseNode.addr4 or null)))
+                      (stripPrefixLength (requireString "${lighthouseNodeName}.addr6" (lighthouseNode.addr6 or null)))
+                    ];
+                    underlayEndpoints = uniqueStrings [
+                      (requireString "${overlayName}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null))
+                      (requireString "${overlayName}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null))
+                    ];
+                  };
                 in
                 {
                   name = nodeName;
@@ -229,11 +248,7 @@ let
                         lib.filter builtins.isString runtimeNode.groups
                       else
                         [ ];
-                    unsafeRoutes =
-                      if builtins.isList (runtimeNode.unsafeRoutes or null) then
-                        lib.filter builtins.isAttrs runtimeNode.unsafeRoutes
-                      else
-                        [ ];
+                    inherit unsafeRoutes routePreparation;
                     service = (runtimeNode.service or { }) // {
                       name = runtimeNode.service.name or "nebula-runtime";
                       interface = runtimeNode.service.interface or "nebula1";
