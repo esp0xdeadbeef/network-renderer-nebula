@@ -65,6 +65,7 @@ The flake exports:
 
 - `libBySystem.<system>.renderer.buildNebulaPlan`
 - `libBySystem.<system>.renderer.buildNebulaPlanFromPaths`
+- `libBySystem.<system>.renderer.buildNebulaBootstrapNixosModule`
 
 `buildNebulaPlan` takes an already-built control-plane model plus inventory.
 
@@ -97,6 +98,11 @@ Both return a plan shaped like:
   };
 }
 ```
+
+`buildNebulaBootstrapNixosModule` takes a rendered Nebula plan and returns a
+NixOS module that materializes the CA-unseal service, local runtime profiles,
+remote lighthouse profile, and modeled unsafe-route bootstrap. Consumers pass
+the plan through; they must not derive missing Nebula semantics locally.
 
 ## Security Model
 
