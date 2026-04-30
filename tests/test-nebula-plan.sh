@@ -29,6 +29,18 @@ jq -e '
     | map(select((.route == "::/1" or .route == "8000::/1") and .install == true))
     | length
   ) == 2 and
+  (
+    .nodes["b-router-core-nebula"].routePreparation.removeRoutes
+    | index("::/1") != null and index("8000::/1") != null
+  ) and
+  (
+    .nodes["b-router-core-nebula"].routePreparation.underlayEndpoints
+    | index("46.224.173.254") != null and index("2a01:4f8:c013:628b::1") != null
+  ) and
+  (
+    .nodes["b-router-core-nebula"].routePreparation.overlayHosts
+    | index("100.96.10.254") != null and index("fd42:dead:beef:ee::254") != null
+  ) and
   (.nodes | has("b-router-core") | not)
 ' "$tmp_dir/plan.json" >/dev/null
 
