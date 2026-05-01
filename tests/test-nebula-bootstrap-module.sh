@@ -23,12 +23,21 @@ nix eval --impure --no-warn-dirty --json --expr '
       nebulaRuntimePlan = plan;
       hetznerIpv4NatCidrs = [ "10.70.10.0/24" ];
     };
+    hetznerModule = api.buildHetznerLighthouseNixosModule {
+      inherit pkgs;
+      nebulaRuntimePlan = plan;
+      hetznerIpv4NatCidrs = [ "10.70.10.0/24" ];
+      externalInterface = "ens3";
+    };
   in
   {
     profileType = module.systemd.services.nebula-profile-bootstrap.serviceConfig.Type;
     profileScript = module.systemd.services.nebula-profile-bootstrap.script;
     spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
     tmpfiles = module.systemd.tmpfiles.rules;
+    hetznerServices = builtins.attrNames hetznerModule.systemd.services;
+    hetznerNat = hetznerModule.networking.nat;
+    hetznerFirewall = hetznerModule.networking.firewall;
   }
 ' > "$tmp_dir/bootstrap.json"
 
@@ -40,6 +49,13 @@ jq -e '
   (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null)
 ' "$tmp_dir/bootstrap.json" >/dev/null
 
+jq -e '
+  (.hetznerServices | index("nebula-s-router-test-lighthouse-east-west") != null) and
+  .hetznerNat.content.externalInterface == "ens3" and
+  (.hetznerNat.content.internalIPs | index("10.70.10.0/24") != null) and
+  (.hetznerFirewall.allowedUDPPorts | index(4242) != null)
+' "$tmp_dir/bootstrap.json" >/dev/null
+
 jq -r .profileScript "$tmp_dir/bootstrap.json" > "$tmp_dir/profile-script.sh"
 
 grep -F "hetzner_ipv4_nat_cidrs_csv='10.70.10.0/24'" "$tmp_dir/profile-script.sh" >/dev/null
@@ -48,7 +64,15 @@ grep -F 'mtu: 1200' "$tmp_dir/profile-script.sh" >/dev/null
 ! grep -F 'extra_route_yaml="    - route: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'local_cidr: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'ip6tables -C FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEPT' \
-  "$tmp_dir/profile-script.sh" >/dev/null
+  "$tmp_dir/profile-script.sh" >/dev/null && {
+    echo "renderer must not mutate remote Hetzner ip6tables rules" >&2
+    exit 1
+  }
+! grep -F 'cat > /etc/systemd/system/$service_name.service' "$tmp_dir/profile-script.sh" >/dev/null
+! grep -F 'curl -fsSL https://github.com/slackhq/nebula' "$tmp_dir/profile-script.sh" >/dev/null
+! grep -F 'iptables -C' "$tmp_dir/profile-script.sh" >/dev/null
+! grep -F 'ip6tables -C' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '/persist/nebula-runtime/lighthouses' "$tmp_dir/profile-script.sh" >/dev/null
 
 grep -F 'UNSAFEFWOUT' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'UNSAFEFWIN' "$tmp_dir/profile-script.sh" >/dev/null

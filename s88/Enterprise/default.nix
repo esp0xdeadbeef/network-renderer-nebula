@@ -74,11 +74,32 @@ let
         hetznerIpv4NatCidrs
         ;
     };
+
+  buildHetznerLighthouseNixosModule =
+    {
+      pkgs,
+      nebulaRuntimePlan ? {
+        overlays = { };
+        nodes = { };
+      },
+      hetznerIpv4NatCidrs ? [ ],
+      externalInterface ? "ens3",
+    }:
+    import ./bootstrap/hetzner-lighthouse-module.nix {
+      inherit
+        lib
+        pkgs
+        nebulaRuntimePlan
+        hetznerIpv4NatCidrs
+        externalInterface
+        ;
+    };
 in
 {
   renderer = {
     buildNebulaPlan = buildNebulaPlan;
     buildNebulaBootstrapNixosModule = buildNebulaBootstrapNixosModule;
+    buildHetznerLighthouseNixosModule = buildHetznerLighthouseNixosModule;
 
     buildNebulaPlanFromPaths =
       {
