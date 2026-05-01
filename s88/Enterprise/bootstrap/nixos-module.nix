@@ -610,17 +610,13 @@ EOF
           -o GlobalKnownHostsFile=/dev/null \
           -i "$root_ssh_dir/id_ed25519" \
           "root@$remote_hetzner_host" true 2>/dev/null; then
-          remote_state_dir="/root/nebula-s-router-test"
-          remote_profile_dir="$remote_state_dir/profile"
-          remote_bin_dir="$remote_state_dir/bin"
+          remote_lighthouse_base="/persist/nebula-runtime/lighthouses"
 
           printf '%s' "$lighthouses_json" | jq -r 'keys[]' | while read -r lighthouse_id; do
             cert_base_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certBaseName')"
             service_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].serviceName')"
             interface_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].interfaceName')"
             lighthouse_port="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].port')"
-            overlay_networks4_csv="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].overlayNetworks4Csv')"
-            overlay_networks6_csv="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].overlayNetworks6Csv')"
             unsafe_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].unsafeNetworks | join(",")')"
             unsafe_gateway4=""
             unsafe_gateway6=""
@@ -715,9 +711,9 @@ $route_yaml"
 
             cat > "$profiles_dir/$cert_base_name.config.yml" <<EOF
 pki:
-  ca: $remote_profile_dir/ca.crt
-  cert: $remote_profile_dir/$cert_base_name.crt
-  key: $remote_profile_dir/$cert_base_name.key
+  ca: $remote_lighthouse_base/$cert_base_name/ca.crt
+  cert: $remote_lighthouse_base/$cert_base_name/$cert_base_name.crt
+  key: $remote_lighthouse_base/$cert_base_name/$cert_base_name.key
 static_map:
   network: ip
 
@@ -772,90 +768,22 @@ EOF
 
             ${pkgs.openssh}/bin/ssh "''${ssh_remote_opts[@]}" "root@$remote_hetzner_host" "
                 set -euo pipefail
-                remote_state_dir='$remote_state_dir'
-                remote_profile_dir='$remote_profile_dir'
-                remote_bin_dir='$remote_bin_dir'
+                remote_profile_dir='$remote_lighthouse_base/$cert_base_name'
                 cert_base_name='$cert_base_name'
                 service_name='$service_name'
-                interface_name='$interface_name'
-                lighthouse_port='$lighthouse_port'
-                overlay_networks4_csv='$overlay_networks4_csv'
-                overlay_networks6_csv='$overlay_networks6_csv'
-                hetzner_ipv4_nat_cidrs_csv='$hetzner_ipv4_nat_cidrs_csv'
-                unsafe_networks='$unsafe_networks'
 
-                install -d -m 0700 \"\$remote_profile_dir\" \"\$remote_bin_dir\"
+                install -d -m 0700 \"\$remote_profile_dir\"
                 install -m 0600 /root/ca.crt \"\$remote_profile_dir/ca.crt\"
                 install -m 0600 /root/\$cert_base_name.crt \"\$remote_profile_dir/\$cert_base_name.crt\"
                 install -m 0600 /root/\$cert_base_name.key \"\$remote_profile_dir/\$cert_base_name.key\"
                 install -m 0600 /root/\$cert_base_name.config.yml \"\$remote_profile_dir/\$cert_base_name.config.yml\"
                 rm -f /root/ca.crt /root/\$cert_base_name.crt /root/\$cert_base_name.key /root/\$cert_base_name.config.yml
 
-                if ! command -v nebula >/dev/null 2>&1; then
-                  if ! test -x \"\$remote_bin_dir/nebula\"; then
-                    tmpdir=\"\$(mktemp -d)\"
-                    trap 'rm -rf \"\$tmpdir\"' EXIT
-                    curl -fsSL https://github.com/slackhq/nebula/releases/download/v1.10.3/nebula-linux-amd64.tar.gz | tar -C \"\$tmpdir\" -xz
-                    install -m 0755 \"\$tmpdir/nebula\" \"\$remote_bin_dir/nebula\"
-                  fi
-                  nebula_bin=\"\$remote_bin_dir/nebula\"
-                else
-                  nebula_bin=\"\$(command -v nebula)\"
-                fi
-
-                systemctl disable --now nebula-s-router-test-lighthouse.service 2>/dev/null || true
-
-                cat > /etc/systemd/system/\$service_name.service <<EOF_REMOTE
-[Unit]
-Description=Temporary Nebula lighthouse for s-router-test validation (\$service_name)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=\$nebula_bin -config \$remote_profile_dir/\$cert_base_name.config.yml
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-EOF_REMOTE
-
-                if command -v iptables >/dev/null 2>&1; then
-                  iptables -C INPUT -p udp --dport \$lighthouse_port -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport \$lighthouse_port -j ACCEPT
-                  iptables -C FORWARD -i \$interface_name -o eth0 -j ACCEPT 2>/dev/null || iptables -I FORWARD -i \$interface_name -o eth0 -j ACCEPT
-                  iptables -C FORWARD -i eth0 -o \$interface_name -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || iptables -I FORWARD -i eth0 -o \$interface_name -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-                  printf '%s\n' \"\$overlay_networks4_csv\" | tr ',' '\n' | while read -r cidr; do
-                    [ -n \"\$cidr\" ] || continue
-                    iptables -t nat -C POSTROUTING -s \"\$cidr\" -o eth0 -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s \"\$cidr\" -o eth0 -j MASQUERADE
-                  done
-                  printf '%s\n' \"\$hetzner_ipv4_nat_cidrs_csv\" | tr ',' '\n' | while read -r cidr; do
-                    [ -n \"\$cidr\" ] || continue
-                    iptables -t nat -C POSTROUTING -s \"\$cidr\" -o eth0 -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s \"\$cidr\" -o eth0 -j MASQUERADE
-                  done
-                fi
-                if command -v ip6tables >/dev/null 2>&1; then
-                  ip6tables -C INPUT -p udp --dport \$lighthouse_port -j ACCEPT 2>/dev/null || ip6tables -I INPUT -p udp --dport \$lighthouse_port -j ACCEPT
-                  ip6tables -C FORWARD -i \$interface_name -o eth0 -j ACCEPT 2>/dev/null || ip6tables -I FORWARD -i \$interface_name -o eth0 -j ACCEPT
-                  ip6tables -C FORWARD -i eth0 -o \$interface_name -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || ip6tables -I FORWARD -i eth0 -o \$interface_name -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-                  printf '%s\n' \"\$unsafe_networks\" | tr ',' '\n' | while read -r cidr; do
-                    [ -n \"\$cidr\" ] || continue
-                    printf '%s' \"\$cidr\" | grep -q ':' || continue
-                    ip6tables -C FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEPT 2>/dev/null || ip6tables -I FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEPT
-                  done
-                  printf '%s\n' \"\$overlay_networks6_csv\" | tr ',' '\n' | while read -r cidr; do
-                    [ -n \"\$cidr\" ] || continue
-                    ip6tables -t nat -C POSTROUTING -s \"\$cidr\" -o eth0 -j MASQUERADE 2>/dev/null || ip6tables -t nat -I POSTROUTING -s \"\$cidr\" -o eth0 -j MASQUERADE
-                  done
-                fi
-                sysctl -w net.ipv4.ip_forward=1
-                sysctl -w net.ipv6.conf.all.forwarding=1
-                systemctl daemon-reload
-                systemctl enable \$service_name.service
                 systemctl restart \$service_name.service
               " </dev/null
           done
         else
-          echo "nebula-profile-bootstrap: Hetzner SSH key not authorized yet for root@46.224.173.254" >&2
+          echo "nebula-profile-bootstrap: Hetzner SSH key not authorized yet for root@$remote_hetzner_host" >&2
         fi
       '';
     };
