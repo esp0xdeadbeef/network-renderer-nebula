@@ -50,6 +50,9 @@ grep -F 'local_cidr: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'ip6tables -C FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEPT' \
   "$tmp_dir/profile-script.sh" >/dev/null
 
+grep -F 'UNSAFEFWOUT' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'UNSAFEFWIN' "$tmp_dir/profile-script.sh" >/dev/null
+
 first_lighthouse_cert_block="$tmp_dir/first-lighthouse-cert-block.sh"
 awk '
   /printf '\''%s'\'' "\$lighthouses_json" \| jq -r '\''keys\[\]'\'' \| while read -r lighthouse_id; do/ {

@@ -568,6 +568,10 @@ fi)
     - port: any
       proto: any
       host: any
+$(if [ -n "$unsafe_fw_rules" ]; then cat <<UNSAFEFWIN
+$unsafe_fw_rules
+UNSAFEFWIN
+fi)
 EOF
         }
 
