@@ -472,7 +472,7 @@ else
                       "    - route: \(.route)\n      via: "
                       + (if (.route | contains(":")) then "__LIGHTHOUSE_IPV6__" else "__LIGHTHOUSE_IPV4__" end)
                       + "\n      mtu: "
-                      + (if (.route | contains(":")) then "1300" else "1200" end)
+                      + "1280"
                       + "\n      install: "
                       + (if (.install // true) then "true" else "false" end)
                     )
@@ -493,7 +493,7 @@ else
               [ -n "$delegated_prefix" ] || continue
               extra_route_yaml="    - route: $delegated_prefix
       via: $lighthouse_ip6
-      mtu: 1300
+      mtu: 1280
       install: false"
               extra_fw_rule="    - port: any
       proto: any
@@ -576,6 +576,7 @@ listen:
 
 tun:
   dev: nebula1
+  mtu: 1280
   drop_multicast: false
 $(if [ -n "$unsafe_routes_yaml" ]; then cat <<UNSAFE
   unsafe_routes:
@@ -715,15 +716,9 @@ EOF
                   via="$unsafe_gateway4"
                 fi
 
-                if printf '%s' "$cidr" | grep -q ':'; then
-                  mtu=1300
-                else
-                  mtu=1200
-                fi
-
                 route_yaml="    - route: $cidr
       via: $via
-      mtu: $mtu
+      mtu: 1280
       install: true"
                 if [ -n "$unsafe_routes_yaml" ]; then
                   unsafe_routes_yaml="$unsafe_routes_yaml
@@ -762,6 +757,7 @@ listen:
 
 tun:
   dev: $interface_name
+  mtu: 1280
   drop_multicast: false
 $(if [ -n "$unsafe_routes_yaml" ]; then cat <<UNSAFEREMOTE
   unsafe_routes:
