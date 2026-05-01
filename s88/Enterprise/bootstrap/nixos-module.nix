@@ -576,7 +576,7 @@ listen:
 
 tun:
   dev: nebula1
-  mtu: 1280
+  mtu: 1200
   drop_multicast: false
 $(if [ -n "$unsafe_routes_yaml" ]; then cat <<UNSAFE
   unsafe_routes:
@@ -757,7 +757,7 @@ listen:
 
 tun:
   dev: $interface_name
-  mtu: 1280
+  mtu: 1200
   drop_multicast: false
 $(if [ -n "$unsafe_routes_yaml" ]; then cat <<UNSAFEREMOTE
   unsafe_routes:
