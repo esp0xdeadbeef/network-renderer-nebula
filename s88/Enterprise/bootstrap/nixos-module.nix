@@ -491,20 +491,10 @@ else
           if node_has_default_exit_routes "$profile_name"; then
             while read -r delegated_prefix; do
               [ -n "$delegated_prefix" ] || continue
-              extra_route_yaml="    - route: $delegated_prefix
-      via: $lighthouse_ip6
-      mtu: 1280
-      install: false"
               extra_fw_rule="    - port: any
       proto: any
       host: any
       local_cidr: $delegated_prefix"
-              if [ -n "$unsafe_routes_yaml" ]; then
-                unsafe_routes_yaml="$unsafe_routes_yaml
-$extra_route_yaml"
-              else
-                unsafe_routes_yaml="$extra_route_yaml"
-              fi
               if [ -n "$unsafe_fw_rules" ]; then
                 unsafe_fw_rules="$unsafe_fw_rules
 $extra_fw_rule"
