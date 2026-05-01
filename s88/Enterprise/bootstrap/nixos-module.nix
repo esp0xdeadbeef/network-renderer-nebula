@@ -472,7 +472,7 @@ else
                       "    - route: \(.route)\n      via: "
                       + (if (.route | contains(":")) then "__LIGHTHOUSE_IPV6__" else "__LIGHTHOUSE_IPV4__" end)
                       + "\n      mtu: "
-                      + "1280"
+                      + (if (.route | contains(":")) then "1280" else "1200" end)
                       + "\n      install: "
                       + (if (.install // true) then "true" else "false" end)
                     )
