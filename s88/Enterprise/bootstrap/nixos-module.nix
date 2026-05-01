@@ -404,25 +404,6 @@ else
           cert_base_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certBaseName')"
           cert_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certNetworks | join(",")')"
           unsafe_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].unsafeNetworks | join(",")')"
-          hostile_overlay_id="$(
-            printf '%s' "$runtime_nodes_json" \
-              | jq -r '
-                  to_entries[]
-                  | select(
-                      any(.value.unsafeRoutes[]?; .route == "0.0.0.0/1" or .route == "128.0.0.0/1" or .route == "::/1" or .route == "8000::/1")
-                    )
-                  | .value.overlayId
-                ' \
-              | head -n1
-          )"
-          if [ -n "$hostile_overlay_id" ]; then
-            lighthouse_overlay_ids_csv="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].overlayIds | join(",")')"
-            if printf '%s\n' "$lighthouse_overlay_ids_csv" | tr ',' '\n' | grep -Fxq "$hostile_overlay_id"; then
-              while read -r delegated_prefix; do
-                unsafe_networks="$(append_csv "$unsafe_networks" "$delegated_prefix")"
-              done < <(access_prefixes_all)
-            fi
-          fi
           issue_node_cert "$cert_base_name" "$cert_networks" "lab,lighthouse" "$unsafe_networks"
         done
 

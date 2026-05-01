@@ -50,4 +50,16 @@ grep -F 'local_cidr: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'ip6tables -C FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEPT' \
   "$tmp_dir/profile-script.sh" >/dev/null
 
+first_lighthouse_cert_block="$tmp_dir/first-lighthouse-cert-block.sh"
+awk '
+  /printf '\''%s'\'' "\$lighthouses_json" \| jq -r '\''keys\[\]'\'' \| while read -r lighthouse_id; do/ {
+    if (++seen == 1) in_block = 1
+  }
+  in_block { print }
+  in_block && /issue_node_cert "\$cert_base_name" "\$cert_networks" "lab,lighthouse" "\$unsafe_networks"/ {
+    exit
+  }
+' "$tmp_dir/profile-script.sh" > "$first_lighthouse_cert_block"
+! grep -F 'access_prefixes_all' "$first_lighthouse_cert_block" >/dev/null
+
 echo "PASS test-nebula-bootstrap-module"
