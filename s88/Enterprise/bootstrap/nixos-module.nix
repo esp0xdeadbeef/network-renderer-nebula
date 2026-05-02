@@ -5,7 +5,10 @@
     overlays = { };
     nodes = { };
   },
-  hetznerIpv4NatCidrs ? [ ],
+  externalLighthouseIpv4NatCidrs ? [ ],
+  externalLighthousePublicIpv4SecretPath ? null,
+  externalLighthousePublicIpv6SecretPath ? null,
+  externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
 }:
 let
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
@@ -166,7 +169,11 @@ let
 
   runtimeNodesJson = builtins.toJSON runtimeNodes;
   lighthousesJson = builtins.toJSON lighthouses;
-  hetznerIpv4NatCidrsCsv = lib.concatStringsSep "," hetznerIpv4NatCidrs;
+  externalLighthouseIpv4NatCidrsCsv = lib.concatStringsSep "," externalLighthouseIpv4NatCidrs;
+  shellArgOrEmpty = value: lib.escapeShellArg (if value == null then "" else value);
+  externalLighthousePublicIpv4SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv4SecretPath;
+  externalLighthousePublicIpv6SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv6SecretPath;
+  externalLighthouseSshHostSecretPathArg = shellArgOrEmpty externalLighthouseSshHostSecretPath;
 in
 if runtimeNodeNames == [ ] then
   { }
@@ -304,7 +311,10 @@ else
         signing_ca_key="/run/nebula-runtime/unsealed/ca.key"
         runtime_nodes_json='${runtimeNodesJson}'
         lighthouses_json='${lighthousesJson}'
-        hetzner_ipv4_nat_cidrs_csv='${hetznerIpv4NatCidrsCsv}'
+        external_lighthouse_ipv4_nat_cidrs_csv='${externalLighthouseIpv4NatCidrsCsv}'
+        external_lighthouse_public_ipv4_secret=${externalLighthousePublicIpv4SecretPathArg}
+        external_lighthouse_public_ipv6_secret=${externalLighthousePublicIpv6SecretPathArg}
+        external_lighthouse_ssh_host_secret=${externalLighthouseSshHostSecretPathArg}
 
         cleanup() {
           rm -f "$signing_ca_key"
@@ -395,7 +405,7 @@ else
             done < <(access_prefixes_all)
             while read -r cidr; do
               unsafe_networks="$(append_csv "$unsafe_networks" "$cidr")"
-            done < <(printf '%s\n' "$hetzner_ipv4_nat_cidrs_csv" | tr ',' '\n' | sed '/^$/d')
+            done < <(printf '%s\n' "$external_lighthouse_ipv4_nat_cidrs_csv" | tr ',' '\n' | sed '/^$/d')
           fi
           issue_node_cert "$node_name" "$cert_cidr4,$cert_cidr6" "$groups_csv" "$unsafe_networks"
         done
@@ -435,11 +445,11 @@ else
           lighthouse_endpoint="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.endpoint')"
           lighthouse_endpoint6="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.endpoint6')"
           lighthouse_port="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.port')"
-          if [ -s /run/secrets/hetzner-public-ipv4 ]; then
-            lighthouse_endpoint="$(tr -d '[:space:]' </run/secrets/hetzner-public-ipv4)"
+          if [ -n "$external_lighthouse_public_ipv4_secret" ] && [ -s "$external_lighthouse_public_ipv4_secret" ]; then
+            lighthouse_endpoint="$(tr -d '[:space:]' <"$external_lighthouse_public_ipv4_secret")"
           fi
-          if [ -s /run/secrets/hetzner-public-ipv6 ]; then
-            lighthouse_endpoint6="$(tr -d '[:space:]' </run/secrets/hetzner-public-ipv6)"
+          if [ -n "$external_lighthouse_public_ipv6_secret" ] && [ -s "$external_lighthouse_public_ipv6_secret" ]; then
+            lighthouse_endpoint6="$(tr -d '[:space:]' <"$external_lighthouse_public_ipv6_secret")"
             lighthouse_endpoint6="''${lighthouse_endpoint6%%/*}"
             if printf '%s' "$lighthouse_endpoint6" | grep -q '::$'; then
               lighthouse_endpoint6="''${lighthouse_endpoint6}1"
@@ -602,12 +612,12 @@ EOF
           best_effort_restart_nebula_runtime "$node_name"
         done
 
-        remote_hetzner_host=""
-        if [ -s /run/secrets/hetzner-public-ipv4 ]; then
-          remote_hetzner_host="$(tr -d '[:space:]' </run/secrets/hetzner-public-ipv4)"
+        remote_external_lighthouse_host=""
+        if [ -n "$external_lighthouse_ssh_host_secret" ] && [ -s "$external_lighthouse_ssh_host_secret" ]; then
+          remote_external_lighthouse_host="$(tr -d '[:space:]' <"$external_lighthouse_ssh_host_secret")"
         fi
 
-        if [ -n "$remote_hetzner_host" ] && ${pkgs.openssh}/bin/ssh \
+        if [ -n "$remote_external_lighthouse_host" ] && ${pkgs.openssh}/bin/ssh \
           -o BatchMode=yes \
           -o ConnectTimeout=10 \
           -o IdentitiesOnly=yes \
@@ -615,7 +625,7 @@ EOF
           -o UserKnownHostsFile=/dev/null \
           -o GlobalKnownHostsFile=/dev/null \
           -i "$root_ssh_dir/id_ed25519" \
-          "root@$remote_hetzner_host" true 2>/dev/null; then
+          "root@$remote_external_lighthouse_host" true 2>/dev/null; then
           remote_lighthouse_base="/persist/nebula-runtime/lighthouses"
 
           printf '%s' "$lighthouses_json" | jq -r 'keys[]' | while read -r lighthouse_id; do
@@ -671,7 +681,7 @@ EOF
                 while read -r delegated_prefix; do
                   unsafe_networks="$(append_csv "$unsafe_networks" "$delegated_prefix")"
                 done <<< "$delegated_prefixes"
-                ipv4_return_prefixes="$(printf '%s\n' "$hetzner_ipv4_nat_cidrs_csv" | tr ',' '\n' | sed '/^$/d')"
+                ipv4_return_prefixes="$(printf '%s\n' "$external_lighthouse_ipv4_nat_cidrs_csv" | tr ',' '\n' | sed '/^$/d')"
                 while read -r cidr; do
                   unsafe_networks="$(append_csv "$unsafe_networks" "$cidr")"
                 done <<< "$ipv4_return_prefixes"
@@ -769,10 +779,10 @@ EOF
               "$pki_dir/$cert_base_name.crt" \
               "$pki_dir/$cert_base_name.key" \
               "$profiles_dir/$cert_base_name.config.yml" \
-              "root@$remote_hetzner_host:/root/" \
+              "root@$remote_external_lighthouse_host:/root/" \
               </dev/null
 
-            ${pkgs.openssh}/bin/ssh "''${ssh_remote_opts[@]}" "root@$remote_hetzner_host" "
+            ${pkgs.openssh}/bin/ssh "''${ssh_remote_opts[@]}" "root@$remote_external_lighthouse_host" "
                 set -euo pipefail
                 remote_profile_dir='$remote_lighthouse_base/$cert_base_name'
                 cert_base_name='$cert_base_name'
@@ -789,7 +799,7 @@ EOF
               " </dev/null
           done
         else
-          echo "nebula-profile-bootstrap: Hetzner SSH key not authorized yet for root@$remote_hetzner_host" >&2
+          echo "nebula-profile-bootstrap: external lighthouse SSH key not authorized yet for root@$remote_external_lighthouse_host" >&2
         fi
       '';
     };

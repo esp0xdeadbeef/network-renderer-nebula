@@ -64,33 +64,39 @@ let
         overlays = { };
         nodes = { };
       },
-      hetznerIpv4NatCidrs ? [ ],
+      externalLighthouseIpv4NatCidrs ? [ ],
+      externalLighthousePublicIpv4SecretPath ? null,
+      externalLighthousePublicIpv6SecretPath ? null,
+      externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
     }:
     import ./bootstrap/nixos-module.nix {
       inherit
         lib
         pkgs
         nebulaRuntimePlan
-        hetznerIpv4NatCidrs
+        externalLighthouseIpv4NatCidrs
+        externalLighthousePublicIpv4SecretPath
+        externalLighthousePublicIpv6SecretPath
+        externalLighthouseSshHostSecretPath
         ;
     };
 
-  buildHetznerLighthouseNixosModule =
+  buildExternalLighthouseNixosModule =
     {
       pkgs,
       nebulaRuntimePlan ? {
         overlays = { };
         nodes = { };
       },
-      hetznerIpv4NatCidrs ? [ ],
+      externalLighthouseIpv4NatCidrs ? [ ],
       externalInterface ? "ens3",
     }:
-    import ./bootstrap/hetzner-lighthouse-module.nix {
+    import ./bootstrap/external-lighthouse-module.nix {
       inherit
         lib
         pkgs
         nebulaRuntimePlan
-        hetznerIpv4NatCidrs
+        externalLighthouseIpv4NatCidrs
         externalInterface
         ;
     };
@@ -99,7 +105,7 @@ in
   renderer = {
     buildNebulaPlan = buildNebulaPlan;
     buildNebulaBootstrapNixosModule = buildNebulaBootstrapNixosModule;
-    buildHetznerLighthouseNixosModule = buildHetznerLighthouseNixosModule;
+    buildExternalLighthouseNixosModule = buildExternalLighthouseNixosModule;
 
     buildNebulaPlanFromPaths =
       {
