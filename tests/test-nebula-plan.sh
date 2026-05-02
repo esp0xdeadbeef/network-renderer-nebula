@@ -2,11 +2,13 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${repo_root}/tests/lib/input-path.sh"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-intent_path="/home/deadbeef/github/network-labs/examples/s-router-test-three-site/intent.nix"
-inventory_path="/home/deadbeef/github/network-labs/examples/s-router-test-three-site/inventory-nixos.nix"
+labs_path="$(resolve_input_path "${repo_root}" network-labs)"
+intent_path="${labs_path}/examples/s-router-test-three-site/intent.nix"
+inventory_path="${labs_path}/examples/s-router-test-three-site/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
