@@ -43,6 +43,8 @@ let
               inherit
                 enterpriseName
                 siteName
+                siteCpm
+                cpmData
                 overlayName
                 overlayInventory
                 overlayCpm

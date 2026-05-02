@@ -20,6 +20,8 @@ let
   inherit (entry)
     enterpriseName
     siteName
+    siteCpm
+    cpmData
     overlayName
     overlayInventory
     overlayCpm
@@ -98,6 +100,8 @@ in
         overlayName
         overlayId
         overlayNodes
+        siteCpm
+        cpmData
         runtimeNodes
         prefixLength4
         prefixLength6
