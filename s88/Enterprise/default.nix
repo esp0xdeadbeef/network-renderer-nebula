@@ -88,16 +88,12 @@ let
         overlays = { };
         nodes = { };
       },
-      externalLighthouseIpv4NatCidrs ? [ ],
-      externalInterface ? "ens3",
     }:
     import ./bootstrap/external-lighthouse-module.nix {
       inherit
         lib
         pkgs
         nebulaRuntimePlan
-        externalLighthouseIpv4NatCidrs
-        externalInterface
         ;
     };
 in

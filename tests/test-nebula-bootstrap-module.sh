@@ -31,8 +31,6 @@ nix eval --impure --no-warn-dirty --json --expr '
     externalModule = api.buildExternalLighthouseNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
-      externalLighthouseIpv4NatCidrs = [ "10.70.10.0/24" ];
-      externalInterface = "ens3";
     };
   in
   {
@@ -42,7 +40,6 @@ nix eval --impure --no-warn-dirty --json --expr '
     tmpfiles = module.systemd.tmpfiles.rules;
     externalServices = builtins.attrNames externalModule.systemd.services;
     externalEastWestUnit = externalModule.systemd.services.nebula-s-router-test-lighthouse-east-west;
-    externalNat = externalModule.networking.nat;
     externalFirewall = externalModule.networking.firewall;
   }
 ' > "$tmp_dir/bootstrap.json"
@@ -59,8 +56,7 @@ jq -e '
   (.externalServices | index("nebula-s-router-test-lighthouse-east-west") != null) and
   (.externalEastWestUnit.unitConfig.ConditionPathExists | test("^/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
   (.externalEastWestUnit.serviceConfig.ExecStart | test("/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
-  .externalNat.content.externalInterface == "ens3" and
-  (.externalNat.content.internalIPs | index("10.70.10.0/24") != null) and
+  (. | has("externalNat") | not) and
   (.externalFirewall.allowedUDPPorts | index(4242) != null)
 ' "$tmp_dir/bootstrap.json" >/dev/null
 
