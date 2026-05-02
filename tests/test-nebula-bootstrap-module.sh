@@ -23,7 +23,7 @@ nix eval --impure --no-warn-dirty --json --expr '
     module = api.buildNebulaBootstrapNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
-      externalLighthouseIpv4NatCidrs = [ "10.70.10.0/24" ];
+      externalLighthouseReturnIpv4Cidrs = [ "10.70.10.0/24" ];
       externalLighthousePublicIpv4SecretPath = "/run/secrets/external-public-ipv4";
       externalLighthousePublicIpv6SecretPath = "/run/secrets/external-public-ipv6";
       externalLighthouseSshHostSecretPath = "/run/secrets/external-ssh-host";
@@ -56,13 +56,12 @@ jq -e '
   (.externalServices | index("nebula-s-router-test-lighthouse-east-west") != null) and
   (.externalEastWestUnit.unitConfig.ConditionPathExists | test("^/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
   (.externalEastWestUnit.serviceConfig.ExecStart | test("/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
-  (. | has("externalNat") | not) and
   (.externalFirewall.allowedUDPPorts | index(4242) != null)
 ' "$tmp_dir/bootstrap.json" >/dev/null
 
 jq -r .profileScript "$tmp_dir/bootstrap.json" > "$tmp_dir/profile-script.sh"
 
-grep -F "external_lighthouse_ipv4_nat_cidrs_csv='10.70.10.0/24'" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_lighthouse_return_ipv4_cidrs_csv='10.70.10.0/24'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_public_ipv4_secret=/run/secrets/external-public-ipv4" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_public_ipv6_secret=/run/secrets/external-public-ipv6" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_ssh_host_secret=/run/secrets/external-ssh-host" "$tmp_dir/profile-script.sh" >/dev/null
