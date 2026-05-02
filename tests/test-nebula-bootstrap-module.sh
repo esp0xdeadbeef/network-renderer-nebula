@@ -62,6 +62,8 @@ jq -r .profileScript "$tmp_dir/bootstrap.json" > "$tmp_dir/profile-script.sh"
 
 grep -F "hetzner_ipv4_nat_cidrs_csv='10.70.10.0/24'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '+ (if (.route | contains(":")) then "1280" else "1200" end)' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '(.via6 // .via // "__LIGHTHOUSE_IPV6__")' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '(.via4 // .via // "__LIGHTHOUSE_IPV4__")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'mtu: 1200' "$tmp_dir/profile-script.sh" >/dev/null
 ! grep -F 'extra_route_yaml="    - route: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'local_cidr: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null

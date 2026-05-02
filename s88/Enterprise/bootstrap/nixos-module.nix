@@ -451,7 +451,13 @@ else
                   .[$n].unsafeRoutes
                   | map(
                       "    - route: \(.route)\n      via: "
-                      + (if (.route | contains(":")) then "__LIGHTHOUSE_IPV6__" else "__LIGHTHOUSE_IPV4__" end)
+                      + (
+                          if (.route | contains(":")) then
+                            (.via6 // .via // "__LIGHTHOUSE_IPV6__")
+                          else
+                            (.via4 // .via // "__LIGHTHOUSE_IPV4__")
+                          end
+                        )
                       + "\n      mtu: "
                       + (if (.route | contains(":")) then "1280" else "1200" end)
                       + "\n      install: "

@@ -6,6 +6,8 @@
   overlayName,
   overlayId,
   overlayNodes,
+  siteCpm,
+  cpmData,
   runtimeNodes,
   prefixLength4,
   prefixLength6,
@@ -22,6 +24,43 @@ let
     uniqueStrings
     withPrefixLength
     ;
+
+  inherit
+    (import ./modeled-unsafe-routes.nix {
+      inherit
+        lib
+        helpers
+        overlayName
+        overlayId
+        siteCpm
+        cpmData
+        ;
+    })
+    modeledUnsafeRoutesForNode
+    ;
+
+  uniqueRoutes =
+    routes:
+    let
+      keyed = builtins.listToAttrs (
+        map (
+          route:
+          let
+            key = lib.concatStringsSep "|" [
+              (route.route or "")
+              (route.via4 or "")
+              (route.via6 or "")
+              (if route.install or true then "install" else "noinstall")
+            ];
+          in
+          {
+            name = key;
+            value = route;
+          }
+        ) routes
+      );
+    in
+    map (key: keyed.${key}) (sortedAttrNames keyed);
 in
 builtins.listToAttrs (
   map (
@@ -34,10 +73,15 @@ builtins.listToAttrs (
         "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nodes.${nodeName}";
       renderedNode = requireAttr renderedPath (overlayNodes.${nodeName} or null);
       unsafeRoutes =
-        if builtins.isList (runtimeNode.unsafeRoutes or null) then
-          lib.filter builtins.isAttrs runtimeNode.unsafeRoutes
-        else
-          [ ];
+        uniqueRoutes (
+          (
+            if builtins.isList (runtimeNode.unsafeRoutes or null) then
+              lib.filter builtins.isAttrs runtimeNode.unsafeRoutes
+            else
+              [ ]
+          )
+          ++ modeledUnsafeRoutesForNode nodeName
+        );
       routePreparation = {
         removeRoutes = uniqueStrings (
           map (route: route.route or null) (lib.filter (route: (route.install or true)) unsafeRoutes)
