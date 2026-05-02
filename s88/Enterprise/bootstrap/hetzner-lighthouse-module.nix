@@ -137,10 +137,10 @@ in
             wants = [ "network-online.target" ];
             wantedBy = [ "multi-user.target" ];
             unitConfig.ConditionPathExists =
-              "/persist/nebula-runtime/lighthouses/${lh.certBaseName}/config.yml";
+              "/persist/nebula-runtime/lighthouses/${lh.certBaseName}/${lh.certBaseName}.config.yml";
             serviceConfig = {
               ExecStart =
-                "${pkgs.nebula}/bin/nebula -config /persist/nebula-runtime/lighthouses/${lh.certBaseName}/config.yml";
+                "${pkgs.nebula}/bin/nebula -config /persist/nebula-runtime/lighthouses/${lh.certBaseName}/${lh.certBaseName}.config.yml";
               Restart = "always";
               RestartSec = 2;
             };

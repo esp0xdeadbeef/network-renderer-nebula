@@ -38,6 +38,7 @@ nix eval --impure --no-warn-dirty --json --expr '
     spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
     tmpfiles = module.systemd.tmpfiles.rules;
     hetznerServices = builtins.attrNames hetznerModule.systemd.services;
+    hetznerEastWestUnit = hetznerModule.systemd.services.nebula-s-router-test-lighthouse-east-west;
     hetznerNat = hetznerModule.networking.nat;
     hetznerFirewall = hetznerModule.networking.firewall;
   }
@@ -53,6 +54,8 @@ jq -e '
 
 jq -e '
   (.hetznerServices | index("nebula-s-router-test-lighthouse-east-west") != null) and
+  .hetznerEastWestUnit.unitConfig.ConditionPathExists == "/persist/nebula-runtime/lighthouses/east-west-hetzner-nebula-prodtest-01/east-west-hetzner-nebula-prodtest-01.config.yml" and
+  (.hetznerEastWestUnit.serviceConfig.ExecStart | contains("/persist/nebula-runtime/lighthouses/east-west-hetzner-nebula-prodtest-01/east-west-hetzner-nebula-prodtest-01.config.yml")) and
   .hetznerNat.content.externalInterface == "ens3" and
   (.hetznerNat.content.internalIPs | index("10.70.10.0/24") != null) and
   (.hetznerFirewall.allowedUDPPorts | index(4242) != null)
