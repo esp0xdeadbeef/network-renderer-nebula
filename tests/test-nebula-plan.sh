@@ -69,7 +69,7 @@ nix eval --impure --no-warn-dirty --json --expr '
     module = api.buildNebulaBootstrapNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
-      externalLighthouseIpv4NatCidrs = [ "10.70.10.0/24" ];
+      externalLighthouseReturnIpv4Cidrs = [ "10.70.10.0/24" ];
     };
   in
   {

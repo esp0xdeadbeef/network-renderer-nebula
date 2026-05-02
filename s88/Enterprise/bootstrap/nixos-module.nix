@@ -5,7 +5,7 @@
     overlays = { };
     nodes = { };
   },
-  externalLighthouseIpv4NatCidrs ? [ ],
+  externalLighthouseReturnIpv4Cidrs ? [ ],
   externalLighthousePublicIpv4SecretPath ? null,
   externalLighthousePublicIpv6SecretPath ? null,
   externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
@@ -169,7 +169,7 @@ let
 
   runtimeNodesJson = builtins.toJSON runtimeNodes;
   lighthousesJson = builtins.toJSON lighthouses;
-  externalLighthouseIpv4NatCidrsCsv = lib.concatStringsSep "," externalLighthouseIpv4NatCidrs;
+  externalLighthouseReturnIpv4CidrsCsv = lib.concatStringsSep "," externalLighthouseReturnIpv4Cidrs;
   shellArgOrEmpty = value: lib.escapeShellArg (if value == null then "" else value);
   externalLighthousePublicIpv4SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv4SecretPath;
   externalLighthousePublicIpv6SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv6SecretPath;
@@ -311,7 +311,7 @@ else
         signing_ca_key="/run/nebula-runtime/unsealed/ca.key"
         runtime_nodes_json='${runtimeNodesJson}'
         lighthouses_json='${lighthousesJson}'
-        external_lighthouse_ipv4_nat_cidrs_csv='${externalLighthouseIpv4NatCidrsCsv}'
+        external_lighthouse_return_ipv4_cidrs_csv='${externalLighthouseReturnIpv4CidrsCsv}'
         external_lighthouse_public_ipv4_secret=${externalLighthousePublicIpv4SecretPathArg}
         external_lighthouse_public_ipv6_secret=${externalLighthousePublicIpv6SecretPathArg}
         external_lighthouse_ssh_host_secret=${externalLighthouseSshHostSecretPathArg}
@@ -405,7 +405,7 @@ else
             done < <(access_prefixes_all)
             while read -r cidr; do
               unsafe_networks="$(append_csv "$unsafe_networks" "$cidr")"
-            done < <(printf '%s\n' "$external_lighthouse_ipv4_nat_cidrs_csv" | tr ',' '\n' | sed '/^$/d')
+            done < <(printf '%s\n' "$external_lighthouse_return_ipv4_cidrs_csv" | tr ',' '\n' | sed '/^$/d')
           fi
           issue_node_cert "$node_name" "$cert_cidr4,$cert_cidr6" "$groups_csv" "$unsafe_networks"
         done
@@ -681,7 +681,7 @@ EOF
                 while read -r delegated_prefix; do
                   unsafe_networks="$(append_csv "$unsafe_networks" "$delegated_prefix")"
                 done <<< "$delegated_prefixes"
-                ipv4_return_prefixes="$(printf '%s\n' "$external_lighthouse_ipv4_nat_cidrs_csv" | tr ',' '\n' | sed '/^$/d')"
+                ipv4_return_prefixes="$(printf '%s\n' "$external_lighthouse_return_ipv4_cidrs_csv" | tr ',' '\n' | sed '/^$/d')"
                 while read -r cidr; do
                   unsafe_networks="$(append_csv "$unsafe_networks" "$cidr")"
                 done <<< "$ipv4_return_prefixes"

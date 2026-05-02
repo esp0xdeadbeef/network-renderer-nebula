@@ -64,7 +64,7 @@ let
         overlays = { };
         nodes = { };
       },
-      externalLighthouseIpv4NatCidrs ? [ ],
+      externalLighthouseReturnIpv4Cidrs ? [ ],
       externalLighthousePublicIpv4SecretPath ? null,
       externalLighthousePublicIpv6SecretPath ? null,
       externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
@@ -74,7 +74,7 @@ let
         lib
         pkgs
         nebulaRuntimePlan
-        externalLighthouseIpv4NatCidrs
+        externalLighthouseReturnIpv4Cidrs
         externalLighthousePublicIpv4SecretPath
         externalLighthousePublicIpv6SecretPath
         externalLighthouseSshHostSecretPath
