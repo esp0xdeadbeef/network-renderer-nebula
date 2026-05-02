@@ -23,12 +23,15 @@ nix eval --impure --no-warn-dirty --json --expr '
     module = api.buildNebulaBootstrapNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
-      hetznerIpv4NatCidrs = [ "10.70.10.0/24" ];
+      externalLighthouseIpv4NatCidrs = [ "10.70.10.0/24" ];
+      externalLighthousePublicIpv4SecretPath = "/run/secrets/external-public-ipv4";
+      externalLighthousePublicIpv6SecretPath = "/run/secrets/external-public-ipv6";
+      externalLighthouseSshHostSecretPath = "/run/secrets/external-ssh-host";
     };
-    hetznerModule = api.buildHetznerLighthouseNixosModule {
+    externalModule = api.buildExternalLighthouseNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
-      hetznerIpv4NatCidrs = [ "10.70.10.0/24" ];
+      externalLighthouseIpv4NatCidrs = [ "10.70.10.0/24" ];
       externalInterface = "ens3";
     };
   in
@@ -37,10 +40,10 @@ nix eval --impure --no-warn-dirty --json --expr '
     profileScript = module.systemd.services.nebula-profile-bootstrap.script;
     spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
     tmpfiles = module.systemd.tmpfiles.rules;
-    hetznerServices = builtins.attrNames hetznerModule.systemd.services;
-    hetznerEastWestUnit = hetznerModule.systemd.services.nebula-s-router-test-lighthouse-east-west;
-    hetznerNat = hetznerModule.networking.nat;
-    hetznerFirewall = hetznerModule.networking.firewall;
+    externalServices = builtins.attrNames externalModule.systemd.services;
+    externalEastWestUnit = externalModule.systemd.services.nebula-s-router-test-lighthouse-east-west;
+    externalNat = externalModule.networking.nat;
+    externalFirewall = externalModule.networking.firewall;
   }
 ' > "$tmp_dir/bootstrap.json"
 
@@ -53,17 +56,20 @@ jq -e '
 ' "$tmp_dir/bootstrap.json" >/dev/null
 
 jq -e '
-  (.hetznerServices | index("nebula-s-router-test-lighthouse-east-west") != null) and
-  .hetznerEastWestUnit.unitConfig.ConditionPathExists == "/persist/nebula-runtime/lighthouses/east-west-hetzner-nebula-prodtest-01/east-west-hetzner-nebula-prodtest-01.config.yml" and
-  (.hetznerEastWestUnit.serviceConfig.ExecStart | contains("/persist/nebula-runtime/lighthouses/east-west-hetzner-nebula-prodtest-01/east-west-hetzner-nebula-prodtest-01.config.yml")) and
-  .hetznerNat.content.externalInterface == "ens3" and
-  (.hetznerNat.content.internalIPs | index("10.70.10.0/24") != null) and
-  (.hetznerFirewall.allowedUDPPorts | index(4242) != null)
+  (.externalServices | index("nebula-s-router-test-lighthouse-east-west") != null) and
+  (.externalEastWestUnit.unitConfig.ConditionPathExists | test("^/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
+  (.externalEastWestUnit.serviceConfig.ExecStart | test("/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
+  .externalNat.content.externalInterface == "ens3" and
+  (.externalNat.content.internalIPs | index("10.70.10.0/24") != null) and
+  (.externalFirewall.allowedUDPPorts | index(4242) != null)
 ' "$tmp_dir/bootstrap.json" >/dev/null
 
 jq -r .profileScript "$tmp_dir/bootstrap.json" > "$tmp_dir/profile-script.sh"
 
-grep -F "hetzner_ipv4_nat_cidrs_csv='10.70.10.0/24'" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_lighthouse_ipv4_nat_cidrs_csv='10.70.10.0/24'" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_lighthouse_public_ipv4_secret=/run/secrets/external-public-ipv4" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_lighthouse_public_ipv6_secret=/run/secrets/external-public-ipv6" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_lighthouse_ssh_host_secret=/run/secrets/external-ssh-host" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '+ (if (.route | contains(":")) then "1280" else "1200" end)' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '(.via6 // .via // "__LIGHTHOUSE_IPV6__")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '(.via4 // .via // "__LIGHTHOUSE_IPV4__")' "$tmp_dir/profile-script.sh" >/dev/null
@@ -72,7 +78,7 @@ grep -F 'mtu: 1200' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'local_cidr: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'ip6tables -C FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEPT' \
   "$tmp_dir/profile-script.sh" >/dev/null && {
-    echo "renderer must not mutate remote Hetzner ip6tables rules" >&2
+    echo "renderer must not mutate remote external lighthouse ip6tables rules" >&2
     exit 1
   }
 ! grep -F 'cat > /etc/systemd/system/$service_name.service' "$tmp_dir/profile-script.sh" >/dev/null

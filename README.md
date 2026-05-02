@@ -1,63 +1,40 @@
 # network-renderer-nebula
 
-`network-renderer-nebula` is the Nebula-specific runtime renderer for the
-`network-*` pipeline.
+`network-renderer-nebula` emits Nebula runtime materialization from explicit
+CPM overlay data and Nebula realization input.
 
-It sits after the control-plane stage:
+It is a provider renderer, not a forwarding model.
 
 ```text
-intent.nix
-  -> network-compiler
-  -> network-forwarding-model
-  -> network-control-plane-model
-  -> network-renderer-nebula
+network-forwarding-model -> network-control-plane-model -> network-renderer-nebula
 ```
 
-## Scope
+## Contract
 
-This renderer is responsible for Nebula runtime materialization only.
+- The forwarding model and CPM are the source of truth.
+- CPM decides overlay ownership, termination, prefixes, policy, and public-exit
+  semantics.
+- This renderer consumes explicit Nebula input and emits Nebula runtime output.
+- Missing, partial, or inconsistent Nebula input must fail evaluation.
+- Consumers must wire the emitted output; they must not derive Nebula semantics
+  locally.
 
-It consumes:
+## Allowed
 
-- control-plane overlay data from `network-control-plane-model`
-- Nebula-specific realization data from inventory
+- Render Nebula runtime plans.
+- Render node identities, overlay addresses, groups, lighthouse data, unsafe
+  routes, service metadata, cert/signing inputs, and NixOS bootstrap modules.
+- Render external lighthouse validation host material from explicit runtime
+  values supplied before evaluation.
 
-It emits:
+## Not Allowed
 
-- per-overlay Nebula runtime plans
-- per-node Nebula runtime plans
-- node overlay addresses
-- lighthouse metadata
-- cert/signing inputs
-- modeled unsafe routes
-- runtime service/materialization metadata
-
-It is **not** responsible for:
-
-- overlay policy semantics
-- `terminateOn`
-- forwarding ownership
-- public-exit policy
-- tenant/public prefix ownership
-
-Those belong upstream.
-
-## Intended Consumer Model
-
-The host or container runtime should not derive Nebula semantics locally.
-
-The consumer should:
-
-1. ask this renderer for the rendered node/runtime plan
-2. mount the emitted profile/certs/config in the right place
-3. start the emitted Nebula service
-
-The consumer should **not**:
-
-- invent overlay addresses
-- compute route ownership
-- decide who terminates an overlay
-- patch missing unsafe routes after boot
+- Decide forwarding policy, tenant reachability, overlay termination, public
+  exit, DNS behavior, or prefix ownership.
+- Guess Nebula routes, addresses, lighthouses, or groups from names.
+- Patch missing unsafe routes after boot.
+- Require `network-renderer-nixos` or `s-router-test` to reinterpret Nebula
+  provider semantics.
 
 ## API
 
@@ -66,66 +43,9 @@ The flake exports:
 - `libBySystem.<system>.renderer.buildNebulaPlan`
 - `libBySystem.<system>.renderer.buildNebulaPlanFromPaths`
 - `libBySystem.<system>.renderer.buildNebulaBootstrapNixosModule`
-- `libBySystem.<system>.renderer.buildHetznerLighthouseNixosModule`
-
-`buildNebulaPlan` takes an already-built control-plane model plus inventory.
-
-`buildNebulaPlanFromPaths` compiles the control-plane model through the locked
-chain first, then builds the Nebula runtime plan.
-
-Both return a plan shaped like:
-
-```nix
-{
-  overlays."<enterprise>::<site>::<overlay>" = {
-    type = "nebula";
-    name = "east-west";
-    enterpriseName = "...";
-    siteName = "...";
-    overlayId = "...";
-    ca = { name = "s-router-test-lab"; };
-    lighthouse = { ... };
-    nodes."<nodeName>" = { ... };
-  };
-
-  nodes."<nodeName>" = {
-    overlayId = "...";
-    overlayAddresses = [ "<ipv4-cidr>" "<ipv6-cidr>" ];
-    groups = [ ... ];
-    unsafeRoutes = [ ... ];
-    service = { name = "nebula-runtime"; interface = "nebula1"; };
-    materialization = { ... };
-    lighthouse = { ... };
-  };
-}
-```
-
-`buildNebulaBootstrapNixosModule` takes a rendered Nebula plan and returns a
-NixOS module that materializes the CA-unseal service, local runtime profiles,
-remote lighthouse profile, and modeled unsafe-route bootstrap. Consumers pass
-the plan through; they must not derive missing Nebula semantics locally.
-
-`buildHetznerLighthouseNixosModule` takes the same rendered plan and returns the
-external lighthouse host module that exposes the rendered Nebula lighthouse
-services and IPv4 NAT wiring needed for modeled hostile-exit validation.
-
-## Security Model
-
-This renderer does not own CA private-key storage.
-
-Expected split:
-
-- CA private key is encrypted at rest
-- enrollment/signing happens on an explicit signer/enrollment box
-- clients consume modeled node identities and signed certs
-- clients do not self-assign Nebula identities
+- `libBySystem.<system>.renderer.buildExternalLighthouseNixosModule`
 
 ## Tests
-
-The repo carries focused tests for:
-
-- direct Nebula plan rendering from control-plane + inventory
-- plan rendering from flake-locked example paths through the full upstream chain
 
 Run:
 

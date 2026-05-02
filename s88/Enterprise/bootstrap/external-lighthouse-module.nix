@@ -5,7 +5,7 @@
     overlays = { };
     nodes = { };
   },
-  hetznerIpv4NatCidrs ? [ ],
+  externalLighthouseIpv4NatCidrs ? [ ],
   externalInterface ? "ens3",
 }:
 let
@@ -98,7 +98,7 @@ let
   overlayNetworks4 = map (lh: lh.overlayNetwork4) lighthouses;
 in
 {
-  environment.etc."s-router-test/hetzner-nebula-lighthouses.json".text = builtins.toJSON lighthouses;
+  environment.etc."s-router-test/external_lighthouse-nebula-lighthouses.json".text = builtins.toJSON lighthouses;
 
   environment.systemPackages = [ pkgs.nebula ];
 
@@ -114,7 +114,7 @@ in
     enable = true;
     inherit externalInterface;
     internalInterfaces = interfaces;
-    internalIPs = lib.unique (overlayNetworks4 ++ hetznerIpv4NatCidrs);
+    internalIPs = lib.unique (overlayNetworks4 ++ externalLighthouseIpv4NatCidrs);
   };
 
   systemd.tmpfiles.rules =
