@@ -5,8 +5,6 @@
     overlays = { };
     nodes = { };
   },
-  externalLighthouseIpv4NatCidrs ? [ ],
-  externalInterface ? "ens3",
 }:
 let
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
@@ -95,7 +93,6 @@ let
 
   udpPorts = lib.unique (map (lh: lh.port) lighthouses);
   interfaces = lib.unique (map (lh: lh.interfaceName) lighthouses);
-  overlayNetworks4 = map (lh: lh.overlayNetwork4) lighthouses;
 in
 {
   environment.etc."s-router-test/external_lighthouse-nebula-lighthouses.json".text = builtins.toJSON lighthouses;
@@ -109,13 +106,6 @@ in
 
   networking.firewall.allowedUDPPorts = udpPorts;
   networking.firewall.trustedInterfaces = interfaces;
-
-  networking.nat = lib.mkIf (lighthouses != [ ]) {
-    enable = true;
-    inherit externalInterface;
-    internalInterfaces = interfaces;
-    internalIPs = lib.unique (overlayNetworks4 ++ externalLighthouseIpv4NatCidrs);
-  };
 
   systemd.tmpfiles.rules =
     [
