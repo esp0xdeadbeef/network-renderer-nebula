@@ -66,6 +66,7 @@ The flake exports:
 - `libBySystem.<system>.renderer.buildNebulaPlan`
 - `libBySystem.<system>.renderer.buildNebulaPlanFromPaths`
 - `libBySystem.<system>.renderer.buildNebulaBootstrapNixosModule`
+- `libBySystem.<system>.renderer.buildHetznerLighthouseNixosModule`
 
 `buildNebulaPlan` takes an already-built control-plane model plus inventory.
 
@@ -104,6 +105,10 @@ NixOS module that materializes the CA-unseal service, local runtime profiles,
 remote lighthouse profile, and modeled unsafe-route bootstrap. Consumers pass
 the plan through; they must not derive missing Nebula semantics locally.
 
+`buildHetznerLighthouseNixosModule` takes the same rendered plan and returns the
+external lighthouse host module that exposes the rendered Nebula lighthouse
+services and IPv4 NAT wiring needed for modeled hostile-exit validation.
+
 ## Security Model
 
 This renderer does not own CA private-key storage.
@@ -127,4 +132,5 @@ Run:
 ```bash
 bash tests/test-nebula-plan.sh
 bash tests/test-nebula-plan-from-paths.sh
+bash tests/test-nebula-bootstrap-module.sh
 ```
