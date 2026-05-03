@@ -65,6 +65,7 @@ let
         nodes = { };
       },
       externalLighthouseReturnIpv4Cidrs ? [ ],
+      externalLighthousePublicIpv4 ? null,
       externalLighthousePublicIpv4SecretPath ? null,
       externalLighthousePublicIpv6SecretPath ? null,
       externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
@@ -81,6 +82,7 @@ let
         pkgs
         nebulaRuntimePlan
         externalLighthouseReturnIpv4Cidrs
+        externalLighthousePublicIpv4
         externalLighthousePublicIpv4SecretPath
         externalLighthousePublicIpv6SecretPath
         externalLighthouseSshHostSecretPath
