@@ -682,6 +682,17 @@ $extra_fw_rule"
                 if ! printf '%s' "$runtime_nodes_json" | jq -e --arg n "$external_node_name" 'has($n)' >/dev/null; then
                   continue
                 fi
+                external_node_port="$(
+                  printf '%s' "$runtime_nodes_json" \
+                    | jq -r --arg n "$external_node_name" '
+                        .[$n] as $node
+                        | if (($node.lighthouse.node // "") == $n) then
+                            ($node.lighthouse.port // "4242")
+                          else
+                            "4242"
+                          end
+                      '
+                )"
                 printf '%s' "$runtime_nodes_json" \
                   | jq -r --arg n "$external_node_name" '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' \
                   | while read -r external_overlay_ip; do
@@ -690,10 +701,10 @@ $extra_fw_rule"
                     [ "$external_overlay_ip" != "$lighthouse_ip6" ] || continue
                     printf '  "%s":\n' "$external_overlay_ip"
                     if [ -n "$lighthouse_endpoint" ]; then
-                      printf '    - "%s:%s"\n' "$lighthouse_endpoint" "$lighthouse_port"
+                      printf '    - "%s:%s"\n' "$lighthouse_endpoint" "$external_node_port"
                     fi
                     if [ -n "$lighthouse_endpoint6" ]; then
-                      printf '    - "[%s]:%s"\n' "$lighthouse_endpoint6" "$lighthouse_port"
+                      printf '    - "[%s]:%s"\n' "$lighthouse_endpoint6" "$external_node_port"
                     fi
                   done
               done
