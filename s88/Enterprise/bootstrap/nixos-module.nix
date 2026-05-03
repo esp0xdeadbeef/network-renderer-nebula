@@ -560,6 +560,7 @@ listen:
   port: $lighthouse_port
 
 tun:
+  disabled: true
   dev: nebula1
   mtu: 1200
   drop_multicast: false
@@ -807,6 +808,7 @@ listen:
   port: $lighthouse_port
 
 tun:
+  disabled: true
   dev: $interface_name
   mtu: 1200
   drop_multicast: false
