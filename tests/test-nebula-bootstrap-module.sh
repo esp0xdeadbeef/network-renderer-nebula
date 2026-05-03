@@ -30,6 +30,7 @@ nix eval --impure --no-warn-dirty --json --expr '
       externalPortForwardNodeNames = [ "c-router-nebula-core" ];
       externalRemoteLighthouseEndpoint4 = "10.90.10.100";
       externalRemoteLighthouseEndpoint6 = "";
+      externalSuppressPublicLighthouseStaticMap = true;
     };
     externalModule = api.buildExternalLighthouseNixosModule {
       inherit pkgs;
@@ -78,9 +79,11 @@ grep -F "external_lighthouse_public_ipv6_secret=/run/secrets/external-public-ipv
 grep -F "external_lighthouse_ssh_host_secret=/run/secrets/external-ssh-host" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_remote_lighthouse_endpoint4=10.90.10.100" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_remote_lighthouse_endpoint6=''" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_suppress_public_lighthouse_static_map=1" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_port_forward_node_names_json='[\"c-router-nebula-core\"]'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'install_profile "$node_name" remote' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'if [ "$profile_context" = "remote" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'if [ "$profile_context" != "remote" ] && [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
