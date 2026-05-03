@@ -442,6 +442,7 @@ else
           local lighthouse_ip6
           local lighthouse_endpoint
           local lighthouse_endpoint6
+          local lighthouse_static_host_map_yaml
           local lighthouse_port
           local is_lighthouse
           local route_preparation_json
@@ -535,6 +536,24 @@ $extra_fw_rule"
                     | with_entries(.value |= (map(select(. != null and . != "")) | unique))
                   '
           )"
+          lighthouse_static_host_map_yaml="$(
+            {
+              printf '  "%s":\n' "$lighthouse_ip4"
+              if [ -n "$lighthouse_endpoint" ]; then
+                printf '    - "%s:%s"\n' "$lighthouse_endpoint" "$lighthouse_port"
+              fi
+              if [ -n "$lighthouse_endpoint6" ]; then
+                printf '    - "[%s]:%s"\n' "$lighthouse_endpoint6" "$lighthouse_port"
+              fi
+              printf '  "%s":\n' "$lighthouse_ip6"
+              if [ -n "$lighthouse_endpoint" ]; then
+                printf '    - "%s:%s"\n' "$lighthouse_endpoint" "$lighthouse_port"
+              fi
+              if [ -n "$lighthouse_endpoint6" ]; then
+                printf '    - "[%s]:%s"\n' "$lighthouse_endpoint6" "$lighthouse_port"
+              fi
+            }
+          )"
 
           install -d -m 0700 "$profile_dir"
           install -m 0600 "$pki_dir/ca.crt" "$profile_dir/ca.crt"
@@ -598,12 +617,7 @@ static_map:
   network: ip
 
 static_host_map:
-  "$lighthouse_ip4":
-    - "$lighthouse_endpoint:$lighthouse_port"
-    - "[$lighthouse_endpoint6]:$lighthouse_port"
-  "$lighthouse_ip6":
-    - "$lighthouse_endpoint:$lighthouse_port"
-    - "[$lighthouse_endpoint6]:$lighthouse_port"
+$lighthouse_static_host_map_yaml
 
 lighthouse:
   am_lighthouse: false

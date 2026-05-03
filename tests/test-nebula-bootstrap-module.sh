@@ -78,6 +78,8 @@ grep -F '(.via6 // .via // "__LIGHTHOUSE_IPV6__")' "$tmp_dir/profile-script.sh" 
 grep -F '(.via4 // .via // "__LIGHTHOUSE_IPV4__")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'disabled: true' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'mtu: 1200' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'if [ -n "$lighthouse_endpoint6" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
+! grep -F '    - "[$lighthouse_endpoint6]:$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 ! grep -F 'extra_route_yaml="    - route: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'local_cidr: $delegated_prefix' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'ip6tables -C FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEPT' \
