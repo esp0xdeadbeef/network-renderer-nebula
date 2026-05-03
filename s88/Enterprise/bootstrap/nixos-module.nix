@@ -10,6 +10,8 @@
   externalLighthousePublicIpv6SecretPath ? null,
   externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
   externalPortForwardNodeNames ? [ ],
+  externalRemoteLighthouseEndpoint4 ? null,
+  externalRemoteLighthouseEndpoint6 ? null,
 }:
 let
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
@@ -180,6 +182,8 @@ let
   externalLighthousePublicIpv4SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv4SecretPath;
   externalLighthousePublicIpv6SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv6SecretPath;
   externalLighthouseSshHostSecretPathArg = shellArgOrEmpty externalLighthouseSshHostSecretPath;
+  externalRemoteLighthouseEndpoint4Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint4;
+  externalRemoteLighthouseEndpoint6Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint6;
 in
 if runtimeNodeNames == [ ] then
   { }
@@ -322,6 +326,8 @@ else
         external_lighthouse_public_ipv4_secret=${externalLighthousePublicIpv4SecretPathArg}
         external_lighthouse_public_ipv6_secret=${externalLighthousePublicIpv6SecretPathArg}
         external_lighthouse_ssh_host_secret=${externalLighthouseSshHostSecretPathArg}
+        external_remote_lighthouse_endpoint4=${externalRemoteLighthouseEndpoint4Arg}
+        external_remote_lighthouse_endpoint6=${externalRemoteLighthouseEndpoint6Arg}
 
         cleanup() {
           rm -f "$signing_ca_key"
@@ -458,6 +464,7 @@ else
 
         install_profile() {
           local profile_name="$1"
+          local profile_context="''${2:-local}"
           local profile_dir="$profiles_dir/$profile_name"
           local pki_base="/persist/etc/nebula"
           local cert_name="$profile_name.crt"
@@ -488,6 +495,14 @@ else
             lighthouse_endpoint6="''${lighthouse_endpoint6%%/*}"
             if printf '%s' "$lighthouse_endpoint6" | grep -q '::$'; then
               lighthouse_endpoint6="''${lighthouse_endpoint6}1"
+            fi
+          fi
+          if [ "$profile_context" = "remote" ]; then
+            if [ -n "$external_remote_lighthouse_endpoint4" ]; then
+              lighthouse_endpoint="$external_remote_lighthouse_endpoint4"
+            fi
+            if [ -n "$external_remote_lighthouse_endpoint6" ]; then
+              lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"
             fi
           fi
           unsafe_routes_yaml="$(
@@ -782,6 +797,7 @@ EOF
                 | jq -r --arg n "$node_name" '.[$n].materialization.container.targetContainer // $n'
             )"
             remote_profile_dir="/persist/nebula-runtime/profiles/$node_name"
+            install_profile "$node_name" remote
 
             ${pkgs.openssh}/bin/scp -O -q "''${ssh_remote_opts[@]}" \
               "$profiles_dir/$node_name/ca.crt" \

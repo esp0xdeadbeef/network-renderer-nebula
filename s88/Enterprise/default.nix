@@ -69,6 +69,8 @@ let
       externalLighthousePublicIpv6SecretPath ? null,
       externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
       externalPortForwardNodeNames ? [ ],
+      externalRemoteLighthouseEndpoint4 ? null,
+      externalRemoteLighthouseEndpoint6 ? null,
     }:
     import ./bootstrap/nixos-module.nix {
       inherit
@@ -80,6 +82,8 @@ let
         externalLighthousePublicIpv6SecretPath
         externalLighthouseSshHostSecretPath
         externalPortForwardNodeNames
+        externalRemoteLighthouseEndpoint4
+        externalRemoteLighthouseEndpoint6
         ;
     };
 
