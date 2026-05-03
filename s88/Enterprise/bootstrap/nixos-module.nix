@@ -723,15 +723,70 @@ EOF
           remote_external_lighthouse_host="$(tr -d '[:space:]' <"$external_lighthouse_ssh_host_secret")"
         fi
 
+        ssh_remote_opts=(
+          -o BatchMode=yes
+          -o ConnectTimeout=10
+          -o IdentitiesOnly=yes
+          -o StrictHostKeyChecking=no
+          -o UserKnownHostsFile=/dev/null
+          -o GlobalKnownHostsFile=/dev/null
+          -i "$root_ssh_dir/id_ed25519"
+        )
+
         if [ -n "$remote_external_lighthouse_host" ] && ${pkgs.openssh}/bin/ssh \
-          -o BatchMode=yes \
-          -o ConnectTimeout=10 \
-          -o IdentitiesOnly=yes \
-          -o StrictHostKeyChecking=no \
-          -o UserKnownHostsFile=/dev/null \
-          -o GlobalKnownHostsFile=/dev/null \
-          -i "$root_ssh_dir/id_ed25519" \
+          "''${ssh_remote_opts[@]}" \
           "root@$remote_external_lighthouse_host" true 2>/dev/null; then
+          remote_runtime_nodes="$(
+            {
+              printf '%s' "$external_port_forward_node_names_json" | jq -r '.[]'
+              printf '%s' "$external_port_forward_node_names_json" \
+                | jq -r --argjson nodes "$runtime_nodes_json" '
+                    .[]
+                    | select($nodes[.] != null)
+                    | $nodes[.].lighthouse.node
+                    | select(. != null and . != "")
+                  '
+            } | sort -u
+          )"
+
+          printf '%s\n' "$remote_runtime_nodes" | while read -r node_name; do
+            [ -n "$node_name" ] || continue
+            if ! printf '%s' "$runtime_nodes_json" | jq -e --arg n "$node_name" 'has($n)' >/dev/null; then
+              continue
+            fi
+
+            target_container="$(
+              printf '%s' "$runtime_nodes_json" \
+                | jq -r --arg n "$node_name" '.[$n].materialization.container.targetContainer // $n'
+            )"
+            remote_container_root="/var/lib/nixos-containers/$target_container"
+
+            ${pkgs.openssh}/bin/scp -O -q "''${ssh_remote_opts[@]}" \
+              "$profiles_dir/$node_name/ca.crt" \
+              "$profiles_dir/$node_name/$node_name.crt" \
+              "$profiles_dir/$node_name/$node_name.key" \
+              "$profiles_dir/$node_name/config.yml" \
+              "$profiles_dir/$node_name/route-preparation.json" \
+              "root@$remote_external_lighthouse_host:/root/" \
+              </dev/null
+
+            ${pkgs.openssh}/bin/ssh "''${ssh_remote_opts[@]}" "root@$remote_external_lighthouse_host" "
+                set -euo pipefail
+                node_name='$node_name'
+                target_container='$target_container'
+                remote_container_root='$remote_container_root'
+                install -d -m 0700 \"\$remote_container_root/persist/etc/nebula\"
+                install -m 0600 /root/ca.crt \"\$remote_container_root/persist/etc/nebula/ca.crt\"
+                install -m 0600 /root/\$node_name.crt \"\$remote_container_root/persist/etc/nebula/\$node_name.crt\"
+                install -m 0600 /root/\$node_name.key \"\$remote_container_root/persist/etc/nebula/\$node_name.key\"
+                install -m 0600 /root/config.yml \"\$remote_container_root/persist/etc/nebula/config.yml\"
+                install -m 0600 /root/route-preparation.json \"\$remote_container_root/persist/etc/nebula/route-preparation.json\"
+                rm -f /root/ca.crt /root/\$node_name.crt /root/\$node_name.key /root/config.yml /root/route-preparation.json
+
+                systemctl restart container@\$target_container.service
+              " </dev/null
+          done
+
           remote_lighthouse_base="/persist/nebula-runtime/lighthouses"
 
           printf '%s' "$lighthouses_json" | jq -r 'keys[]' | while read -r lighthouse_id; do
@@ -873,16 +928,6 @@ firewall:
       host: any
 $(if [ -n "$unsafe_fw_rules" ]; then printf '%s\n' "$unsafe_fw_rules"; fi)
 EOF
-
-            ssh_remote_opts=(
-              -o BatchMode=yes
-              -o ConnectTimeout=10
-              -o IdentitiesOnly=yes
-              -o StrictHostKeyChecking=no
-              -o UserKnownHostsFile=/dev/null
-              -o GlobalKnownHostsFile=/dev/null
-              -i "$root_ssh_dir/id_ed25519"
-            )
 
             ${pkgs.openssh}/bin/scp -O -q "''${ssh_remote_opts[@]}" \
               "$pki_dir/ca.crt" \
