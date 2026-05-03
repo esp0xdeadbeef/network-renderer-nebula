@@ -22,7 +22,7 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/plan.json"
 
 jq -e '
-	  .overlays["espbranch::site-b::east-west"].lighthouse.endpoint == "46.224.173.254" and
+	  .overlays["espbranch::site-b::east-west"].lighthouse.endpoint == "198.51.100.10" and
 	  .overlays["esp0xdeadbeef::site-c::east-west"].lighthouse.node == "c-router-lighthouse" and
 	  .nodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.nodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
@@ -50,7 +50,7 @@ jq -e '
   ) and
   (
     .nodes["b-router-core-nebula"].routePreparation.underlayEndpoints
-    | index("46.224.173.254") != null and index("2a01:4f8:c013:628b::1") != null
+    | index("198.51.100.10") != null and index("2001:db8:51::10") != null
   ) and
   (
     .nodes["b-router-core-nebula"].routePreparation.overlayHosts
