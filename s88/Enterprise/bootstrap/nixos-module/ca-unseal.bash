@@ -75,4 +75,3 @@ openssl enc -d -aes-256-cbc -pbkdf2 \
   -out "$unsealed_ca_key" \
   -pass "file:$passphrase_file"
 chmod 0600 "$unsealed_ca_key"
-      '';
