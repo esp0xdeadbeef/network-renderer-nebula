@@ -6,7 +6,6 @@
     nodes = { };
   },
   externalLighthouseReturnIpv4Cidrs ? [ ],
-  externalLighthousePublicIpv4 ? null,
   externalLighthousePublicIpv4SecretPath ? null,
   externalLighthousePublicIpv6SecretPath ? null,
   externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
@@ -212,7 +211,6 @@ let
   externalPortForwardNodeNamesJson = builtins.toJSON externalPortForwardNodeNames;
   externalLighthouseReturnIpv4CidrsCsv = lib.concatStringsSep "," externalLighthouseReturnIpv4Cidrs;
   shellArgOrEmpty = value: lib.escapeShellArg (if value == null then "" else value);
-  externalLighthousePublicIpv4Arg = shellArgOrEmpty externalLighthousePublicIpv4;
   externalLighthousePublicIpv4SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv4SecretPath;
   externalLighthousePublicIpv6SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv6SecretPath;
   externalLighthouseSshHostSecretPathArg = shellArgOrEmpty externalLighthouseSshHostSecretPath;
@@ -222,81 +220,6 @@ let
   externalRemoteLighthouseEndpoint6Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint6;
   externalSuppressPublicLighthouseStaticMapArg =
     if externalSuppressPublicLighthouseStaticMap then "1" else "0";
-  lighthousePublicForwardingServices =
-    lib.optionalAttrs (externalRemoteLighthouseEndpoint4 != null && externalRemoteLighthouseEndpoint4 != "") (
-      builtins.listToAttrs (
-        map
-          (
-            lighthouseName:
-            let
-              lighthouse = lighthouses.${lighthouseName};
-              lighthouseNode = runtimeNodes.${lighthouse.node} or { };
-              hostBridge = lighthouseNode.materialization.container.hostBridge or null;
-            in
-            {
-              name = "nebula-public-lighthouse-forwarding-${lighthouseName}";
-              value = {
-                description = "Forward public Nebula lighthouse endpoint for ${lighthouseName}";
-                after = [ "network-online.target" ];
-                wants = [ "network-online.target" ];
-                wantedBy = [ "multi-user.target" ];
-                path = with pkgs; [
-                  coreutils
-                  gnugrep
-                  gnused
-                  iproute2
-                  iptables
-                ];
-                serviceConfig = {
-                  Type = "oneshot";
-                  RemainAfterExit = true;
-                };
-                script = ''
-                  set -euo pipefail
-
-                  public_ipv4=${externalLighthousePublicIpv4Arg}
-                  public_ipv4_secret=${externalLighthousePublicIpv4SecretPathArg}
-                  if [ -z "$public_ipv4" ] && [ -n "$public_ipv4_secret" ] && [ -s "$public_ipv4_secret" ]; then
-                    public_ipv4="$(tr -d '[:space:]' <"$public_ipv4_secret")"
-                  fi
-                  public_ipv4="''${public_ipv4%%/*}"
-                  if [ -z "$public_ipv4" ]; then
-                    echo "missing public IPv4 for Nebula lighthouse ${lighthouseName}" >&2
-                    exit 1
-                  fi
-
-                  wan_if="$(ip -o -4 route show default | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -n 1)"
-                  if [ -z "$wan_if" ]; then
-                    echo "could not determine public WAN interface" >&2
-                    exit 1
-                  fi
-
-                  ip route replace ${externalRemoteLighthouseEndpoint4}/32 dev ${hostBridge}
-                  iptables -C FORWARD -i "$wan_if" -o ${hostBridge} -d ${externalRemoteLighthouseEndpoint4} -p udp --dport ${lighthouse.port} -j ACCEPT 2>/dev/null \
-                    || iptables -A FORWARD -i "$wan_if" -o ${hostBridge} -d ${externalRemoteLighthouseEndpoint4} -p udp --dport ${lighthouse.port} -j ACCEPT
-                  iptables -C FORWARD -i ${hostBridge} -o "$wan_if" -s ${externalRemoteLighthouseEndpoint4} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null \
-                    || iptables -A FORWARD -i ${hostBridge} -o "$wan_if" -s ${externalRemoteLighthouseEndpoint4} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-                  iptables -t nat -C PREROUTING -i "$wan_if" -d "$public_ipv4" -p udp --dport ${lighthouse.port} -j DNAT --to-destination ${externalRemoteLighthouseEndpoint4} 2>/dev/null \
-                    || iptables -t nat -I PREROUTING 1 -i "$wan_if" -d "$public_ipv4" -p udp --dport ${lighthouse.port} -j DNAT --to-destination ${externalRemoteLighthouseEndpoint4}
-                '';
-              };
-            }
-          )
-          (
-            lib.filter
-              (lighthouseName:
-                let
-                  lighthouse = lighthouses.${lighthouseName};
-                  lighthouseNode = runtimeNodes.${lighthouse.node} or { };
-                in
-                lighthouse.internal
-                && builtins.isString (lighthouseNode.materialization.container.hostBridge or null)
-                && lighthouseNode.materialization.container.hostBridge != ""
-              )
-              lighthouseNames
-          )
-      )
-    );
 in
 if runtimeNodeNames == [ ] then
   { }
@@ -316,8 +239,7 @@ else
       ]
       ++ map (nodeName: "d /persist/nebula-runtime/profiles/${nodeName} 0700 root root -") runtimeNodeNames;
 
-    systemd.services = lighthousePublicForwardingServices // {
-      nebula-ca-unseal = {
+    systemd.services.nebula-ca-unseal = {
       description = "Unlock the Nebula CA into /run for explicit issuance work";
       serviceConfig.Type = "oneshot";
       path = with pkgs; [
@@ -406,27 +328,27 @@ else
           -pass "file:$passphrase_file"
         chmod 0600 "$unsealed_ca_key"
       '';
-      };
+    };
 
-      nebula-profile-bootstrap = {
-        description = "Generate and distribute Nebula runtime profiles for s-router-test";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
-        serviceConfig.Type = "oneshot";
-        unitConfig.ConditionPathExists = "/run/nebula-runtime/unsealed/ca.key";
-        path = with pkgs; [
-          bash
-          coreutils
-          gnugrep
-          gawk
-          iproute2
-          jq
-          nebula
-          openssh
-          systemd
-          util-linux
-        ];
-        script = ''
+    systemd.services.nebula-profile-bootstrap = {
+      description = "Generate and distribute Nebula runtime profiles for s-router-test";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      serviceConfig.Type = "oneshot";
+      unitConfig.ConditionPathExists = "/run/nebula-runtime/unsealed/ca.key";
+      path = with pkgs; [
+        bash
+        coreutils
+        gnugrep
+        gawk
+        iproute2
+        jq
+        nebula
+        openssh
+        systemd
+        util-linux
+      ];
+      script = ''
         set -euo pipefail
 
         state_dir="/persist/nebula-runtime"
@@ -1181,7 +1103,6 @@ EOF
           echo "nebula-profile-bootstrap: external lighthouse SSH key not authorized yet for root@$remote_external_lighthouse_host" >&2
         fi
       '';
-      };
     };
 
     systemd.paths.nebula-profile-bootstrap = {
