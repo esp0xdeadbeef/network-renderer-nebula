@@ -568,7 +568,7 @@ $extra_fw_rule"
                   continue
                 fi
                 printf '%s' "$runtime_nodes_json" \
-                  | jq -r --arg n "$external_node_name" '.[$n].overlayAddresses[]? | sub("/.*$"; "")' \
+                  | jq -r --arg n "$external_node_name" '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' \
                   | while read -r external_overlay_ip; do
                     [ -n "$external_overlay_ip" ] || continue
                     [ "$external_overlay_ip" != "$lighthouse_ip4" ] || continue
