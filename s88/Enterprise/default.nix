@@ -108,12 +108,19 @@ let
         nebulaRuntimePlan
         ;
     };
+
+  buildNebulaRuntimeNixosModule =
+    { pkgs, nodeName }:
+    import ./runtime/nixos-module.nix {
+      inherit lib pkgs nodeName;
+    };
 in
 {
   renderer = {
     buildNebulaPlan = buildNebulaPlan;
     buildNebulaBootstrapNixosModule = buildNebulaBootstrapNixosModule;
     buildExternalLighthouseNixosModule = buildExternalLighthouseNixosModule;
+    buildNebulaRuntimeNixosModule = buildNebulaRuntimeNixosModule;
 
     buildNebulaPlanFromPaths =
       {
