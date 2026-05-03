@@ -43,6 +43,7 @@ nix eval --impure --no-warn-dirty --json --expr '
 	    profileType = module.systemd.services.nebula-profile-bootstrap.serviceConfig.Type;
 	    profileAfter = module.systemd.services.nebula-profile-bootstrap.after;
 	    profileWants = module.systemd.services.nebula-profile-bootstrap.wants;
+	    caScript = module.systemd.services.nebula-ca-unseal.script;
 	    profileScript = module.systemd.services.nebula-profile-bootstrap.script;
 	    spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
 	    tmpfiles = module.systemd.tmpfiles.rules;
@@ -74,6 +75,10 @@ jq -e '
 	' "$tmp_dir/bootstrap.json" >/dev/null
 
 jq -r .profileScript "$tmp_dir/bootstrap.json" > "$tmp_dir/profile-script.sh"
+jq -r .caScript "$tmp_dir/bootstrap.json" > "$tmp_dir/ca-unseal-script.sh"
+
+grep -F "openssl enc -d -aes-256-cbc -pbkdf2" "$tmp_dir/ca-unseal-script.sh" >/dev/null
+! grep -F "'';" "$tmp_dir/ca-unseal-script.sh" >/dev/null
 
 grep -F "external_lighthouse_return_ipv4_cidrs_csv='10.70.10.0/24'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_public_ipv4_secret=/run/secrets/external-public-ipv4" "$tmp_dir/profile-script.sh" >/dev/null
