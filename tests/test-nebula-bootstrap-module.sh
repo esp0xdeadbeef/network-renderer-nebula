@@ -89,6 +89,7 @@ grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" 
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'nebula_control_networks_csv' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '.[$n].advertisedUnsafeNetworks | join(",")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'endswith("/32") or endswith("/128")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'remote_runtime_nodes="$(' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '/persist/nebula-runtime/profiles/$node_name' "$tmp_dir/profile-script.sh" >/dev/null
