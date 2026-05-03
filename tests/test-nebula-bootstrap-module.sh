@@ -36,28 +36,32 @@ nix eval --impure --no-warn-dirty --json --expr '
   {
     profileType = module.systemd.services.nebula-profile-bootstrap.serviceConfig.Type;
     profileScript = module.systemd.services.nebula-profile-bootstrap.script;
-    spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
-    tmpfiles = module.systemd.tmpfiles.rules;
-    externalServices = builtins.attrNames externalModule.systemd.services;
-    externalEastWestUnit = externalModule.systemd.services.nebula-s-router-test-lighthouse-east-west;
-    externalFirewall = externalModule.networking.firewall;
+	    spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
+	    tmpfiles = module.systemd.tmpfiles.rules;
+	    externalServices = builtins.attrNames externalModule.systemd.services;
+	    externalEastWestUnit = externalModule.systemd.services.nebula-s-router-test-lighthouse-east-west or null;
+	    externalFirewall = externalModule.networking.firewall;
   }
 ' > "$tmp_dir/bootstrap.json"
 
 jq -e '
   .profileType == "oneshot" and
-  (.spec.runtimeNodes["b-router-core-nebula"].routePreparation.removeRoutes
-    | index("0.0.0.0/1") != null and index("::/1") != null) and
-  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null) and
-  (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null)
-' "$tmp_dir/bootstrap.json" >/dev/null
+	  (.spec.runtimeNodes["b-router-core-nebula"].routePreparation.removeRoutes
+	    | index("0.0.0.0/1") != null and index("::/1") != null) and
+	  .spec.runtimeNodes["c-router-lighthouse"].isLighthouse == true and
+	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
+	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
+	  (.spec.runtimeNodes["c-router-lighthouse"].groupsCsv | split(",") | index("lighthouse") != null) and
+	  .spec.lighthouses["east-west"].internal == true and
+	  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null) and
+	  (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null)
+	' "$tmp_dir/bootstrap.json" >/dev/null
 
-jq -e '
-  (.externalServices | index("nebula-s-router-test-lighthouse-east-west") != null) and
-  (.externalEastWestUnit.unitConfig.ConditionPathExists | test("^/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
-  (.externalEastWestUnit.serviceConfig.ExecStart | test("/persist/nebula-runtime/lighthouses/east-west-[^/]+/east-west-[^/]+[.]config[.]yml$")) and
-  (.externalFirewall.allowedUDPPorts | index(4242) != null)
-' "$tmp_dir/bootstrap.json" >/dev/null
+	jq -e '
+	  (.externalServices | index("nebula-s-router-test-lighthouse-east-west") == null) and
+	  .externalEastWestUnit == null and
+	  (.externalFirewall.allowedUDPPorts | index(4242) == null)
+	' "$tmp_dir/bootstrap.json" >/dev/null
 
 jq -r .profileScript "$tmp_dir/bootstrap.json" > "$tmp_dir/profile-script.sh"
 

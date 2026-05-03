@@ -42,12 +42,15 @@ let
         lighthouse = node.lighthouse or { };
         lighthouseAddresses = lighthouse.overlayAddresses or [ ];
         lighthouseIps = lighthouse.overlayIps or [ ];
+        isLighthouse = (lighthouse.node or null) == nodeName;
+        groups = lib.unique ((node.groups or [ ]) ++ lib.optional isLighthouse "lighthouse");
       in
       {
         overlayId = node.overlayId or null;
+        inherit isLighthouse;
         certCidr4 = builtins.elemAt overlayAddresses 0;
         certCidr6 = builtins.elemAt overlayAddresses 1;
-        groupsCsv = lib.concatStringsSep "," (node.groups or [ ]);
+        groupsCsv = lib.concatStringsSep "," groups;
         unsafeRoutes = node.unsafeRoutes or [ ];
         routePreparation = node.routePreparation or { };
         service = node.service or {
@@ -154,6 +157,7 @@ let
                 (builtins.elemAt overlayAddresses 1)
               ];
               unsafeNetworks = unsafeNetworks;
+              internal = builtins.hasAttr (baseLighthouse.node or "") runtimeNodes;
               certBaseName = "${logicalName}-${baseLighthouse.node or "lighthouse"}";
               serviceName = "nebula-s-router-test-lighthouse-${logicalName}";
               interfaceName = "nebula${builtins.toString index}";
@@ -411,6 +415,9 @@ else
         done
 
         printf '%s' "$lighthouses_json" | jq -r 'keys[]' | while read -r lighthouse_id; do
+          if printf '%s' "$lighthouses_json" | jq -e --arg n "$lighthouse_id" '.[$n].internal == true' >/dev/null; then
+            continue
+          fi
           cert_base_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certBaseName')"
           cert_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certNetworks | join(",")')"
           unsafe_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].unsafeNetworks | join(",")')"
@@ -436,6 +443,7 @@ else
           local lighthouse_endpoint
           local lighthouse_endpoint6
           local lighthouse_port
+          local is_lighthouse
           local route_preparation_json
           local unsafe_routes_yaml
           local unsafe_fw_rules
@@ -445,6 +453,7 @@ else
           lighthouse_endpoint="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.endpoint')"
           lighthouse_endpoint6="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.endpoint6')"
           lighthouse_port="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.port')"
+          is_lighthouse="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].isLighthouse == true')"
           if [ -n "$external_lighthouse_public_ipv4_secret" ] && [ -s "$external_lighthouse_public_ipv4_secret" ]; then
             lighthouse_endpoint="$(tr -d '[:space:]' <"$external_lighthouse_public_ipv4_secret")"
           fi
@@ -532,7 +541,54 @@ $extra_fw_rule"
           install -m 0600 "$pki_dir/$cert_name" "$profile_dir/$cert_name"
           install -m 0600 "$pki_dir/$key_name" "$profile_dir/$key_name"
           printf '%s\n' "$route_preparation_json" >"$profile_dir/route-preparation.json"
-          cat >"$profile_dir/config.yml" <<EOF
+          if [ "$is_lighthouse" = "true" ]; then
+            cat >"$profile_dir/config.yml" <<EOF
+pki:
+  ca: $pki_base/ca.crt
+  cert: $pki_base/$cert_name
+  key: $pki_base/$key_name
+static_map:
+  network: ip
+
+static_host_map: {}
+
+lighthouse:
+  am_lighthouse: true
+
+listen:
+  host: "[::]"
+  port: $lighthouse_port
+
+tun:
+  dev: nebula1
+  mtu: 1200
+  drop_multicast: false
+$(if [ -n "$unsafe_routes_yaml" ]; then cat <<UNSAFELH
+  unsafe_routes:
+$unsafe_routes_yaml
+UNSAFELH
+fi)
+
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+$(if [ -n "$unsafe_fw_rules" ]; then cat <<UNSAFEFWHO
+$unsafe_fw_rules
+UNSAFEFWHO
+fi)
+  inbound:
+    - port: any
+      proto: any
+      host: any
+$(if [ -n "$unsafe_fw_rules" ]; then cat <<UNSAFEFWHI
+$unsafe_fw_rules
+UNSAFEFWHI
+fi)
+EOF
+          else
+            cat >"$profile_dir/config.yml" <<EOF
 pki:
   ca: $pki_base/ca.crt
   cert: $pki_base/$cert_name
@@ -589,6 +645,7 @@ $unsafe_fw_rules
 UNSAFEFWIN
 fi)
 EOF
+          fi
         }
 
         printf '%s' "$runtime_nodes_json" | jq -r 'keys[]' | while read -r node_name; do
@@ -609,7 +666,11 @@ EOF
         }
 
         printf '%s' "$runtime_nodes_json" | jq -r 'keys[]' | while read -r node_name; do
-          best_effort_restart_nebula_runtime "$node_name"
+          machine_name="$(
+            printf '%s' "$runtime_nodes_json" \
+              | jq -r --arg n "$node_name" '.[$n].materialization.container.targetContainer // $n'
+          )"
+          best_effort_restart_nebula_runtime "$machine_name"
         done
 
         remote_external_lighthouse_host=""
@@ -629,6 +690,9 @@ EOF
           remote_lighthouse_base="/persist/nebula-runtime/lighthouses"
 
           printf '%s' "$lighthouses_json" | jq -r 'keys[]' | while read -r lighthouse_id; do
+            if printf '%s' "$lighthouses_json" | jq -e --arg n "$lighthouse_id" '.[$n].internal == true' >/dev/null; then
+              continue
+            fi
             cert_base_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certBaseName')"
             service_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].serviceName')"
             interface_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].interfaceName')"

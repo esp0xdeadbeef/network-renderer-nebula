@@ -22,12 +22,13 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/plan.json"
 
 jq -e '
-  .overlays["esp0xdeadbeef::site-a::east-west"].lighthouse.port == "4242" and
-  .overlays["esp0xdeadbeef::site-c::site-c-storage"].lighthouse.port == "4243" and
-  .nodes["nebula-core"].materialization.container.profile == "core-client" and
-  .nodes["nebula-core"].materialization.container.hostBridge == "dmz" and
-  .nodes["nas-node01"].materialization.container.profile == "storage-client"
-' "$tmp_dir/plan.json" >/dev/null
+	  .overlays["esp0xdeadbeef::site-a::east-west"].lighthouse.port == "4242" and
+	  .overlays["esp0xdeadbeef::site-c::east-west"].lighthouse.node == "c-router-lighthouse" and
+	  .nodes["nebula-core"].materialization.container.profile == "core-client" and
+	  .nodes["nebula-core"].materialization.container.hostBridge == "dmz" and
+	  .nodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
+	  .nodes["c-router-nebula-core"].materialization.container.profile == "core-router-nebula"
+	' "$tmp_dir/plan.json" >/dev/null
 
 if nix eval --impure --no-warn-dirty --json --expr '
   let

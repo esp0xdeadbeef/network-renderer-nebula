@@ -52,6 +52,37 @@ let
     );
 
   lighthouses =
+    let
+      externalFingerprints =
+        lib.filter
+          (
+            fingerprint:
+            let
+              matching =
+                lib.filter
+                  (
+                    overlayId:
+                    let
+                      overlay = nebulaRuntimePlan.overlays.${overlayId};
+                      lighthouse = overlay.lighthouse or { };
+                      addresses = lighthouse.overlayAddresses or [ ];
+                    in
+                    fingerprint
+                    == lib.concatStringsSep "|" [
+                      (builtins.elemAt addresses 0)
+                      (builtins.elemAt addresses 1)
+                      (lighthouse.endpoint or "")
+                      (lighthouse.endpoint6 or "")
+                      (builtins.toString (lighthouse.port or 4242))
+                    ]
+                  )
+                  overlayNames;
+              base = nebulaRuntimePlan.overlays.${builtins.head matching};
+            in
+            !(builtins.hasAttr (base.lighthouse.node or "") (nebulaRuntimePlan.nodes or { }))
+          )
+          lighthouseFingerprints;
+    in
     lib.imap0
       (
         index: fingerprint:
@@ -89,7 +120,7 @@ let
           overlayNetwork6 = builtins.elemAt base.lighthouse.overlayAddresses 1;
         }
       )
-      lighthouseFingerprints;
+      externalFingerprints;
 
   udpPorts = lib.unique (map (lh: lh.port) lighthouses);
   interfaces = lib.unique (map (lh: lh.interfaceName) lighthouses);
