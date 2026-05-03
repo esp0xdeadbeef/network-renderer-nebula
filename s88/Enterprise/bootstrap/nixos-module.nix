@@ -613,7 +613,22 @@ $extra_fw_rule"
           )"
           lighthouse_static_host_map_yaml="$(
             if [ "$profile_context" != "remote" ] && [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then
-              true
+              if [ -n "$external_remote_lighthouse_endpoint4" ] || [ -n "$external_remote_lighthouse_endpoint6" ]; then
+                printf '  "%s":\n' "$lighthouse_ip4"
+                if [ -n "$external_remote_lighthouse_endpoint4" ]; then
+                  printf '    - "%s:%s"\n' "$external_remote_lighthouse_endpoint4" "$lighthouse_port"
+                fi
+                if [ -n "$external_remote_lighthouse_endpoint6" ]; then
+                  printf '    - "[%s]:%s"\n' "$external_remote_lighthouse_endpoint6" "$lighthouse_port"
+                fi
+                printf '  "%s":\n' "$lighthouse_ip6"
+                if [ -n "$external_remote_lighthouse_endpoint4" ]; then
+                  printf '    - "%s:%s"\n' "$external_remote_lighthouse_endpoint4" "$lighthouse_port"
+                fi
+                if [ -n "$external_remote_lighthouse_endpoint6" ]; then
+                  printf '    - "[%s]:%s"\n' "$external_remote_lighthouse_endpoint6" "$lighthouse_port"
+                fi
+              fi
             else
               printf '  "%s":\n' "$lighthouse_ip4"
               if [ -n "$lighthouse_endpoint" ]; then
@@ -632,7 +647,12 @@ $extra_fw_rule"
             fi
           )"
           lighthouse_hosts_yaml="$(
-            if [ "$profile_context" != "remote" ] && [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then
+            if
+              [ "$profile_context" != "remote" ] \
+              && [ "$external_suppress_public_lighthouse_static_map" = "1" ] \
+              && [ -z "$external_remote_lighthouse_endpoint4" ] \
+              && [ -z "$external_remote_lighthouse_endpoint6" ]
+            then
               printf '  hosts: []\n'
             else
               printf '  hosts:\n'
