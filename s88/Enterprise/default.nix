@@ -68,6 +68,8 @@ let
       externalLighthousePublicIpv4SecretPath ? null,
       externalLighthousePublicIpv6SecretPath ? null,
       externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
+      externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
+      externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
       externalPortForwardNodeNames ? [ ],
       externalRemoteLighthouseEndpoint4 ? null,
       externalRemoteLighthouseEndpoint6 ? null,
@@ -82,6 +84,8 @@ let
         externalLighthousePublicIpv4SecretPath
         externalLighthousePublicIpv6SecretPath
         externalLighthouseSshHostSecretPath
+        externalPortForwardPublicIpv4SecretPath
+        externalPortForwardPublicIpv6SecretPath
         externalPortForwardNodeNames
         externalRemoteLighthouseEndpoint4
         externalRemoteLighthouseEndpoint6

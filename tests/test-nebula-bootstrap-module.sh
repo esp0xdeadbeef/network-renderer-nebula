@@ -27,6 +27,8 @@ nix eval --impure --no-warn-dirty --json --expr '
       externalLighthousePublicIpv4SecretPath = "/run/secrets/external-public-ipv4";
       externalLighthousePublicIpv6SecretPath = "/run/secrets/external-public-ipv6";
       externalLighthouseSshHostSecretPath = "/run/secrets/external-ssh-host";
+      externalPortForwardPublicIpv4SecretPath = "/run/secrets/portforward-public-ipv4";
+      externalPortForwardPublicIpv6SecretPath = "/run/secrets/portforward-public-ipv6";
       externalPortForwardNodeNames = [ "c-router-nebula-core" ];
       externalRemoteLighthouseEndpoint4 = "10.90.10.100";
       externalRemoteLighthouseEndpoint6 = "";
@@ -77,6 +79,8 @@ grep -F "external_lighthouse_return_ipv4_cidrs_csv='10.70.10.0/24'" "$tmp_dir/pr
 grep -F "external_lighthouse_public_ipv4_secret=/run/secrets/external-public-ipv4" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_public_ipv6_secret=/run/secrets/external-public-ipv6" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_ssh_host_secret=/run/secrets/external-ssh-host" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_port_forward_public_ipv4_secret=/run/secrets/portforward-public-ipv4" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_port_forward_public_ipv6_secret=/run/secrets/portforward-public-ipv6" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_remote_lighthouse_endpoint4=10.90.10.100" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_remote_lighthouse_endpoint6=''" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_suppress_public_lighthouse_static_map=1" "$tmp_dir/profile-script.sh" >/dev/null
@@ -93,7 +97,8 @@ grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" 
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_node_port="$(' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '($node.lighthouse.port // "4242")' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "%s:%s"\n'\'' "$lighthouse_endpoint" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "%s:%s"\n'\'' "$port_forward_endpoint" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$port_forward_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'nebula_control_networks_csv' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '.[$n].advertisedUnsafeNetworks | join(",")' "$tmp_dir/profile-script.sh" >/dev/null
