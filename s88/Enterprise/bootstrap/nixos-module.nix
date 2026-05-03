@@ -563,9 +563,9 @@ else
           unsafe_fw_rules="$(
             printf '%s' "$runtime_nodes_json" \
               | jq -r --arg n "$profile_name" '
-                  .[$n].unsafeRoutes
-                  | map(select((.route | endswith("/32") or endswith("/128")) | not))
-                  | map("    - port: any\n      proto: any\n      host: any\n      local_cidr: \(.route)")
+                  .[$n].advertisedUnsafeNetworks
+                  | map(select((endswith("/32") or endswith("/128")) | not))
+                  | map("    - port: any\n      proto: any\n      host: any\n      local_cidr: \(.)")
                   | join("\n")
                 '
           )"
