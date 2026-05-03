@@ -33,9 +33,11 @@ nix eval --impure --no-warn-dirty --json --expr '
       nebulaRuntimePlan = plan;
     };
   in
-  {
-    profileType = module.systemd.services.nebula-profile-bootstrap.serviceConfig.Type;
-    profileScript = module.systemd.services.nebula-profile-bootstrap.script;
+	  {
+	    profileType = module.systemd.services.nebula-profile-bootstrap.serviceConfig.Type;
+	    profileAfter = module.systemd.services.nebula-profile-bootstrap.after;
+	    profileWants = module.systemd.services.nebula-profile-bootstrap.wants;
+	    profileScript = module.systemd.services.nebula-profile-bootstrap.script;
 	    spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
 	    tmpfiles = module.systemd.tmpfiles.rules;
 	    externalServices = builtins.attrNames externalModule.systemd.services;
@@ -45,7 +47,9 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/bootstrap.json"
 
 jq -e '
-  .profileType == "oneshot" and
+	  .profileType == "oneshot" and
+	  (.profileAfter | index("container@c-router-lighthouse.service") == null) and
+	  (.profileWants | index("container@c-router-lighthouse.service") == null) and
 	  (.spec.runtimeNodes["b-router-core-nebula"].routePreparation.removeRoutes
 	    | index("0.0.0.0/1") != null and index("::/1") != null) and
 	  .spec.runtimeNodes["c-router-lighthouse"].isLighthouse == true and

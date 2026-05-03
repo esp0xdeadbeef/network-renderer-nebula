@@ -290,8 +290,8 @@ else
 
     systemd.services.nebula-profile-bootstrap = {
       description = "Generate and distribute Nebula runtime profiles for s-router-test";
-      after = [ "network-online.target" ] ++ map (nodeName: "container@${nodeName}.service") runtimeNodeNames;
-      wants = [ "network-online.target" ] ++ map (nodeName: "container@${nodeName}.service") runtimeNodeNames;
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
       serviceConfig.Type = "oneshot";
       unitConfig.ConditionPathExists = "/run/nebula-runtime/unsealed/ca.key";
       path = with pkgs; [
