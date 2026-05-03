@@ -27,6 +27,7 @@ nix eval --impure --no-warn-dirty --json --expr '
       externalLighthousePublicIpv4SecretPath = "/run/secrets/external-public-ipv4";
       externalLighthousePublicIpv6SecretPath = "/run/secrets/external-public-ipv6";
       externalLighthouseSshHostSecretPath = "/run/secrets/external-ssh-host";
+      externalPortForwardNodeNames = [ "c-router-nebula-core" ];
     };
     externalModule = api.buildExternalLighthouseNixosModule {
       inherit pkgs;
@@ -73,6 +74,9 @@ grep -F "external_lighthouse_return_ipv4_cidrs_csv='10.70.10.0/24'" "$tmp_dir/pr
 grep -F "external_lighthouse_public_ipv4_secret=/run/secrets/external-public-ipv4" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_public_ipv6_secret=/run/secrets/external-public-ipv6" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_lighthouse_ssh_host_secret=/run/secrets/external-ssh-host" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_port_forward_node_names_json='[\"c-router-nebula-core\"]'" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '+ (if (.route | contains(":")) then "1280" else "1200" end)' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '(.via6 // .via // "__LIGHTHOUSE_IPV6__")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '(.via4 // .via // "__LIGHTHOUSE_IPV4__")' "$tmp_dir/profile-script.sh" >/dev/null

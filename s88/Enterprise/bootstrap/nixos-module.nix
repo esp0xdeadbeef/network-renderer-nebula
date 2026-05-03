@@ -9,6 +9,7 @@
   externalLighthousePublicIpv4SecretPath ? null,
   externalLighthousePublicIpv6SecretPath ? null,
   externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
+  externalPortForwardNodeNames ? [ ],
 }:
 let
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
@@ -173,6 +174,7 @@ let
 
   runtimeNodesJson = builtins.toJSON runtimeNodes;
   lighthousesJson = builtins.toJSON lighthouses;
+  externalPortForwardNodeNamesJson = builtins.toJSON externalPortForwardNodeNames;
   externalLighthouseReturnIpv4CidrsCsv = lib.concatStringsSep "," externalLighthouseReturnIpv4Cidrs;
   shellArgOrEmpty = value: lib.escapeShellArg (if value == null then "" else value);
   externalLighthousePublicIpv4SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv4SecretPath;
@@ -315,6 +317,7 @@ else
         signing_ca_key="/run/nebula-runtime/unsealed/ca.key"
         runtime_nodes_json='${runtimeNodesJson}'
         lighthouses_json='${lighthousesJson}'
+        external_port_forward_node_names_json='${externalPortForwardNodeNamesJson}'
         external_lighthouse_return_ipv4_cidrs_csv='${externalLighthouseReturnIpv4CidrsCsv}'
         external_lighthouse_public_ipv4_secret=${externalLighthousePublicIpv4SecretPathArg}
         external_lighthouse_public_ipv6_secret=${externalLighthousePublicIpv6SecretPathArg}
@@ -443,6 +446,7 @@ else
           local lighthouse_endpoint
           local lighthouse_endpoint6
           local lighthouse_static_host_map_yaml
+          local external_static_host_map_yaml
           local lighthouse_port
           local is_lighthouse
           local route_preparation_json
@@ -554,6 +558,31 @@ $extra_fw_rule"
               fi
             }
           )"
+          external_static_host_map_yaml="$(
+            printf '%s' "$external_port_forward_node_names_json" \
+              | jq -r '.[]' \
+              | while read -r external_node_name; do
+                [ -n "$external_node_name" ] || continue
+                [ "$external_node_name" != "$profile_name" ] || continue
+                if ! printf '%s' "$runtime_nodes_json" | jq -e --arg n "$external_node_name" 'has($n)' >/dev/null; then
+                  continue
+                fi
+                printf '%s' "$runtime_nodes_json" \
+                  | jq -r --arg n "$external_node_name" '.[$n].overlayAddresses[]? | sub("/.*$"; "")' \
+                  | while read -r external_overlay_ip; do
+                    [ -n "$external_overlay_ip" ] || continue
+                    [ "$external_overlay_ip" != "$lighthouse_ip4" ] || continue
+                    [ "$external_overlay_ip" != "$lighthouse_ip6" ] || continue
+                    printf '  "%s":\n' "$external_overlay_ip"
+                    if [ -n "$lighthouse_endpoint" ]; then
+                      printf '    - "%s:%s"\n' "$lighthouse_endpoint" "$lighthouse_port"
+                    fi
+                    if [ -n "$lighthouse_endpoint6" ]; then
+                      printf '    - "[%s]:%s"\n' "$lighthouse_endpoint6" "$lighthouse_port"
+                    fi
+                  done
+              done
+          )"
 
           install -d -m 0700 "$profile_dir"
           install -m 0600 "$pki_dir/ca.crt" "$profile_dir/ca.crt"
@@ -618,6 +647,7 @@ static_map:
 
 static_host_map:
 $lighthouse_static_host_map_yaml
+$(if [ -n "$external_static_host_map_yaml" ]; then printf '%s\n' "$external_static_host_map_yaml"; fi)
 
 lighthouse:
   am_lighthouse: false
