@@ -9,6 +9,8 @@
   externalLighthousePublicIpv4SecretPath ? null,
   externalLighthousePublicIpv6SecretPath ? null,
   externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
+  externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
+  externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
   externalPortForwardNodeNames ? [ ],
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
@@ -212,6 +214,8 @@ let
   externalLighthousePublicIpv4SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv4SecretPath;
   externalLighthousePublicIpv6SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv6SecretPath;
   externalLighthouseSshHostSecretPathArg = shellArgOrEmpty externalLighthouseSshHostSecretPath;
+  externalPortForwardPublicIpv4SecretPathArg = shellArgOrEmpty externalPortForwardPublicIpv4SecretPath;
+  externalPortForwardPublicIpv6SecretPathArg = shellArgOrEmpty externalPortForwardPublicIpv6SecretPath;
   externalRemoteLighthouseEndpoint4Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint4;
   externalRemoteLighthouseEndpoint6Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint6;
   externalSuppressPublicLighthouseStaticMapArg =
@@ -358,6 +362,8 @@ else
         external_lighthouse_public_ipv4_secret=${externalLighthousePublicIpv4SecretPathArg}
         external_lighthouse_public_ipv6_secret=${externalLighthousePublicIpv6SecretPathArg}
         external_lighthouse_ssh_host_secret=${externalLighthouseSshHostSecretPathArg}
+        external_port_forward_public_ipv4_secret=${externalPortForwardPublicIpv4SecretPathArg}
+        external_port_forward_public_ipv6_secret=${externalPortForwardPublicIpv6SecretPathArg}
         external_remote_lighthouse_endpoint4=${externalRemoteLighthouseEndpoint4Arg}
         external_remote_lighthouse_endpoint6=${externalRemoteLighthouseEndpoint6Arg}
         external_suppress_public_lighthouse_static_map=${externalSuppressPublicLighthouseStaticMapArg}
@@ -509,6 +515,8 @@ else
           local lighthouse_static_host_map_yaml
           local lighthouse_hosts_yaml
           local external_static_host_map_yaml
+          local port_forward_endpoint
+          local port_forward_endpoint6
           local lighthouse_port
           local is_lighthouse
           local route_preparation_json
@@ -529,6 +537,18 @@ else
             lighthouse_endpoint6="''${lighthouse_endpoint6%%/*}"
             if printf '%s' "$lighthouse_endpoint6" | grep -q '::$'; then
               lighthouse_endpoint6="''${lighthouse_endpoint6}1"
+            fi
+          fi
+          port_forward_endpoint="$lighthouse_endpoint"
+          port_forward_endpoint6="$lighthouse_endpoint6"
+          if [ -n "$external_port_forward_public_ipv4_secret" ] && [ -s "$external_port_forward_public_ipv4_secret" ]; then
+            port_forward_endpoint="$(tr -d '[:space:]' <"$external_port_forward_public_ipv4_secret")"
+          fi
+          if [ -n "$external_port_forward_public_ipv6_secret" ] && [ -s "$external_port_forward_public_ipv6_secret" ]; then
+            port_forward_endpoint6="$(tr -d '[:space:]' <"$external_port_forward_public_ipv6_secret")"
+            port_forward_endpoint6="''${port_forward_endpoint6%%/*}"
+            if printf '%s' "$port_forward_endpoint6" | grep -q '::$'; then
+              port_forward_endpoint6="''${port_forward_endpoint6}1"
             fi
           fi
           if [ "$profile_context" = "remote" ]; then
@@ -700,11 +720,11 @@ $extra_fw_rule"
                     [ "$external_overlay_ip" != "$lighthouse_ip4" ] || continue
                     [ "$external_overlay_ip" != "$lighthouse_ip6" ] || continue
                     printf '  "%s":\n' "$external_overlay_ip"
-                    if [ -n "$lighthouse_endpoint" ]; then
-                      printf '    - "%s:%s"\n' "$lighthouse_endpoint" "$external_node_port"
+                    if [ -n "$port_forward_endpoint" ]; then
+                      printf '    - "%s:%s"\n' "$port_forward_endpoint" "$external_node_port"
                     fi
-                    if [ -n "$lighthouse_endpoint6" ]; then
-                      printf '    - "[%s]:%s"\n' "$lighthouse_endpoint6" "$external_node_port"
+                    if [ -n "$port_forward_endpoint6" ]; then
+                      printf '    - "[%s]:%s"\n' "$port_forward_endpoint6" "$external_node_port"
                     fi
                   done
               done
