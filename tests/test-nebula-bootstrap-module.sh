@@ -91,6 +91,9 @@ grep -F -- '--arg endpoint4 "$route_lighthouse_endpoint"' "$tmp_dir/profile-scri
 grep -F "printf '  hosts: []\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_node_port="$(' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '($node.lighthouse.port // "4242")' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "%s:%s"\n'\'' "$lighthouse_endpoint" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'nebula_control_networks_csv' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '.[$n].advertisedUnsafeNetworks | join(",")' "$tmp_dir/profile-script.sh" >/dev/null
