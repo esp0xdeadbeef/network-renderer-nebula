@@ -398,10 +398,16 @@ else
         }
         nebula_control_networks_csv() {
           printf '%s\n' "$1" \
-            | tr ',' '\n' \
-            | sed '/^$/d' \
-            | grep -Ev '(/32|/128)$' \
-            | paste -sd, -
+            | awk -F, '
+                {
+                  for (i = 1; i <= NF; i++) {
+                    if ($i != "" && $i !~ /(\/32|\/128)$/) {
+                      out = out ? out "," $i : $i
+                    }
+                  }
+                }
+                END { print out }
+              '
         }
 
         printf '%s' "$runtime_nodes_json" | jq -r 'keys[]' | while read -r node_name; do
