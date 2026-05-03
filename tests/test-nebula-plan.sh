@@ -22,8 +22,11 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/plan.json"
 
 jq -e '
-  .overlays["espbranch::site-b::east-west"].lighthouse.endpoint == "46.224.173.254" and
-  .nodes["b-router-core-nebula"].overlayAddresses[0] == "100.96.10.2/24" and
+	  .overlays["espbranch::site-b::east-west"].lighthouse.endpoint == "46.224.173.254" and
+	  .overlays["esp0xdeadbeef::site-c::east-west"].lighthouse.node == "c-router-lighthouse" and
+	  .nodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
+	  (.nodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
+	  .nodes["b-router-core-nebula"].overlayAddresses[0] == "100.96.10.2/24" and
   .nodes["b-router-core-nebula"].overlayAddresses[1] == "fd42:dead:beef:ee::2/64" and
   .nodes["b-router-core-nebula"].materialization.container.targetContainer == "b-router-core-nebula" and
   (
@@ -36,11 +39,11 @@ jq -e '
     | map(select(.route == "10.60.10.0/24" and .via4 == "100.96.10.2" and .install == true))
     | length
   ) == 1 and
-  (
-    .nodes["c-router-nebula-core"].unsafeRoutes
-    | map(select(.route == "fd42:dead:beef:10::/64" and .via6 == "fd42:dead:beef:ec::1" and .install == true))
-    | length
-  ) == 1 and
+	  (
+	    .nodes["c-router-nebula-core"].unsafeRoutes
+	    | map(select(.route == "fd42:dead:feed:10::/64" and .via6 == "fd42:dead:beef:ee::2" and .install == true))
+	    | length
+	  ) == 1 and
   (
     .nodes["b-router-core-nebula"].routePreparation.removeRoutes
     | index("::/1") != null and index("8000::/1") != null
@@ -79,9 +82,13 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/bootstrap.json"
 
 jq -e '
-  .profileServiceType == "oneshot" and
-  (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
-  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null)
-' "$tmp_dir/bootstrap.json" >/dev/null
+	  .profileServiceType == "oneshot" and
+	  .spec.runtimeNodes["c-router-lighthouse"].isLighthouse == true and
+	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
+	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
+	  (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
+	  .spec.lighthouses["east-west"].internal == true and
+	  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null)
+	' "$tmp_dir/bootstrap.json" >/dev/null
 
 echo "PASS test-nebula-plan"
