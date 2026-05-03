@@ -539,6 +539,19 @@ else
               lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"
             fi
           fi
+          route_lighthouse_endpoint="$lighthouse_endpoint"
+          route_lighthouse_endpoint6="$lighthouse_endpoint6"
+          if
+            [ "$profile_context" != "remote" ] \
+            && [ "$external_suppress_public_lighthouse_static_map" = "1" ]
+          then
+            if [ -n "$external_remote_lighthouse_endpoint4" ]; then
+              route_lighthouse_endpoint="$external_remote_lighthouse_endpoint4"
+            fi
+            if [ -n "$external_remote_lighthouse_endpoint6" ]; then
+              route_lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"
+            fi
+          fi
           unsafe_routes_yaml="$(
             printf '%s' "$runtime_nodes_json" \
               | jq -r --arg n "$profile_name" '
@@ -591,10 +604,10 @@ $extra_fw_rule"
           fi
           route_preparation_json="$(
             printf '%s' "$runtime_nodes_json" \
-              | jq -c \
+                  | jq -c \
                   --arg n "$profile_name" \
-                  --arg endpoint4 "$lighthouse_endpoint" \
-                  --arg endpoint6 "$lighthouse_endpoint6" \
+                  --arg endpoint4 "$route_lighthouse_endpoint" \
+                  --arg endpoint6 "$route_lighthouse_endpoint6" \
                   --arg overlay4 "$lighthouse_ip4" \
                   --arg overlay6 "$lighthouse_ip6" '
                     .[$n] as $node

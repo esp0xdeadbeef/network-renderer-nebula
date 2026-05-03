@@ -86,6 +86,8 @@ grep -F 'if [ "$profile_context" = "remote" ]; then' "$tmp_dir/profile-script.sh
 grep -F 'if [ -n "$external_remote_lighthouse_endpoint4" ] || [ -n "$external_remote_lighthouse_endpoint6" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_remote_lighthouse_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[ -z "$external_remote_lighthouse_endpoint4" ] \' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'route_lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F -- '--arg endpoint4 "$route_lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "printf '  hosts: []\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
