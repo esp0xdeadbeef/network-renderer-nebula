@@ -71,6 +71,7 @@ let
       externalPortForwardNodeNames ? [ ],
       externalRemoteLighthouseEndpoint4 ? null,
       externalRemoteLighthouseEndpoint6 ? null,
+      externalSuppressPublicLighthouseStaticMap ? false,
     }:
     import ./bootstrap/nixos-module.nix {
       inherit
@@ -84,6 +85,7 @@ let
         externalPortForwardNodeNames
         externalRemoteLighthouseEndpoint4
         externalRemoteLighthouseEndpoint6
+        externalSuppressPublicLighthouseStaticMap
         ;
     };
 

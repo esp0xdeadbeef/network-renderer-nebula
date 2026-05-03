@@ -12,6 +12,7 @@
   externalPortForwardNodeNames ? [ ],
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
+  externalSuppressPublicLighthouseStaticMap ? false,
 }:
 let
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
@@ -184,6 +185,8 @@ let
   externalLighthouseSshHostSecretPathArg = shellArgOrEmpty externalLighthouseSshHostSecretPath;
   externalRemoteLighthouseEndpoint4Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint4;
   externalRemoteLighthouseEndpoint6Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint6;
+  externalSuppressPublicLighthouseStaticMapArg =
+    if externalSuppressPublicLighthouseStaticMap then "1" else "0";
 in
 if runtimeNodeNames == [ ] then
   { }
@@ -328,6 +331,7 @@ else
         external_lighthouse_ssh_host_secret=${externalLighthouseSshHostSecretPathArg}
         external_remote_lighthouse_endpoint4=${externalRemoteLighthouseEndpoint4Arg}
         external_remote_lighthouse_endpoint6=${externalRemoteLighthouseEndpoint6Arg}
+        external_suppress_public_lighthouse_static_map=${externalSuppressPublicLighthouseStaticMapArg}
 
         cleanup() {
           rm -f "$signing_ca_key"
@@ -578,7 +582,9 @@ $extra_fw_rule"
                   '
           )"
           lighthouse_static_host_map_yaml="$(
-            {
+            if [ "$profile_context" != "remote" ] && [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then
+              true
+            else
               printf '  "%s":\n' "$lighthouse_ip4"
               if [ -n "$lighthouse_endpoint" ]; then
                 printf '    - "%s:%s"\n' "$lighthouse_endpoint" "$lighthouse_port"
@@ -593,7 +599,7 @@ $extra_fw_rule"
               if [ -n "$lighthouse_endpoint6" ]; then
                 printf '    - "[%s]:%s"\n' "$lighthouse_endpoint6" "$lighthouse_port"
               fi
-            }
+            fi
           )"
           external_static_host_map_yaml="$(
             printf '%s' "$external_port_forward_node_names_json" \
