@@ -24,7 +24,6 @@ nix eval --impure --no-warn-dirty --json --expr '
       inherit pkgs;
       nebulaRuntimePlan = plan;
       externalLighthouseReturnIpv4Cidrs = [ "10.70.10.0/24" ];
-      externalLighthousePublicIpv4 = "95.217.26.179";
       externalLighthousePublicIpv4SecretPath = "/run/secrets/external-public-ipv4";
       externalLighthousePublicIpv6SecretPath = "/run/secrets/external-public-ipv6";
       externalLighthouseSshHostSecretPath = "/run/secrets/external-ssh-host";
@@ -50,7 +49,6 @@ nix eval --impure --no-warn-dirty --json --expr '
 	    externalServices = builtins.attrNames externalModule.systemd.services;
 	    externalEastWestUnit = externalModule.systemd.services.nebula-s-router-test-lighthouse-east-west or null;
 	    externalFirewall = externalModule.networking.firewall;
-	    publicForwardingUnit = module.systemd.services.nebula-public-lighthouse-forwarding-east-west or null;
   }
 ' > "$tmp_dir/bootstrap.json"
 
@@ -67,13 +65,6 @@ jq -e '
 	  .spec.lighthouses["east-west"].internal == true and
 	  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null) and
 	  (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null)
-	' "$tmp_dir/bootstrap.json" >/dev/null
-
-jq -e '
-	  .publicForwardingUnit != null and
-	  (.publicForwardingUnit.script | contains("ip route replace 10.90.10.100/32 dev dmz")) and
-	  (.publicForwardingUnit.script | contains("iptables -C FORWARD -i \"$wan_if\" -o dmz -d 10.90.10.100 -p udp --dport 4242 -j ACCEPT")) and
-	  (.publicForwardingUnit.script | contains("iptables -t nat -C PREROUTING -i \"$wan_if\" -d \"$public_ipv4\" -p udp --dport 4242 -j DNAT --to-destination 10.90.10.100"))
 	' "$tmp_dir/bootstrap.json" >/dev/null
 
 	jq -e '
