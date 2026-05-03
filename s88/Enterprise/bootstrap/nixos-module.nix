@@ -478,6 +478,7 @@ else
           local lighthouse_endpoint
           local lighthouse_endpoint6
           local lighthouse_static_host_map_yaml
+          local lighthouse_hosts_yaml
           local external_static_host_map_yaml
           local lighthouse_port
           local is_lighthouse
@@ -601,6 +602,15 @@ $extra_fw_rule"
               fi
             fi
           )"
+          lighthouse_hosts_yaml="$(
+            if [ "$profile_context" != "remote" ] && [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then
+              printf '  hosts: []\n'
+            else
+              printf '  hosts:\n'
+              printf '    - "%s"\n' "$lighthouse_ip4"
+              printf '    - "%s"\n' "$lighthouse_ip6"
+            fi
+          )"
           external_static_host_map_yaml="$(
             printf '%s' "$external_port_forward_node_names_json" \
               | jq -r '.[]' \
@@ -694,9 +704,7 @@ $(if [ -n "$external_static_host_map_yaml" ]; then printf '%s\n' "$external_stat
 
 lighthouse:
   am_lighthouse: false
-  hosts:
-    - "$lighthouse_ip4"
-    - "$lighthouse_ip6"
+$lighthouse_hosts_yaml
 
 punchy:
   punch: true

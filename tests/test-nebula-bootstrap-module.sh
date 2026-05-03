@@ -84,6 +84,7 @@ grep -F "external_port_forward_node_names_json='[\"c-router-nebula-core\"]'" "$t
 grep -F 'install_profile "$node_name" remote' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'if [ "$profile_context" = "remote" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'if [ "$profile_context" != "remote" ] && [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "printf '  hosts: []\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
