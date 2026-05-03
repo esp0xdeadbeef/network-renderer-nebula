@@ -87,6 +87,9 @@ jq -e '
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
 	  (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
+	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("0.0.0.0/1") != null) and
+	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("::/1") != null) and
+	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("10.70.10.0/24") == null) and
 	  .spec.lighthouses["east-west"].internal == true and
 	  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null)
 	' "$tmp_dir/bootstrap.json" >/dev/null

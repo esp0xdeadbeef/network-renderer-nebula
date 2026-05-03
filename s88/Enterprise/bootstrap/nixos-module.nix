@@ -38,7 +38,9 @@ let
 
   runtimeNodeNames = sortedAttrNames (nebulaRuntimePlan.nodes or { });
 
-  runtimeNodes =
+  stripPrefixLength = value: builtins.head (lib.splitString "/" value);
+
+  baseRuntimeNodes =
     builtins.mapAttrs (
       nodeName: node:
       let
@@ -75,6 +77,33 @@ let
         };
       }
     ) (nebulaRuntimePlan.nodes or { });
+
+  advertisedUnsafeNetworksFor =
+    nodeName:
+    let
+      node = baseRuntimeNodes.${nodeName};
+      overlayIp4 = stripPrefixLength node.certCidr4;
+      overlayIp6 = stripPrefixLength node.certCidr6;
+      allRoutes = builtins.concatLists (
+        map (name: baseRuntimeNodes.${name}.unsafeRoutes or [ ]) runtimeNodeNames
+      );
+      advertisedRoutes =
+        lib.filter (
+          route:
+          (route.via4 or null) == overlayIp4
+          || (route.via6 or null) == overlayIp6
+        ) allRoutes;
+    in
+    lib.unique (map (route: route.route or "") advertisedRoutes);
+
+  runtimeNodes =
+    builtins.mapAttrs (
+      nodeName: node:
+      node
+      // {
+        advertisedUnsafeNetworks = advertisedUnsafeNetworksFor nodeName;
+      }
+    ) baseRuntimeNodes;
 
   overlayNames = sortedAttrNames (nebulaRuntimePlan.overlays or { });
 
@@ -426,7 +455,7 @@ else
           groups_csv="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$node_name" '.[$n].groupsCsv')"
           unsafe_networks="$(
             printf '%s' "$runtime_nodes_json" \
-              | jq -r --arg n "$node_name" '.[$n].unsafeRoutes | map(.route) | join(",")' \
+              | jq -r --arg n "$node_name" '.[$n].advertisedUnsafeNetworks | join(",")' \
               | while read -r cidrs; do nebula_control_networks_csv "$cidrs"; done
           )"
           delegated_prefix="$(access_prefix_for_node "$node_name")"
