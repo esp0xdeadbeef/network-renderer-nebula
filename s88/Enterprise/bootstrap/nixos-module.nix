@@ -396,12 +396,23 @@ else
             printf '%s' "$value"
           fi
         }
+        nebula_control_networks_csv() {
+          printf '%s\n' "$1" \
+            | tr ',' '\n' \
+            | sed '/^$/d' \
+            | grep -Ev '(/32|/128)$' \
+            | paste -sd, -
+        }
 
         printf '%s' "$runtime_nodes_json" | jq -r 'keys[]' | while read -r node_name; do
           cert_cidr4="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$node_name" '.[$n].certCidr4')"
           cert_cidr6="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$node_name" '.[$n].certCidr6')"
           groups_csv="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$node_name" '.[$n].groupsCsv')"
-          unsafe_networks="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$node_name" '.[$n].unsafeRoutes | map(.route) | join(",")')"
+          unsafe_networks="$(
+            printf '%s' "$runtime_nodes_json" \
+              | jq -r --arg n "$node_name" '.[$n].unsafeRoutes | map(.route) | join(",")' \
+              | while read -r cidrs; do nebula_control_networks_csv "$cidrs"; done
+          )"
           delegated_prefix="$(access_prefix_for_node "$node_name")"
           if [ -n "$delegated_prefix" ]; then
             unsafe_networks="$(append_csv "$unsafe_networks" "$delegated_prefix")"
@@ -423,7 +434,11 @@ else
           fi
           cert_base_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certBaseName')"
           cert_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].certNetworks | join(",")')"
-          unsafe_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].unsafeNetworks | join(",")')"
+          unsafe_networks="$(
+            printf '%s' "$lighthouses_json" \
+              | jq -r --arg n "$lighthouse_id" '.[$n].unsafeNetworks | join(",")' \
+              | while read -r cidrs; do nebula_control_networks_csv "$cidrs"; done
+          )"
           issue_node_cert "$cert_base_name" "$cert_networks" "lab,lighthouse" "$unsafe_networks"
         done
 
@@ -494,6 +509,7 @@ else
             printf '%s' "$runtime_nodes_json" \
               | jq -r --arg n "$profile_name" '
                   .[$n].unsafeRoutes
+                  | map(select((.route | endswith("/32") or endswith("/128")) | not))
                   | map("    - port: any\n      proto: any\n      host: any\n      local_cidr: \(.route)")
                   | join("\n")
                 '
@@ -798,6 +814,7 @@ EOF
             interface_name="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].interfaceName')"
             lighthouse_port="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].port')"
             unsafe_networks="$(printf '%s' "$lighthouses_json" | jq -r --arg n "$lighthouse_id" '.[$n].unsafeNetworks | join(",")')"
+            unsafe_networks="$(nebula_control_networks_csv "$unsafe_networks")"
             unsafe_gateway4=""
             unsafe_gateway6=""
             delegated_prefix=""
