@@ -759,7 +759,7 @@ EOF
               printf '%s' "$runtime_nodes_json" \
                 | jq -r --arg n "$node_name" '.[$n].materialization.container.targetContainer // $n'
             )"
-            remote_container_root="/var/lib/nixos-containers/$target_container"
+            remote_profile_dir="/persist/nebula-runtime/profiles/$node_name"
 
             ${pkgs.openssh}/bin/scp -O -q "''${ssh_remote_opts[@]}" \
               "$profiles_dir/$node_name/ca.crt" \
@@ -774,13 +774,13 @@ EOF
                 set -euo pipefail
                 node_name='$node_name'
                 target_container='$target_container'
-                remote_container_root='$remote_container_root'
-                install -d -m 0700 \"\$remote_container_root/persist/etc/nebula\"
-                install -m 0600 /root/ca.crt \"\$remote_container_root/persist/etc/nebula/ca.crt\"
-                install -m 0600 /root/\$node_name.crt \"\$remote_container_root/persist/etc/nebula/\$node_name.crt\"
-                install -m 0600 /root/\$node_name.key \"\$remote_container_root/persist/etc/nebula/\$node_name.key\"
-                install -m 0600 /root/config.yml \"\$remote_container_root/persist/etc/nebula/config.yml\"
-                install -m 0600 /root/route-preparation.json \"\$remote_container_root/persist/etc/nebula/route-preparation.json\"
+                remote_profile_dir='$remote_profile_dir'
+                install -d -m 0700 \"\$remote_profile_dir\"
+                install -m 0600 /root/ca.crt \"\$remote_profile_dir/ca.crt\"
+                install -m 0600 /root/\$node_name.crt \"\$remote_profile_dir/\$node_name.crt\"
+                install -m 0600 /root/\$node_name.key \"\$remote_profile_dir/\$node_name.key\"
+                install -m 0600 /root/config.yml \"\$remote_profile_dir/config.yml\"
+                install -m 0600 /root/route-preparation.json \"\$remote_profile_dir/route-preparation.json\"
                 rm -f /root/ca.crt /root/\$node_name.crt /root/\$node_name.key /root/config.yml /root/route-preparation.json
 
                 systemctl restart container@\$target_container.service
