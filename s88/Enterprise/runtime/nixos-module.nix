@@ -97,6 +97,11 @@ in
     iifname "nebula1" accept comment "s88-nebula-runtime-forward-in"
     oifname "nebula1" accept comment "s88-nebula-runtime-forward-out"
   '';
+  networking.nftables.ruleset = lib.mkAfter ''
+    insert rule inet router input iifname "nebula1" accept comment "s88-nebula-runtime-input"
+    insert rule inet router forward iifname "nebula1" accept comment "s88-nebula-runtime-forward-in"
+    insert rule inet router forward oifname "nebula1" accept comment "s88-nebula-runtime-forward-out"
+  '';
 
   systemd.services.nebula-runtime = {
     description = "Runtime Nebula daemon for ${nodeName}";
