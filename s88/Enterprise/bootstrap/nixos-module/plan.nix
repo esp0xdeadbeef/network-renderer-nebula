@@ -11,6 +11,7 @@
   externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
   externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
   externalPortForwardNodeNames ? [ ],
+  runtimeListenHosts ? { },
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
   externalSuppressPublicLighthouseStaticMap ? false,
@@ -41,6 +42,17 @@ let
 
   stripPrefixLength = value: builtins.head (lib.splitString "/" value);
 
+  runtimeListenHostFor = nodeName:
+    let
+      value = runtimeListenHosts.${nodeName} or null;
+    in
+    if value == null then
+      null
+    else if builtins.isString value && value != "" then
+      value
+    else
+      throw "network-renderer-nebula: runtimeListenHosts.${nodeName} must be a non-empty string";
+
   baseRuntimeNodes =
     builtins.mapAttrs (
       nodeName: node:
@@ -63,6 +75,8 @@ let
         service = node.service or {
           name = "nebula-runtime";
           interface = "nebula1";
+        } // lib.optionalAttrs (runtimeListenHostFor nodeName != null) {
+          listenHost = runtimeListenHostFor nodeName;
         };
         materialization = node.materialization or { };
         lighthouse = {
