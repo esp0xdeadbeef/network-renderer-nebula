@@ -26,6 +26,30 @@ let
     remove_routes="$(jq -r '.removeRoutes[]? // empty' "$route_plan" | sort -u)"
     overlay_hosts="$(jq -r '.overlayHosts[]? // empty' "$route_plan" | sort -u)"
     endpoint_hosts="$(jq -r '.underlayEndpoints[]? // empty' "$route_plan" | sort -u)"
+    preserved_routes="$(mktemp)"
+    trap 'rm -f "$preserved_routes"' EXIT
+
+    for endpoint in $endpoint_hosts; do
+      if printf '%s' "$endpoint" | grep -q ':'; then
+        route="$(ip -6 route get "$endpoint" 2>/dev/null || true)"
+        dev="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit } }')"
+        via="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "via") { print $(i + 1); exit } }')"
+        if [ -n "$dev" ] && [ -n "$via" ]; then
+          printf '6\t%s\t%s\t%s\n' "$endpoint" "$dev" "$via" >>"$preserved_routes"
+        elif [ -n "$dev" ]; then
+          printf '6\t%s\t%s\t\n' "$endpoint" "$dev" >>"$preserved_routes"
+        fi
+      else
+        route="$(ip -4 route get "$endpoint" 2>/dev/null || true)"
+        dev="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit } }')"
+        via="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "via") { print $(i + 1); exit } }')"
+        if [ -n "$dev" ] && [ -n "$via" ]; then
+          printf '4\t%s\t%s\t%s\n' "$endpoint" "$dev" "$via" >>"$preserved_routes"
+        elif [ -n "$dev" ]; then
+          printf '4\t%s\t%s\t\n' "$endpoint" "$dev" >>"$preserved_routes"
+        fi
+      fi
+    done
 
     for route in $remove_routes; do
       if printf '%s' "$route" | grep -q ':'; then
@@ -43,27 +67,22 @@ let
       fi
     done
 
-    for endpoint in $endpoint_hosts; do
-      if printf '%s' "$endpoint" | grep -q ':'; then
-        route="$(ip -6 route get "$endpoint" 2>/dev/null || true)"
-        dev="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit } }')"
-        via="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "via") { print $(i + 1); exit } }')"
+    while IFS="$(printf '\t')" read -r family endpoint dev via; do
+      [ -n "$endpoint" ] || continue
+      if [ "$family" = 6 ]; then
         if [ -n "$dev" ] && [ -n "$via" ]; then
           ip -6 route replace "$endpoint/128" via "$via" dev "$dev"
         elif [ -n "$dev" ]; then
           ip -6 route replace "$endpoint/128" dev "$dev"
         fi
       else
-        route="$(ip -4 route get "$endpoint" 2>/dev/null || true)"
-        dev="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit } }')"
-        via="$(printf '%s\n' "$route" | awk '{ for (i = 1; i <= NF; i++) if ($i == "via") { print $(i + 1); exit } }')"
         if [ -n "$dev" ] && [ -n "$via" ]; then
           ip route replace "$endpoint/32" via "$via" dev "$dev"
         elif [ -n "$dev" ]; then
           ip route replace "$endpoint/32" dev "$dev"
         fi
       fi
-    done
+    done <"$preserved_routes"
   '';
 in
 {
