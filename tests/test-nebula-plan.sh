@@ -44,6 +44,36 @@ jq -e '
 	    | map(select(.route == "fd42:dead:feed:10::/64" and .via6 == "fd42:dead:beef:ee::2" and .install == true))
 	    | length
 	  ) == 1 and
+	  (
+	    .nodes["c-router-nebula-core"].unsafeRoutes
+	    | map(select(.route == "10.70.10.0/24" and .via4 == "100.96.10.2" and .install == true))
+	    | length
+	  ) == 1 and
+	  (
+	    .nodes["c-router-nebula-core"].unsafeRoutes
+	    | map(select(.route == "fd42:dead:feed:70::/64" and .via6 == "fd42:dead:beef:ee::2" and .install == true))
+	    | length
+	  ) == 1 and
+	  (
+	    .nodes["b-router-core-nebula"].unsafeRoutes
+	    | map(select(.route == "0.0.0.0/1" and .via4 == "100.96.10.3" and .install == true))
+	    | length
+	  ) == 1 and
+	  (
+	    .nodes["b-router-core-nebula"].unsafeRoutes
+	    | map(select(.route == "128.0.0.0/1" and .via4 == "100.96.10.3" and .install == true))
+	    | length
+	  ) == 1 and
+	  (
+	    .nodes["b-router-core-nebula"].unsafeRoutes
+	    | map(select(.route == "::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == true))
+	    | length
+	  ) == 1 and
+	  (
+	    .nodes["b-router-core-nebula"].unsafeRoutes
+	    | map(select(.route == "8000::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == true))
+	    | length
+	  ) == 1 and
   (
     .nodes["b-router-core-nebula"].routePreparation.removeRoutes
     | index("::/1") != null and index("8000::/1") != null
