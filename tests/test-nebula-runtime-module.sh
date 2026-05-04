@@ -19,12 +19,16 @@ nix eval --impure --no-warn-dirty --json --expr '
   in
   {
     tmpfiles = module.systemd.tmpfiles.rules;
+    firewall = module.networking.firewall;
     inherit service;
   }
 ' > "$tmp_dir/runtime-module.json"
 
 jq -e '
   (.tmpfiles | index("d /persist/etc/nebula 0700 root root -") != null) and
+  (.firewall.extraInputRules | contains("s88-nebula-runtime-input")) and
+  (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-in")) and
+  (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-out")) and
   (.service.serviceConfig.ExecStart | contains("nebula -config /persist/etc/nebula/config.yml"))
 ' "$tmp_dir/runtime-module.json" >/dev/null
 

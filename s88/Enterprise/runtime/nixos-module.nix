@@ -90,6 +90,14 @@ in
     "d /persist/etc/nebula 0700 root root -"
   ];
 
+  networking.firewall.extraInputRules = ''
+    iifname "nebula1" accept comment "s88-nebula-runtime-input"
+  '';
+  networking.firewall.extraForwardRules = ''
+    iifname "nebula1" accept comment "s88-nebula-runtime-forward-in"
+    oifname "nebula1" accept comment "s88-nebula-runtime-forward-out"
+  '';
+
   systemd.services.nebula-runtime = {
     description = "Runtime Nebula daemon for ${nodeName}";
     wantedBy = [ "multi-user.target" ];
