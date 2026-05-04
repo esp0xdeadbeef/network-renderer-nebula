@@ -148,6 +148,7 @@ install_profile() {
   local port_forward_endpoint
   local port_forward_endpoint6
   local lighthouse_port
+  local listen_host
   local is_lighthouse
   local route_preparation_json
   local unsafe_routes_yaml
@@ -158,6 +159,7 @@ install_profile() {
   lighthouse_endpoint="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.endpoint')"
   lighthouse_endpoint6="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.endpoint6')"
   lighthouse_port="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].lighthouse.port')"
+  listen_host="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].service.listenHost // "[::]"')"
   is_lighthouse="$(printf '%s' "$runtime_nodes_json" | jq -r --arg n "$profile_name" '.[$n].isLighthouse == true')"
   if [ -n "$external_lighthouse_public_ipv4_secret" ] && [ -s "$external_lighthouse_public_ipv4_secret" ]; then
     lighthouse_endpoint="$(tr -d '[:space:]' <"$external_lighthouse_public_ipv4_secret")"
@@ -387,7 +389,7 @@ lighthouse:
   am_lighthouse: true
 
 listen:
-  host: "[::]"
+  host: "$listen_host"
   port: $lighthouse_port
 
 tun:
@@ -440,7 +442,7 @@ punchy:
   punch: true
 
 listen:
-  host: "[::]"
+  host: "$listen_host"
   port: 4242
 
 tun:

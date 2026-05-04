@@ -12,6 +12,7 @@
   externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
   externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
   externalPortForwardNodeNames ? [ ],
+  runtimeListenHosts ? { },
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
   externalSuppressPublicLighthouseStaticMap ? false,
@@ -28,6 +29,7 @@ let
       externalPortForwardPublicIpv4SecretPath
       externalPortForwardPublicIpv6SecretPath
       externalPortForwardNodeNames
+      runtimeListenHosts
       externalRemoteLighthouseEndpoint4
       externalRemoteLighthouseEndpoint6
       externalSuppressPublicLighthouseStaticMap

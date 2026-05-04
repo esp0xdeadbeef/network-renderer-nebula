@@ -30,6 +30,9 @@ nix eval --impure --no-warn-dirty --json --expr '
       externalPortForwardPublicIpv4SecretPath = "/run/secrets/portforward-public-ipv4";
       externalPortForwardPublicIpv6SecretPath = "/run/secrets/portforward-public-ipv6";
       externalPortForwardNodeNames = [ "c-router-nebula-core" ];
+      runtimeListenHosts = {
+        c-router-nebula-core = "172.31.254.4";
+      };
       externalRemoteLighthouseEndpoint4 = "10.90.10.100";
       externalRemoteLighthouseEndpoint6 = "";
       externalSuppressPublicLighthouseStaticMap = true;
@@ -63,6 +66,7 @@ jq -e '
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
 	  (.spec.runtimeNodes["c-router-lighthouse"].groupsCsv | split(",") | index("lighthouse") != null) and
+	  .spec.runtimeNodes["c-router-nebula-core"].service.listenHost == "172.31.254.4" and
 	  .spec.lighthouses["east-west"].internal == true and
 	  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null) and
 	  (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null)
@@ -104,6 +108,9 @@ grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" 
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_node_port="$(' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '($node.lighthouse.port // "4242")' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'listen_host="$(printf' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '.[$n].service.listenHost // "[::]"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'host: "$listen_host"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$port_forward_endpoint" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$port_forward_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
