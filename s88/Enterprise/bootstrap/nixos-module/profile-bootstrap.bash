@@ -258,6 +258,8 @@ $extra_fw_rule"
           --arg n "$profile_name" \
           --arg endpoint4 "$route_lighthouse_endpoint" \
           --arg endpoint6 "$route_lighthouse_endpoint6" \
+          --arg portForwardEndpoint4 "$port_forward_endpoint" \
+          --arg portForwardEndpoint6 "$port_forward_endpoint6" \
           --arg overlay4 "$lighthouse_ip4" \
           --arg overlay6 "$lighthouse_ip6" '
             .[$n] as $node
@@ -269,7 +271,12 @@ $extra_fw_rule"
                       | map(select(.install // true) | .route))),
                 overlayHosts:
                   (($plan.overlayHosts // []) + [$overlay4, $overlay6]),
-                underlayEndpoints: [$endpoint4, $endpoint6]
+                underlayEndpoints: [
+                  $endpoint4,
+                  $endpoint6,
+                  $portForwardEndpoint4,
+                  $portForwardEndpoint6
+                ]
               }
             | with_entries(.value |= (map(select(. != null and . != "")) | unique))
           '
