@@ -71,6 +71,34 @@ append_csv() {
     printf '%s' "$value"
   fi
 }
+listen_supports_ipv4() {
+  local listen_host="$1"
+  case "$listen_host" in
+    ""|"*"|"[::]"|"::"|"0.0.0.0")
+      return 0
+      ;;
+    *:*)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+listen_supports_ipv6() {
+  local listen_host="$1"
+  case "$listen_host" in
+    ""|"*"|"[::]"|"::")
+      return 0
+      ;;
+    *:*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
 nebula_control_networks_csv() {
   printf '%s\n' "$1" \
     | awk -F, '
@@ -203,6 +231,16 @@ install_profile() {
     if [ -n "$external_remote_lighthouse_endpoint6" ]; then
       route_lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"
     fi
+  fi
+  if ! listen_supports_ipv4 "$listen_host"; then
+    lighthouse_endpoint=""
+    route_lighthouse_endpoint=""
+    port_forward_endpoint=""
+  fi
+  if ! listen_supports_ipv6 "$listen_host"; then
+    lighthouse_endpoint6=""
+    route_lighthouse_endpoint6=""
+    port_forward_endpoint6=""
   fi
   unsafe_routes_yaml="$(
     printf '%s' "$runtime_nodes_json" \
