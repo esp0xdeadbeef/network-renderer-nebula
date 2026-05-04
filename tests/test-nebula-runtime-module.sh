@@ -20,6 +20,7 @@ nix eval --impure --no-warn-dirty --json --expr '
   {
     tmpfiles = module.systemd.tmpfiles.rules;
     firewall = module.networking.firewall;
+    nftablesRuleset = module.networking.nftables.ruleset;
     inherit service;
   }
 ' > "$tmp_dir/runtime-module.json"
@@ -29,6 +30,9 @@ jq -e '
   (.firewall.extraInputRules | contains("s88-nebula-runtime-input")) and
   (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-in")) and
   (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-out")) and
+  (.nftablesRuleset.content | contains("insert rule inet router input iifname \"nebula1\"")) and
+  (.nftablesRuleset.content | contains("insert rule inet router forward iifname \"nebula1\"")) and
+  (.nftablesRuleset.content | contains("insert rule inet router forward oifname \"nebula1\"")) and
   (.service.serviceConfig.ExecStart | contains("nebula -config /persist/etc/nebula/config.yml"))
 ' "$tmp_dir/runtime-module.json" >/dev/null
 
