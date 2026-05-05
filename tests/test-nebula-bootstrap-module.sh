@@ -112,6 +112,8 @@ grep -F '[ "$advertised_endpoint4" = "$lighthouse_endpoint" ] && [ "$lighthouse_
 grep -F 'advertised_endpoint4=""' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[ "$advertised_endpoint6" = "$lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertised_endpoint6=""' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'is marked public-forwarded but only has the lighthouse-owned public ${lighthouse_port} endpoint' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'model a unique public endpoint or remove the public-forwarded node' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "printf '  advertise_addrs:\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$advertised_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$advertised_endpoint6" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null

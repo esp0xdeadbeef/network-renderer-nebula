@@ -373,6 +373,10 @@ $extra_fw_rule"
       if [ "$advertised_endpoint6" = "$lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]; then
         advertised_endpoint6=""
       fi
+      if [ -z "$advertised_endpoint4" ] && [ -z "$advertised_endpoint6" ]; then
+        echo "nebula-profile-bootstrap: ${profile_name} is marked public-forwarded but only has the lighthouse-owned public ${lighthouse_port} endpoint; model a unique public endpoint or remove the public-forwarded node" >&2
+        exit 1
+      fi
       if [ -n "$advertised_endpoint4" ] || [ -n "$advertised_endpoint6" ]; then
         printf '  advertise_addrs:\n'
         if [ -n "$advertised_endpoint4" ]; then
