@@ -12,6 +12,7 @@
   externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
   externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
   externalPortForwardNodeNames ? [ ],
+  externalRuntimeNodeNames ? externalPortForwardNodeNames,
   runtimeListenHosts ? { },
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
@@ -29,6 +30,7 @@ let
       externalPortForwardPublicIpv4SecretPath
       externalPortForwardPublicIpv6SecretPath
       externalPortForwardNodeNames
+      externalRuntimeNodeNames
       runtimeListenHosts
       externalRemoteLighthouseEndpoint4
       externalRemoteLighthouseEndpoint6
@@ -48,6 +50,7 @@ let
     runtime_nodes_json='${plan.runtimeNodesJson}'
     lighthouses_json='${plan.lighthousesJson}'
     external_port_forward_node_names_json='${plan.externalPortForwardNodeNamesJson}'
+    external_runtime_node_names_json='${plan.externalRuntimeNodeNamesJson}'
     external_lighthouse_return_ipv4_cidrs_csv='${plan.externalLighthouseReturnIpv4CidrsCsv}'
     external_lighthouse_public_ipv4_secret=${plan.externalLighthousePublicIpv4SecretPathArg}
     external_lighthouse_public_ipv6_secret=${plan.externalLighthousePublicIpv6SecretPathArg}

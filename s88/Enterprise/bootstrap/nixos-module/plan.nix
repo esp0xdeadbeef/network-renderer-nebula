@@ -11,6 +11,7 @@
   externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
   externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
   externalPortForwardNodeNames ? [ ],
+  externalRuntimeNodeNames ? externalPortForwardNodeNames,
   runtimeListenHosts ? { },
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
@@ -134,6 +135,7 @@ let
   runtimeNodesJson = builtins.toJSON runtimeNodes;
   lighthousesJson = builtins.toJSON lighthouses;
   externalPortForwardNodeNamesJson = builtins.toJSON externalPortForwardNodeNames;
+  externalRuntimeNodeNamesJson = builtins.toJSON externalRuntimeNodeNames;
   externalLighthouseReturnIpv4CidrsCsv = lib.concatStringsSep "," externalLighthouseReturnIpv4Cidrs;
   shellArgOrEmpty = value: lib.escapeShellArg (if value == null then "" else value);
   externalLighthousePublicIpv4SecretPathArg = shellArgOrEmpty externalLighthousePublicIpv4SecretPath;
@@ -155,6 +157,7 @@ in
     externalPortForwardNodeNamesJson
     externalPortForwardPublicIpv4SecretPathArg
     externalPortForwardPublicIpv6SecretPathArg
+    externalRuntimeNodeNamesJson
     externalRemoteLighthouseEndpoint4Arg
     externalRemoteLighthouseEndpoint6Arg
     externalSuppressPublicLighthouseStaticMapArg
