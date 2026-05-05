@@ -120,6 +120,14 @@ grep -F "printf '  advertise_addrs:\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$advertised_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$advertised_endpoint6" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '$advertise_addrs_yaml' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'local_allow_list:' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "'10.0.0.0/8': false" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "'172.16.0.0/12': false" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "'192.168.0.0/16': false" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "'100.64.0.0/10': false" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "'169.254.0.0/16': false" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "'fc00::/7': false" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "'fe80::/10': false" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "printf '  hosts: []\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
