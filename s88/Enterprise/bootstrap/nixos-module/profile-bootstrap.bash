@@ -172,6 +172,7 @@ install_profile() {
   local lighthouse_endpoint6
   local lighthouse_static_host_map_yaml
   local lighthouse_hosts_yaml
+  local advertise_addrs_yaml
   local external_static_host_map_yaml
   local port_forward_endpoint
   local port_forward_endpoint6
@@ -362,6 +363,19 @@ $extra_fw_rule"
       printf '    - "%s"\n' "$lighthouse_ip6"
     fi
   )"
+  advertise_addrs_yaml="$(
+    if printf '%s' "$external_port_forward_node_names_json" | jq -e --arg n "$profile_name" 'index($n) != null' >/dev/null; then
+      if [ -n "$port_forward_endpoint" ] || [ -n "$port_forward_endpoint6" ]; then
+        printf '  advertise_addrs:\n'
+        if [ -n "$port_forward_endpoint" ]; then
+          printf '    - "%s:%s"\n' "$port_forward_endpoint" "$lighthouse_port"
+        fi
+        if [ -n "$port_forward_endpoint6" ]; then
+          printf '    - "[%s]:%s"\n' "$port_forward_endpoint6" "$lighthouse_port"
+        fi
+      fi
+    fi
+  )"
   external_static_host_map_yaml="$(
     printf '%s' "$external_port_forward_node_names_json" \
       | jq -r '.[]' \
@@ -470,6 +484,7 @@ $(if [ -n "$external_static_host_map_yaml" ]; then printf '%s\n' "$external_stat
 lighthouse:
   am_lighthouse: false
 $lighthouse_hosts_yaml
+$advertise_addrs_yaml
 
 punchy:
   punch: true
