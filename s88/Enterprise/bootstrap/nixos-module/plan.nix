@@ -73,6 +73,12 @@ let
         groupsCsv = lib.concatStringsSep "," groups;
         unsafeRoutes = node.unsafeRoutes or [ ];
         routePreparation = node.routePreparation or { };
+        relay = node.relay or {
+          amRelay = false;
+          useRelays = false;
+          relays = [ ];
+          nodes = [ ];
+        };
         service = node.service or {
           name = "nebula-runtime";
           interface = "nebula1";

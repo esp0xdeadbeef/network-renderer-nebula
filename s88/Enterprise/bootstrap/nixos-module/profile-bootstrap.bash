@@ -180,6 +180,7 @@ install_profile() {
   local listen_host
   local is_lighthouse
   local route_preparation_json
+  local relay_yaml
   local unsafe_routes_yaml
   local unsafe_fw_rules
 
@@ -263,6 +264,21 @@ install_profile() {
           | map(select((endswith("/32") or endswith("/128")) | not))
           | map("    - port: any\n      proto: any\n      host: any\n      local_cidr: \(.)")
           | join("\n")
+        '
+  )"
+  relay_yaml="$(
+    printf '%s' "$runtime_nodes_json" \
+      | jq -r --arg n "$profile_name" '
+          .[$n].relay as $relay
+          | "relay:\n"
+            + (($relay.relays // [])
+              | if length > 0 then
+                  "  relays:\n" + (map("    - " + .) | join("\n")) + "\n"
+                else
+                  ""
+                end)
+            + "  am_relay: " + (if ($relay.amRelay // false) then "true" else "false" end) + "\n"
+            + "  use_relays: " + (if ($relay.useRelays // false) then "true" else "false" end)
         '
   )"
 
@@ -447,6 +463,8 @@ static_host_map: {}
 lighthouse:
   am_lighthouse: true
 
+$relay_yaml
+
 listen:
   host: "$listen_host"
   port: $lighthouse_port
@@ -508,6 +526,8 @@ $advertise_addrs_yaml
 
 punchy:
   punch: true
+
+$relay_yaml
 
 listen:
   host: "$listen_host"

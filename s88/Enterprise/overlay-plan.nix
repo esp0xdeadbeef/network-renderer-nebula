@@ -69,6 +69,7 @@ let
     let
       materialization = builtins.removeAttrs runtimeNode [
         "groups"
+        "relay"
         "unsafeRoutes"
         "service"
       ];
