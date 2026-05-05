@@ -7,8 +7,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-test-three-site/intent.nix"
-inventory_path="${labs_path}/examples/s-router-test-three-site/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
+inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -29,11 +29,6 @@ jq -e '
 	  .nodes["b-router-core-nebula"].overlayAddresses[0] == "100.96.10.2/24" and
   .nodes["b-router-core-nebula"].overlayAddresses[1] == "fd42:dead:beef:ee::2/64" and
   .nodes["b-router-core-nebula"].materialization.container.targetContainer == "b-router-core-nebula" and
-  (
-    .nodes["b-router-core-nebula"].unsafeRoutes
-    | map(select((.route == "::/1" or .route == "8000::/1") and .install == true))
-    | length
-  ) == 2 and
   (
     .nodes["s-router-core-nebula"].unsafeRoutes
     | map(select(.route == "10.60.10.0/24" and .via4 == "100.96.10.2" and .install == true))
@@ -56,27 +51,27 @@ jq -e '
 	  ) == 1 and
 	  (
 	    .nodes["b-router-core-nebula"].unsafeRoutes
-	    | map(select(.route == "0.0.0.0/1" and .via4 == "100.96.10.3" and .install == true))
+	    | map(select(.route == "10.20.10.0/24" and .via4 == "100.96.10.1" and .install == true))
 	    | length
 	  ) == 1 and
 	  (
 	    .nodes["b-router-core-nebula"].unsafeRoutes
-	    | map(select(.route == "128.0.0.0/1" and .via4 == "100.96.10.3" and .install == true))
+	    | map(select(.route == "10.20.50.0/24" and .via4 == "100.96.10.1" and .install == true))
 	    | length
 	  ) == 1 and
 	  (
 	    .nodes["b-router-core-nebula"].unsafeRoutes
-	    | map(select(.route == "::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == true))
+	    | map(select(.route == "fd42:dead:beef:10::/64" and .via6 == "fd42:dead:beef:ee::1" and .install == true))
 	    | length
 	  ) == 1 and
 	  (
 	    .nodes["b-router-core-nebula"].unsafeRoutes
-	    | map(select(.route == "8000::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == true))
+	    | map(select(.route == "fd42:dead:beef:50::/64" and .via6 == "fd42:dead:beef:ee::1" and .install == true))
 	    | length
 	  ) == 1 and
   (
     .nodes["b-router-core-nebula"].routePreparation.removeRoutes
-    | index("::/1") != null and index("8000::/1") != null
+    | index("10.20.10.0/24") != null and index("fd42:dead:beef:50::/64") != null
   ) and
   (
     .nodes["b-router-core-nebula"].routePreparation.underlayEndpoints
@@ -117,11 +112,11 @@ jq -e '
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
 	  (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
-	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("0.0.0.0/1") != null) and
-	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("::/1") != null) and
+	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.50.0.0/32") != null) and
+	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("fd42:dead:feed:10::/64") != null) and
 	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("10.70.10.0/24") == null) and
 	  .spec.lighthouses["east-west"].internal == true and
-	  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null)
+	  (.spec.lighthouses["east-west"].unsafeNetworks | index("fd42:dead:beef:10::/64") != null)
 	' "$tmp_dir/bootstrap.json" >/dev/null
 
 echo "PASS test-nebula-plan"

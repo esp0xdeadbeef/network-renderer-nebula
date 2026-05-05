@@ -7,8 +7,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-test-three-site/intent.nix"
-inventory_path="${labs_path}/examples/s-router-test-three-site/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
+inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let

@@ -72,16 +72,12 @@ builtins.listToAttrs (
       renderedPath =
         "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nodes.${nodeName}";
       renderedNode = requireAttr renderedPath (overlayNodes.${nodeName} or null);
-      unsafeRoutes =
-        uniqueRoutes (
-          (
-            if builtins.isList (runtimeNode.unsafeRoutes or null) then
-              lib.filter builtins.isAttrs runtimeNode.unsafeRoutes
-            else
-              [ ]
-          )
-          ++ modeledUnsafeRoutesForNode nodeName
-        );
+      _noInventoryUnsafeRoutes =
+        if runtimeNode ? unsafeRoutes then
+          throw "${runtimePath}.unsafeRoutes is policy; CPM must provide overlay route contracts"
+        else
+          true;
+      unsafeRoutes = uniqueRoutes (modeledUnsafeRoutesForNode nodeName);
       routePreparation = {
         removeRoutes = uniqueStrings (
           map (route: route.route or null) (lib.filter (route: (route.install or true)) unsafeRoutes)
@@ -93,7 +89,7 @@ builtins.listToAttrs (
         ];
       };
     in
-    {
+    builtins.seq _noInventoryUnsafeRoutes {
       name = nodeName;
       value = {
         inherit
