@@ -211,14 +211,6 @@ install_profile() {
       port_forward_endpoint6="${port_forward_endpoint6}1"
     fi
   fi
-  if [ "$profile_context" = "remote" ]; then
-    if [ -n "$external_remote_lighthouse_endpoint4" ]; then
-      lighthouse_endpoint="$external_remote_lighthouse_endpoint4"
-    fi
-    if [ -n "$external_remote_lighthouse_endpoint6" ]; then
-      lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"
-    fi
-  fi
   route_lighthouse_endpoint="$lighthouse_endpoint"
   route_lighthouse_endpoint6="$lighthouse_endpoint6"
   if

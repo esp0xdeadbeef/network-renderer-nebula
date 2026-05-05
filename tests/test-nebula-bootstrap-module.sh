@@ -95,11 +95,12 @@ grep -F "external_remote_lighthouse_endpoint6=''" "$tmp_dir/profile-script.sh" >
 grep -F "external_suppress_public_lighthouse_static_map=1" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_port_forward_node_names_json='[\"c-router-nebula-core\"]'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'install_profile "$node_name" remote' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'if [ "$profile_context" = "remote" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'if [ -n "$external_remote_lighthouse_endpoint4" ] || [ -n "$external_remote_lighthouse_endpoint6" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_remote_lighthouse_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[ -z "$external_remote_lighthouse_endpoint4" ] \' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'route_lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
+! grep -F 'lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
+! grep -F 'lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F -- '--arg endpoint4 "$route_lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F -- '--arg portForwardEndpoint4 "$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '$portForwardEndpoint4,' "$tmp_dir/profile-script.sh" >/dev/null
