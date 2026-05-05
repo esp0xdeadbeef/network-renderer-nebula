@@ -30,6 +30,7 @@ nix eval --impure --no-warn-dirty --json --expr '
       externalPortForwardPublicIpv4SecretPath = "/run/secrets/portforward-public-ipv4";
       externalPortForwardPublicIpv6SecretPath = "/run/secrets/portforward-public-ipv6";
       externalPortForwardNodeNames = [ "c-router-nebula-core" ];
+      externalRuntimeNodeNames = [ "c-router-nebula-core" ];
       runtimeListenHosts = {
         c-router-nebula-core = "172.31.254.4";
       };
@@ -94,6 +95,7 @@ grep -F "external_remote_lighthouse_endpoint4=10.90.10.100" "$tmp_dir/profile-sc
 grep -F "external_remote_lighthouse_endpoint6=''" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_suppress_public_lighthouse_static_map=1" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_port_forward_node_names_json='[\"c-router-nebula-core\"]'" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_runtime_node_names_json='[\"c-router-nebula-core\"]'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'install_profile "$node_name" remote' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'if [ -n "$external_remote_lighthouse_endpoint4" ] || [ -n "$external_remote_lighthouse_endpoint6" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_remote_lighthouse_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
@@ -136,6 +138,7 @@ grep -F '.[$n].advertisedUnsafeNetworks | join(",")' "$tmp_dir/profile-script.sh
 grep -F '.[$n].advertisedUnsafeNetworks' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'endswith("/32") or endswith("/128")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'remote_runtime_nodes="$(' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''%s'\'' "$external_runtime_node_names_json" | jq -r '\''.[]'\''' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '/persist/nebula-runtime/profiles/$node_name' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'systemctl restart container@\$target_container.service' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '+ (if (.route | contains(":")) then "1280" else "1200" end)' "$tmp_dir/profile-script.sh" >/dev/null

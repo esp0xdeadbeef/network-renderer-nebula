@@ -581,8 +581,8 @@ if [ -n "$remote_external_lighthouse_host" ] && ssh \
   "root@$remote_external_lighthouse_host" true 2>/dev/null; then
   remote_runtime_nodes="$(
     {
-      printf '%s' "$external_port_forward_node_names_json" | jq -r '.[]'
-      printf '%s' "$external_port_forward_node_names_json" \
+      printf '%s' "$external_runtime_node_names_json" | jq -r '.[]'
+      printf '%s' "$external_runtime_node_names_json" \
         | jq -r --argjson nodes "$runtime_nodes_json" '
             .[]
             | select($nodes[.] != null)
