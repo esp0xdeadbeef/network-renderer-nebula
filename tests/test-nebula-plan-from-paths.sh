@@ -24,9 +24,9 @@ nix eval --impure --no-warn-dirty --json --expr '
 jq -e '
 	  .overlays["esp0xdeadbeef::site-a::east-west"].lighthouse.port == "4242" and
 	  .overlays["esp0xdeadbeef::site-c::east-west"].lighthouse.node == "c-router-lighthouse" and
-	  .nodes["nebula-core"].materialization.container.profile == "core-client" and
-	  .nodes["nebula-core"].materialization.container.hostBridge == "dmz" and
+	  (.nodes | has("nebula-core") | not) and
 	  .nodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
+	  .nodes["s-router-core-nebula"].materialization.container.profile == "core-router-nebula" and
 	  .nodes["s-router-core-nebula"].relay.relays == ["100.96.10.3"] and
 	  .nodes["b-router-core-nebula"].relay.relays == ["100.96.10.3"] and
 	  .nodes["c-router-nebula-core"].relay.amRelay == true and
@@ -51,11 +51,11 @@ if nix eval --impure --no-warn-dirty --json --expr '
               overlays = inventory.controlPlane.sites.esp0xdeadbeef.site-a.overlays // {
                 east-west = inventory.controlPlane.sites.esp0xdeadbeef.site-a.overlays.east-west // {
                   runtimeNodes = inventory.controlPlane.sites.esp0xdeadbeef.site-a.overlays.east-west.runtimeNodes // {
-                    nebula-core =
-                      inventory.controlPlane.sites.esp0xdeadbeef.site-a.overlays.east-west.runtimeNodes.nebula-core
+                    c-router-lighthouse =
+                      inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west.runtimeNodes.c-router-lighthouse
                       // {
                         container =
-                          inventory.controlPlane.sites.esp0xdeadbeef.site-a.overlays.east-west.runtimeNodes.nebula-core.container
+                          inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west.runtimeNodes.c-router-lighthouse.container
                           // { hostBridge = "br-uplink1"; };
                       };
                   };
