@@ -496,6 +496,14 @@ $(if [ -n "$external_static_host_map_yaml" ]; then printf '%s\n' "$external_stat
 lighthouse:
   am_lighthouse: false
 $lighthouse_hosts_yaml
+  local_allow_list:
+    '10.0.0.0/8': false
+    '172.16.0.0/12': false
+    '192.168.0.0/16': false
+    '100.64.0.0/10': false
+    '169.254.0.0/16': false
+    'fc00::/7': false
+    'fe80::/10': false
 $advertise_addrs_yaml
 
 punchy:
