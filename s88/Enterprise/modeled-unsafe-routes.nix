@@ -13,7 +13,6 @@ let
   attrsOrEmpty = value: if builtins.isAttrs value then value else { };
   listOrEmpty = value: if builtins.isList value then value else [ ];
   isString = value: builtins.isString value && value != "";
-  hasInfix = needle: value: builtins.isString value && lib.hasInfix needle value;
 
   runtimeTargets = attrsOrEmpty (siteCpm.runtimeTargets or null);
 
@@ -87,12 +86,14 @@ let
     in
     if gatewayCidr == null then null else stripPrefixLength gatewayCidr;
 
+  routesForFamily =
+    family: routes:
+    map (route: route // { inherit family; }) (listOrEmpty routes);
+
   routeValues =
     routes:
-    if builtins.isList routes then
-      routes
-    else if builtins.isAttrs routes then
-      (listOrEmpty (routes.ipv4 or null)) ++ (listOrEmpty (routes.ipv6 or null))
+    if builtins.isAttrs routes then
+      routesForFamily 4 (routes.ipv4 or null) ++ routesForFamily 6 (routes.ipv6 or null)
     else
       [ ];
 
@@ -126,9 +127,16 @@ let
     map (
       route:
       let
-        family = if hasInfix ":" route.dst then 6 else 4;
+        family = route.family or null;
         gateway = peerOverlayGatewayFor family (route.peerSite or "");
       in
+      if !(family == 4 || family == 6) then
+        throw ''
+          network-renderer-nebula: overlay route for '${nodeName}' on '${overlayId}' is missing explicit CPM family metadata
+          route:
+          ${builtins.toJSON route}
+        ''
+      else
       if gateway == null then
         throw ''
           network-renderer-nebula: overlay route for '${nodeName}' on '${overlayId}' is missing a resolvable peer gateway

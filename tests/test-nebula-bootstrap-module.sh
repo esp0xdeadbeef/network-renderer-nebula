@@ -7,8 +7,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-test-three-site/intent.nix"
-inventory_path="${labs_path}/examples/s-router-test-three-site/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
+inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -61,14 +61,14 @@ jq -e '
 	  (.profileAfter | index("container@c-router-lighthouse.service") == null) and
 	  (.profileWants | index("container@c-router-lighthouse.service") == null) and
 	  (.spec.runtimeNodes["b-router-core-nebula"].routePreparation.removeRoutes
-	    | index("0.0.0.0/1") != null and index("::/1") != null) and
+	    | index("10.20.10.0/24") != null and index("fd42:dead:beef:50::/64") != null) and
 	  .spec.runtimeNodes["c-router-lighthouse"].isLighthouse == true and
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
 	  (.spec.runtimeNodes["c-router-lighthouse"].groupsCsv | split(",") | index("lighthouse") != null) and
 	  .spec.runtimeNodes["c-router-nebula-core"].service.listenHost == "172.31.254.4" and
 	  .spec.lighthouses["east-west"].internal == true and
-	  (.spec.lighthouses["east-west"].unsafeNetworks | index("::/1") != null) and
+	  (.spec.lighthouses["east-west"].unsafeNetworks | index("fd42:dead:beef:10::/64") != null) and
 	  (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null)
 	' "$tmp_dir/bootstrap.json" >/dev/null
 
