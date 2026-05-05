@@ -69,10 +69,18 @@ jq -e '
 	    | map(select(.route == "fd42:dead:beef:50::/64" and .via6 == "fd42:dead:beef:ee::1" and .install == true))
 	    | length
 	  ) == 1 and
-  (
-    .nodes["b-router-core-nebula"].routePreparation.removeRoutes
-    | index("10.20.10.0/24") != null and index("fd42:dead:beef:50::/64") != null
-  ) and
+	  (
+	    .nodes["b-router-core-nebula"].unsafeRoutes
+	    | map(.route)
+	    | index("10.10.0.16/32") == null and index("fd42:dead:beef:1000:0:0:0:10/128") == null
+	  ) and
+	  (
+	    .nodes["b-router-core-nebula"].routePreparation.removeRoutes
+	    | index("10.20.10.0/24") != null
+	    and index("fd42:dead:beef:50::/64") != null
+	    and index("10.10.0.16/32") == null
+	    and index("fd42:dead:beef:1000:0:0:0:10/128") == null
+	  ) and
   (
     .nodes["b-router-core-nebula"].routePreparation.underlayEndpoints
     | index("198.51.100.10") != null and index("2001:db8:51::10") != null
@@ -112,7 +120,8 @@ jq -e '
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
 	  (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
-	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.50.0.0/32") != null) and
+	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.60.10.0/24") != null) and
+	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.50.0.0/32") == null) and
 	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("fd42:dead:feed:10::/64") != null) and
 	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("10.70.10.0/24") == null) and
 	  .spec.lighthouses["east-west"].internal == true and
