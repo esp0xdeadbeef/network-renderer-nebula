@@ -67,6 +67,9 @@ jq -e '
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
 	  (.spec.runtimeNodes["c-router-lighthouse"].groupsCsv | split(",") | index("lighthouse") != null) and
+	  .spec.runtimeNodes["c-router-nebula-core"].relay.amRelay == true and
+	  .spec.runtimeNodes["s-router-core-nebula"].relay.relays == ["100.96.10.3"] and
+	  .spec.runtimeNodes["b-router-core-nebula"].relay.relays == ["100.96.10.3"] and
 	  .spec.runtimeNodes["c-router-nebula-core"].service.listenHost == "172.31.254.4" and
 	  .spec.lighthouses["east-west"].internal == true and
 	  (.spec.lighthouses["east-west"].unsafeNetworks | index("fd42:dead:beef:10::/64") != null) and
@@ -120,6 +123,12 @@ grep -F "printf '  advertise_addrs:\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$advertised_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$advertised_endpoint6" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '$advertise_addrs_yaml' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'relay_yaml="$(' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '.[$n].relay as $relay' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '"relay:\n"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '"  am_relay: "' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '"  use_relays: "' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '$relay_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'local_allow_list:' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "'10.0.0.0/8': false" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "'172.16.0.0/12': false" "$tmp_dir/profile-script.sh" >/dev/null

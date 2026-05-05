@@ -28,7 +28,7 @@ let
 
       hostUplinkBridgeNames = helpers.collectHostUplinkBridgeNames inventory;
 
-      overlays = builtins.listToAttrs (
+      rawOverlays = builtins.listToAttrs (
         map (
           entry:
           import ./overlay-plan.nix {
@@ -43,17 +43,42 @@ let
         ) entries
       );
 
-      nodes = builtins.listToAttrs (
+      rawNodes = builtins.listToAttrs (
         builtins.concatLists (
           map (
             overlayId:
             map (nodeName: {
               name = nodeName;
-              value = overlays.${overlayId}.nodes.${nodeName};
-            }) (helpers.sortedAttrNames overlays.${overlayId}.nodes)
-          ) (helpers.sortedAttrNames overlays)
+              value = rawOverlays.${overlayId}.nodes.${nodeName};
+            }) (helpers.sortedAttrNames rawOverlays.${overlayId}.nodes)
+          ) (helpers.sortedAttrNames rawOverlays)
         )
       );
+
+      inherit
+        (import ./relay-resolution.nix {
+          inherit helpers rawNodes;
+        })
+        relayForNode
+        ;
+
+      nodes =
+        builtins.mapAttrs (
+          nodeName: node:
+          node
+          // {
+            relay = relayForNode nodeName node;
+          }
+        ) rawNodes;
+
+      overlays =
+        builtins.mapAttrs (
+          overlayId: overlay:
+          overlay
+          // {
+            nodes = builtins.mapAttrs (nodeName: _: nodes.${nodeName}) overlay.nodes;
+          }
+        ) rawOverlays;
     in
     { inherit overlays nodes; };
 

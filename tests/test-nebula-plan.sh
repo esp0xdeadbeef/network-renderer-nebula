@@ -29,6 +29,14 @@ jq -e '
 	  .nodes["b-router-core-nebula"].overlayAddresses[0] == "100.96.10.2/24" and
   .nodes["b-router-core-nebula"].overlayAddresses[1] == "fd42:dead:beef:ee::2/64" and
   .nodes["b-router-core-nebula"].materialization.container.targetContainer == "b-router-core-nebula" and
+  .nodes["c-router-nebula-core"].relay.amRelay == true and
+  .nodes["c-router-nebula-core"].relay.relays == [] and
+  .nodes["s-router-core-nebula"].relay.relays == ["100.96.10.3"] and
+  .nodes["s-router-core-nebula"].relay.nodes == ["c-router-nebula-core"] and
+  .nodes["s-router-core-nebula"].relay.useRelays == true and
+  .nodes["b-router-core-nebula"].relay.relays == ["100.96.10.3"] and
+  .nodes["b-router-core-nebula"].relay.nodes == ["c-router-nebula-core"] and
+  .nodes["b-router-core-nebula"].relay.useRelays == true and
   (
     .nodes["s-router-core-nebula"].unsafeRoutes
     | map(select(.route == "10.60.10.0/24" and .via4 == "100.96.10.2" and .install == true))
@@ -119,6 +127,8 @@ jq -e '
 	  .spec.runtimeNodes["c-router-lighthouse"].isLighthouse == true and
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
+	  .spec.runtimeNodes["c-router-nebula-core"].relay.amRelay == true and
+	  .spec.runtimeNodes["b-router-core-nebula"].relay.relays == ["100.96.10.3"] and
 	  (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
 	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.60.10.0/24") != null) and
 	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.50.0.0/32") == null) and
