@@ -379,6 +379,9 @@ $extra_fw_rule"
         if ! printf '%s' "$runtime_nodes_json" | jq -e --arg n "$external_node_name" 'has($n)' >/dev/null; then
           continue
         fi
+        if ! printf '%s' "$runtime_nodes_json" | jq -e --arg n "$external_node_name" '.[$n].lighthouse.node == $n' >/dev/null; then
+          continue
+        fi
         external_node_port="$(
           printf '%s' "$runtime_nodes_json" \
             | jq -r --arg n "$external_node_name" '
