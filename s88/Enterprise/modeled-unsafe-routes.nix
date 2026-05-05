@@ -120,6 +120,7 @@ let
       && isString (route.dst or null)
       && (route.proto or null) == "overlay"
       && (route.overlay or null) == overlayName
+      && ((route.intent or { }).source or null) != "transit-endpoint"
     ) routes;
 
   modeledUnsafeRoutesForNode =
