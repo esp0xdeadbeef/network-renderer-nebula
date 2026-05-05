@@ -365,13 +365,21 @@ $extra_fw_rule"
   )"
   advertise_addrs_yaml="$(
     if printf '%s' "$external_port_forward_node_names_json" | jq -e --arg n "$profile_name" 'index($n) != null' >/dev/null; then
-      if [ -n "$port_forward_endpoint" ] || [ -n "$port_forward_endpoint6" ]; then
+      advertised_endpoint4="$port_forward_endpoint"
+      advertised_endpoint6="$port_forward_endpoint6"
+      if [ "$advertised_endpoint4" = "$lighthouse_endpoint" ] && [ "$lighthouse_port" = "4242" ]; then
+        advertised_endpoint4=""
+      fi
+      if [ "$advertised_endpoint6" = "$lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]; then
+        advertised_endpoint6=""
+      fi
+      if [ -n "$advertised_endpoint4" ] || [ -n "$advertised_endpoint6" ]; then
         printf '  advertise_addrs:\n'
-        if [ -n "$port_forward_endpoint" ]; then
-          printf '    - "%s:%s"\n' "$port_forward_endpoint" "$lighthouse_port"
+        if [ -n "$advertised_endpoint4" ]; then
+          printf '    - "%s:%s"\n' "$advertised_endpoint4" "$lighthouse_port"
         fi
-        if [ -n "$port_forward_endpoint6" ]; then
-          printf '    - "[%s]:%s"\n' "$port_forward_endpoint6" "$lighthouse_port"
+        if [ -n "$advertised_endpoint6" ]; then
+          printf '    - "[%s]:%s"\n' "$advertised_endpoint6" "$lighthouse_port"
         fi
       fi
     fi

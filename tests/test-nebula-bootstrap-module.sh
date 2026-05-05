@@ -106,8 +106,15 @@ grep -F -- '--arg portForwardEndpoint4 "$port_forward_endpoint"' "$tmp_dir/profi
 grep -F '$portForwardEndpoint4,' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertise_addrs_yaml="$(' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'index($n) != null' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'advertised_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'advertised_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$advertised_endpoint4" = "$lighthouse_endpoint" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'advertised_endpoint4=""' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$advertised_endpoint6" = "$lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'advertised_endpoint6=""' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "printf '  advertise_addrs:\\n'" "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "%s:%s"\n'\'' "$port_forward_endpoint" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "%s:%s"\n'\'' "$advertised_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$advertised_endpoint6" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '$advertise_addrs_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "printf '  hosts: []\\n'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '"$external_node_name" != "$profile_name"' "$tmp_dir/profile-script.sh" >/dev/null
