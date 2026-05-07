@@ -125,11 +125,25 @@ let
 
   modeledUnsafeRoutesForNode =
     nodeName:
-    map (
+    builtins.concatMap (
       route:
       let
         family = route.family or null;
         gateway = peerOverlayGatewayFor family (route.peerSite or "");
+        splitDefaultRoute =
+          unsafeRoute:
+          if unsafeRoute.route == "0.0.0.0/0" then
+            [
+              (unsafeRoute // { route = "0.0.0.0/1"; })
+              (unsafeRoute // { route = "128.0.0.0/1"; })
+            ]
+          else if unsafeRoute.route == "::/0" then
+            [
+              (unsafeRoute // { route = "::/1"; })
+              (unsafeRoute // { route = "8000::/1"; })
+            ]
+          else
+            [ unsafeRoute ];
       in
       if !(family == 4 || family == 6) then
         throw ''
@@ -145,11 +159,13 @@ let
           ${builtins.toJSON route}
         ''
       else
-        {
-          route = route.dst;
-          install = true;
-        }
-        // (if family == 6 then { via6 = gateway; } else { via4 = gateway; })
+        splitDefaultRoute (
+          {
+            route = route.dst;
+            install = true;
+          }
+          // (if family == 6 then { via6 = gateway; } else { via4 = gateway; })
+        )
     ) (overlayRoutesForNode nodeName);
 in
 {
