@@ -104,8 +104,8 @@ grep -F 'if [ -n "$external_remote_lighthouse_endpoint4" ] || [ -n "$external_re
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_remote_lighthouse_endpoint4" "$lighthouse_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[ -z "$external_remote_lighthouse_endpoint4" ] \' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'route_lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
-! grep -F 'lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
-! grep -F 'lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F -- '--arg endpoint4 "$route_lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F -- '--arg portForwardEndpoint4 "$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '$portForwardEndpoint4,' "$tmp_dir/profile-script.sh" >/dev/null

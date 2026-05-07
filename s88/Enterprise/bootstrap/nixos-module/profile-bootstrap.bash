@@ -216,13 +216,15 @@ install_profile() {
   route_lighthouse_endpoint="$lighthouse_endpoint"
   route_lighthouse_endpoint6="$lighthouse_endpoint6"
   if
-    [ "$profile_context" != "remote" ] \
-    && [ "$external_suppress_public_lighthouse_static_map" = "1" ]
+    [ "$profile_context" = "remote" ] \
+    || [ "$external_suppress_public_lighthouse_static_map" = "1" ]
   then
     if [ -n "$external_remote_lighthouse_endpoint4" ]; then
+      lighthouse_endpoint="$external_remote_lighthouse_endpoint4"
       route_lighthouse_endpoint="$external_remote_lighthouse_endpoint4"
     fi
     if [ -n "$external_remote_lighthouse_endpoint6" ]; then
+      lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"
       route_lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"
     fi
   fi
