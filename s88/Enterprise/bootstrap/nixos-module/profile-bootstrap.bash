@@ -176,6 +176,8 @@ install_profile() {
   local external_static_host_map_yaml
   local port_forward_endpoint
   local port_forward_endpoint6
+  local public_lighthouse_endpoint
+  local public_lighthouse_endpoint6
   local lighthouse_port
   local listen_host
   local is_lighthouse
@@ -201,6 +203,8 @@ install_profile() {
       lighthouse_endpoint6="${lighthouse_endpoint6}1"
     fi
   fi
+  public_lighthouse_endpoint="$lighthouse_endpoint"
+  public_lighthouse_endpoint6="$lighthouse_endpoint6"
   port_forward_endpoint="$lighthouse_endpoint"
   port_forward_endpoint6="$lighthouse_endpoint6"
   if [ -n "$external_port_forward_public_ipv4_secret" ] && [ -s "$external_port_forward_public_ipv4_secret" ]; then
@@ -385,10 +389,10 @@ $extra_fw_rule"
     if printf '%s' "$external_port_forward_node_names_json" | jq -e --arg n "$profile_name" 'index($n) != null' >/dev/null; then
       advertised_endpoint4="$port_forward_endpoint"
       advertised_endpoint6="$port_forward_endpoint6"
-      if [ "$advertised_endpoint4" = "$lighthouse_endpoint" ] && [ "$lighthouse_port" = "4242" ]; then
+      if [ "$advertised_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$lighthouse_port" = "4242" ]; then
         advertised_endpoint4=""
       fi
-      if [ "$advertised_endpoint6" = "$lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]; then
+      if [ "$advertised_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]; then
         advertised_endpoint6=""
       fi
       if [ -z "$advertised_endpoint4" ] && [ -z "$advertised_endpoint6" ]; then
