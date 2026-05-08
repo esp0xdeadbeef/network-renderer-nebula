@@ -246,6 +246,7 @@ install_profile() {
     printf '%s' "$runtime_nodes_json" \
       | jq -r --arg n "$profile_name" '
           .[$n].unsafeRoutes
+          | map(select((.routeSourceFile // "") == ""))
           | map(
               "    - route: \(.route)\n      via: "
               + (
@@ -263,6 +264,35 @@ install_profile() {
           | join("\n")
         '
   )"
+  while read -r encoded_route; do
+    [ -n "$encoded_route" ] || continue
+    route_json="$(printf '%s' "$encoded_route" | base64 -d)"
+    route_source_file="$(printf '%s' "$route_json" | jq -r '.routeSourceFile // ""')"
+    [ -s "$route_source_file" ] || continue
+    dynamic_route="$(tr -d '[:space:]' <"$route_source_file")"
+    [ -n "$dynamic_route" ] || continue
+    if printf '%s' "$dynamic_route" | grep -q ':'; then
+      route_via="$(printf '%s' "$route_json" | jq -r --arg fallback "$lighthouse_ip6" '.via6 // .via // $fallback')"
+      route_mtu="1280"
+    else
+      route_via="$(printf '%s' "$route_json" | jq -r --arg fallback "$lighthouse_ip4" '.via4 // .via // $fallback')"
+      route_mtu="1200"
+    fi
+    route_install="$(printf '%s' "$route_json" | jq -r 'if (.install // true) then "true" else "false" end')"
+    dynamic_route_yaml="    - route: $dynamic_route
+      via: $route_via
+      mtu: $route_mtu
+      install: $route_install"
+    if [ -n "$unsafe_routes_yaml" ]; then
+      unsafe_routes_yaml="$unsafe_routes_yaml
+$dynamic_route_yaml"
+    else
+      unsafe_routes_yaml="$dynamic_route_yaml"
+    fi
+  done < <(
+    printf '%s' "$runtime_nodes_json" \
+      | jq -r --arg n "$profile_name" '.[$n].unsafeRoutes[]? | select((.routeSourceFile // "") != "") | @base64'
+  )
   unsafe_fw_rules="$(
     printf '%s' "$runtime_nodes_json" \
       | jq -r --arg n "$profile_name" '

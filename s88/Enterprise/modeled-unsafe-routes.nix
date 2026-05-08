@@ -97,6 +97,10 @@ let
     else
       [ ];
 
+  delegatedPrefixSourceFilesByRoute = import ./delegated-prefix-sources.nix {
+    inherit lib helpers cpmData;
+  };
+
   overlayRoutesForNode =
     nodeName:
     let
@@ -159,13 +163,21 @@ let
           ${builtins.toJSON route}
         ''
       else
-        splitDefaultRoute (
-          {
-            route = route.dst;
-            install = true;
-          }
-          // (if family == 6 then { via6 = gateway; } else { via4 = gateway; })
-        )
+        let
+          unsafeRoute =
+            {
+              route = route.dst;
+              install = true;
+            }
+            // (if family == 6 then { via6 = gateway; } else { via4 = gateway; });
+          sourceFile = delegatedPrefixSourceFilesByRoute.${route.dst} or null;
+          dynamicUnsafeRoute =
+            if isString sourceFile then
+              [ (unsafeRoute // { routeSourceFile = sourceFile; }) ]
+            else
+              [ ];
+        in
+        splitDefaultRoute unsafeRoute ++ dynamicUnsafeRoute
     ) (overlayRoutesForNode nodeName);
 in
 {
