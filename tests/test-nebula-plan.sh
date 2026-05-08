@@ -54,7 +54,22 @@ jq -e '
 	  ) == 1 and
 	  (
 	    .nodes["c-router-nebula-core"].unsafeRoutes
-	    | map(select(.route == "fd42:dead:feed:70::/64" and .via6 == "fd42:dead:beef:ee::2" and .install == true))
+	    | map(select(
+	        .route == "fd42:dead:feed:70::/64"
+	        and .via6 == "fd42:dead:beef:ee::2"
+	        and .install == true
+	        and ((.routeSourceFile // "") == "")
+	      ))
+	    | length
+	  ) == 1 and
+	  (
+	    .nodes["c-router-nebula-core"].unsafeRoutes
+	    | map(select(
+	        .route == "fd42:dead:feed:70::/64"
+	        and .via6 == "fd42:dead:beef:ee::2"
+	        and .install == true
+	        and .routeSourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"
+	      ))
 	    | length
 	  ) == 1 and
 	  (

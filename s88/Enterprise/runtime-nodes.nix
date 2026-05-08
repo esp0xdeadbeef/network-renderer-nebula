@@ -50,6 +50,7 @@ let
               (route.route or "")
               (route.via4 or "")
               (route.via6 or "")
+              (route.routeSourceFile or "")
               (if route.install or true then "install" else "noinstall")
             ];
           in
