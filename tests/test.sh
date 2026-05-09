@@ -5,6 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 "${repo_root}/tests/test-nix-file-loc.sh"
 "${repo_root}/tests/test-cpm-overlay-contract-boundary.sh"
+"${repo_root}/tests/test-provider-boundary-no-forwarding-policy.sh"
 "${repo_root}/tests/test-nebula-plan.sh"
 "${repo_root}/tests/test-nebula-delegated-default-exit.sh"
 "${repo_root}/tests/test-nebula-dynamic-delegated-return-route.sh"
