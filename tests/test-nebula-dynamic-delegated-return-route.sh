@@ -8,11 +8,9 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "${tmp_dir}"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/labs/lab-s-sigma/s-router-test-three-site/intent.nix"
-inventory_path="${tmp_dir}/inventory.nix"
+intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
+inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
 plan_json="${tmp_dir}/plan.json"
-
-printf 'import "%s/labs/lab-s-sigma/s-router-test-three-site/getResolvedInventory.nix" { renderer = "nixos"; }\n' "${labs_path}" > "${inventory_path}"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -26,18 +24,31 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "${plan_json}"
 
 jq -e '
-  .nodes["c-router-nebula-core"].unsafeRoutes
-  | map(select(
-      .routeSourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"
-      and .via6 == "fd42:dead:beef:ee::2"
-      and .install == true
-    ))
-  | length == 1
-' "${plan_json}" >/dev/null || {
-  echo "FAIL nebula-dynamic-delegated-return-route: expected c-router-nebula-core to carry the branch hostile delegated runtime IPv6 prefix back to b-router-core-nebula via Nebula." >&2
-  echo "Remove this failure only after network-renderer-nebula renders a dynamic unsafe route from the explicit CPM external-validation delegated prefix source instead of relying on network-renderer-nixos to install an on-link overlay-west route." >&2
-  jq '.nodes["c-router-nebula-core"].unsafeRoutes' "${plan_json}" >&2
+  .nodes["c-router-nebula-core"].unsafeRoutes as $routes
+  | {
+      ok:
+        (
+          $routes
+          | map(select(
+              .routeSourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"
+              and .via6 == "fd42:dead:beef:ee::2"
+              and .install == true
+            ))
+          | length
+        ) == 1,
+      expected: {
+        node: "c-router-nebula-core",
+        dynamicRouteSourceFile: "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile",
+        via6: "fd42:dead:beef:ee::2"
+      },
+      observedUnsafeRoutes: $routes
+    }
+' "${plan_json}" > "${tmp_dir}/observed.json"
+
+if ! jq -e '.ok == true' "${tmp_dir}/observed.json" >/dev/null; then
+  echo "FAIL nebula-dynamic-delegated-return-route: expected example site-C Nebula core to carry branch hostile delegated runtime IPv6 prefix back to branch Nebula core" >&2
+  jq . "${tmp_dir}/observed.json" >&2
   exit 1
-}
+fi
 
 echo "PASS nebula-dynamic-delegated-return-route"
