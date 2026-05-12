@@ -114,7 +114,7 @@ builtins.listToAttrs (
           name = runtimeNode.service.name or "nebula-runtime";
           interface = runtimeNode.service.interface or "nebula1";
         };
-        materialization = validateMaterialization runtimePath runtimeNode;
+        materialization = validateMaterialization nodeName runtimePath runtimeNode;
         relay = runtimeNode.relay or { };
         lighthouse = lighthousePlan;
       };
