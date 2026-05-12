@@ -3,6 +3,7 @@
   helpers,
   caName,
   hostUplinkBridgeNames,
+  runtimeNodeDeploymentHostFor,
   entry,
 }:
 
@@ -65,15 +66,19 @@ let
   };
 
   validateMaterialization =
-    path: runtimeNode:
+    nodeName: path: runtimeNode:
     let
       materialization = builtins.removeAttrs runtimeNode [
         "groups"
+        "host"
         "relay"
         "unsafeRoutes"
         "service"
       ];
       hostBridge = (materialization.container or { }).hostBridge or null;
+      deploymentHost = runtimeNodeDeploymentHostFor {
+        inherit enterpriseName siteName nodeName runtimeNode;
+      };
     in
     if builtins.isString hostBridge && builtins.elem hostBridge hostUplinkBridgeNames then
       throw ''
@@ -82,7 +87,8 @@ let
         Use a tenant/access bridge or an explicit targetContainer so underlay reachability traverses the modeled access, policy, selector, and core path.
       ''
     else
-      materialization;
+      materialization
+      // (if builtins.isString deploymentHost && deploymentHost != "" then { inherit deploymentHost; } else { });
 in
 {
   name = overlayId;

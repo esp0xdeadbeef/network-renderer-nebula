@@ -27,6 +27,12 @@ let
       };
 
       hostUplinkBridgeNames = helpers.collectHostUplinkBridgeNames inventory;
+      inherit
+        (import ./deployment-hosts.nix {
+          inherit lib helpers inventory;
+        })
+        runtimeNodeDeploymentHostFor
+        ;
 
       rawOverlays = builtins.listToAttrs (
         map (
@@ -37,6 +43,7 @@ let
               helpers
               caName
               hostUplinkBridgeNames
+              runtimeNodeDeploymentHostFor
               entry
               ;
           }

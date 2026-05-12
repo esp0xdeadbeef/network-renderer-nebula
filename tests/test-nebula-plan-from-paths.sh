@@ -33,6 +33,49 @@ jq -e '
 	  .nodes["c-router-nebula-core"].materialization.container.profile == "core-router-nebula"
 	' "$tmp_dir/plan.json" >/dev/null
 
+nix eval --impure --no-warn-dirty --json --expr '
+  let
+    flake = builtins.getFlake (toString '"$repo_root"');
+    api = flake.libBySystem.x86_64-linux.renderer;
+    cpmLib = flake.inputs.network-control-plane-model.libBySystem.x86_64-linux;
+    controlPlane = cpmLib.compileAndBuildFromPaths {
+      inputPath = "'"$intent_path"'";
+      inventoryPath = "'"$inventory_path"'";
+    };
+    inventory = cpmLib.readInput "'"$inventory_path"'";
+    hostedInventory = inventory // {
+      controlPlane = inventory.controlPlane // {
+        sites = inventory.controlPlane.sites // {
+          esp0xdeadbeef = inventory.controlPlane.sites.esp0xdeadbeef // {
+            site-c = inventory.controlPlane.sites.esp0xdeadbeef.site-c // {
+              overlays = inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays // {
+                east-west = inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west // {
+                  runtimeNodes = inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west.runtimeNodes // {
+                    c-router-lighthouse =
+                      inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west.runtimeNodes.c-router-lighthouse
+                      // {
+                        container =
+                          inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west.runtimeNodes.c-router-lighthouse.container
+                          // { host = "site-c-host"; };
+                      };
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+  in
+    api.buildNebulaPlan {
+      inherit controlPlane;
+      inventory = hostedInventory;
+    }
+' > "$tmp_dir/hosted-plan.json"
+
+jq -e '.nodes["c-router-lighthouse"].materialization.deploymentHost == "site-c-host"' \
+  "$tmp_dir/hosted-plan.json" >/dev/null
+
 if nix eval --impure --no-warn-dirty --json --expr '
   let
     flake = builtins.getFlake (toString '"$repo_root"');
