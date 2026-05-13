@@ -178,6 +178,8 @@ grep -F 'ip6tables -C FORWARD -i eth0 -o \$interface_name -d \"\$cidr\" -j ACCEP
 ! grep -F 'curl -fsSL https://github.com/slackhq/nebula' "$tmp_dir/profile-script.sh" >/dev/null
 ! grep -F 'iptables -C' "$tmp_dir/profile-script.sh" >/dev/null
 ! grep -F 'ip6tables -C' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'systemctl list-unit-files' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'profile material copied without restart' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '/persist/nebula-runtime/lighthouses' "$tmp_dir/profile-script.sh" >/dev/null
 
 grep -F 'UNSAFEFWOUT' "$tmp_dir/profile-script.sh" >/dev/null
