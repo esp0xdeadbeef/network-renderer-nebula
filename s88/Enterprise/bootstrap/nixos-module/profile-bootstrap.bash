@@ -859,8 +859,8 @@ EOF
         install -m 0600 /root/\$cert_base_name.config.yml \"\$remote_profile_dir/\$cert_base_name.config.yml\"
         rm -f /root/ca.crt /root/\$cert_base_name.crt /root/\$cert_base_name.key /root/\$cert_base_name.config.yml
 
-        if systemctl list-unit-files "\$service_name.service" --no-legend 2>/dev/null | grep -q "^\$service_name.service"; then
-          systemctl restart "\$service_name.service"
+        if systemctl list-unit-files \"\$service_name.service\" --no-legend 2>/dev/null | grep -q \"^\$service_name.service\"; then
+          systemctl restart \"\$service_name.service\"
         else
           echo "nebula-profile-bootstrap: remote external lighthouse service \$service_name.service is not installed; profile material copied without restart" >&2
         fi
