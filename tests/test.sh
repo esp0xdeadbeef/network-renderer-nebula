@@ -16,4 +16,5 @@ fi
 "${repo_root}/tests/test-nebula-plan-from-paths.sh"
 "${repo_root}/tests/test-nebula-bootstrap-module.sh"
 "${repo_root}/tests/test-nebula-remote-lighthouse-endpoint.sh"
+"${repo_root}/tests/test-nebula-public-forwarded-relay-static-map.sh"
 "${repo_root}/tests/test-nebula-runtime-module.sh"
