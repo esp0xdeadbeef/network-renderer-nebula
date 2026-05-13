@@ -147,8 +147,11 @@ grep -F '($node.lighthouse.port // "4242")' "$tmp_dir/profile-script.sh" >/dev/n
 grep -F 'listen_host="$(printf' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '.[$n].service.listenHost // "[::]"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'host: "$listen_host"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "%s:%s"\n'\'' "$port_forward_endpoint" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$port_forward_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_node_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_node_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$external_node_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_node_endpoint4" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$external_node_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'nebula_control_networks_csv' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '.[$n].advertisedUnsafeNetworks | join(",")' "$tmp_dir/profile-script.sh" >/dev/null

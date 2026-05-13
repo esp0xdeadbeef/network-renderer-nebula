@@ -460,6 +460,18 @@ $extra_fw_rule"
                   end
               '
         )"
+        external_node_endpoint4="$port_forward_endpoint"
+        external_node_endpoint6="$port_forward_endpoint6"
+        if [ "$external_node_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]; then
+          external_node_endpoint4=""
+        fi
+        if [ "$external_node_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]; then
+          external_node_endpoint6=""
+        fi
+        if [ -z "$external_node_endpoint4" ] && [ -z "$external_node_endpoint6" ]; then
+          echo "nebula-profile-bootstrap: ${external_node_name} is marked public-forwarded but only has lighthouse-owned public ${external_node_port} endpoints; model a unique public endpoint or remove the public-forwarded node" >&2
+          exit 1
+        fi
         printf '%s' "$runtime_nodes_json" \
           | jq -r --arg n "$external_node_name" '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' \
           | while read -r external_overlay_ip; do
@@ -467,11 +479,11 @@ $extra_fw_rule"
             [ "$external_overlay_ip" != "$lighthouse_ip4" ] || continue
             [ "$external_overlay_ip" != "$lighthouse_ip6" ] || continue
             printf '  "%s":\n' "$external_overlay_ip"
-            if [ -n "$port_forward_endpoint" ]; then
-              printf '    - "%s:%s"\n' "$port_forward_endpoint" "$external_node_port"
+            if [ -n "$external_node_endpoint4" ]; then
+              printf '    - "%s:%s"\n' "$external_node_endpoint4" "$external_node_port"
             fi
-            if [ -n "$port_forward_endpoint6" ]; then
-              printf '    - "[%s]:%s"\n' "$port_forward_endpoint6" "$external_node_port"
+            if [ -n "$external_node_endpoint6" ]; then
+              printf '    - "[%s]:%s"\n' "$external_node_endpoint6" "$external_node_port"
             fi
           done
       done
