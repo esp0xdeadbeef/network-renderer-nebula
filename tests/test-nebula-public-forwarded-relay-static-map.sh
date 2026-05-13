@@ -37,8 +37,12 @@ nix eval --impure --no-warn-dirty --json --expr '
 
 grep -F 'external_port_forward_node_names_json='\''["c-router-nebula-core"]'\''' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "%s:%s"\n'\'' "$port_forward_endpoint" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$port_forward_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_node_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_node_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$external_node_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$external_node_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_node_endpoint4" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$external_node_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 
 if grep -F '.[$n].lighthouse.node == $n' "$tmp_dir/profile-script.sh" >/dev/null; then
   echo "network-renderer-nebula: public-forwarded relays must receive static_host_map entries even when they are not their own lighthouse" >&2
