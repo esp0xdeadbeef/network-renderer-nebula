@@ -8,6 +8,7 @@ if [[ "${NETWORK_REPO_SWEEP:-0}" != "1" && "${NETWORK_REPO_DIRECT_TEST_OK:-0}" !
 fi
 
 "${repo_root}/tests/test-nix-file-loc.sh"
+"${repo_root}/tests/test-regression-md-resolved-states.sh"
 "${repo_root}/tests/test-cpm-overlay-contract-boundary.sh"
 "${repo_root}/tests/test-provider-boundary-no-forwarding-policy.sh"
 "${repo_root}/tests/test-nebula-plan.sh"
