@@ -28,16 +28,20 @@ jq -e '
   | {
       ok:
         (
-          ($routes | map(select(.route == "::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == true)) | length) == 1
+          ($routes | map(select(.route == "0.0.0.0/1" and .via4 == "100.96.10.3" and .install == true)) | length) == 1
+          and ($routes | map(select(.route == "128.0.0.0/1" and .via4 == "100.96.10.3" and .install == true)) | length) == 1
+          and ($routes | map(select(.route == "::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == true)) | length) == 1
           and ($routes | map(select(.route == "8000::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == true)) | length) == 1
+          and (($routes | map(.route) | index("0.0.0.0/0")) == null)
           and (($routes | map(.route) | index("::/0")) == null)
         ),
       expected: {
         node: "b-router-core-nebula",
         peerSite: "esp0xdeadbeef.site-c",
-        splitRoutes: ["::/1", "8000::/1"],
+        splitRoutes: ["0.0.0.0/1", "128.0.0.0/1", "::/1", "8000::/1"],
+        via4: "100.96.10.3",
         via6: "fd42:dead:beef:ee::3",
-        forbiddenRawDefault: "::/0"
+        forbiddenRawDefault: ["0.0.0.0/0", "::/0"]
       },
       observedUnsafeRoutes: $routes
     }
