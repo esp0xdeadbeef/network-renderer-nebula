@@ -205,6 +205,10 @@ install_profile() {
   fi
   public_lighthouse_endpoint="$lighthouse_endpoint"
   public_lighthouse_endpoint6="$lighthouse_endpoint6"
+  if [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then
+    public_lighthouse_endpoint=""
+    public_lighthouse_endpoint6=""
+  fi
   port_forward_endpoint="$lighthouse_endpoint"
   port_forward_endpoint6="$lighthouse_endpoint6"
   if [ -n "$external_port_forward_public_ipv4_secret" ] && [ -s "$external_port_forward_public_ipv4_secret" ]; then
