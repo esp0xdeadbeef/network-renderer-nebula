@@ -58,6 +58,15 @@ node_has_default_exit_routes() {
         any(.[$n].unsafeRoutes[]?; .route == "0.0.0.0/1" or .route == "128.0.0.0/1" or .route == "::/1" or .route == "8000::/1")
       ' >/dev/null
 }
+node_default_exit_route_cidrs() {
+  local node="$1"
+  printf '%s' "$runtime_nodes_json" \
+    | jq -r --arg n "$node" '
+        .[$n].unsafeRoutes[]?
+        | select(.route == "0.0.0.0/1" or .route == "128.0.0.0/1" or .route == "::/1" or .route == "8000::/1")
+        | .route
+      '
+}
 append_csv() {
   local csv="$1"
   local value="$2"
@@ -127,6 +136,9 @@ printf '%s' "$runtime_nodes_json" | jq -r 'keys[]' | while read -r node_name; do
     unsafe_networks="$(append_csv "$unsafe_networks" "$delegated_prefix")"
   fi
   if node_has_default_exit_routes "$node_name"; then
+    while read -r cidr; do
+      unsafe_networks="$(append_csv "$unsafe_networks" "$cidr")"
+    done < <(node_default_exit_route_cidrs "$node_name")
     while read -r delegated_prefix; do
       unsafe_networks="$(append_csv "$unsafe_networks" "$delegated_prefix")"
     done < <(access_prefixes_all)
@@ -323,6 +335,19 @@ $dynamic_route_yaml"
   )"
 
   if node_has_default_exit_routes "$profile_name"; then
+    while read -r cidr; do
+      [ -n "$cidr" ] || continue
+      extra_fw_rule="    - port: any
+      proto: any
+      host: any
+      local_cidr: $cidr"
+      if [ -n "$unsafe_fw_rules" ]; then
+        unsafe_fw_rules="$unsafe_fw_rules
+$extra_fw_rule"
+      else
+        unsafe_fw_rules="$extra_fw_rule"
+      fi
+    done < <(node_default_exit_route_cidrs "$profile_name")
     while read -r delegated_prefix; do
       [ -n "$delegated_prefix" ] || continue
       extra_fw_rule="    - port: any
