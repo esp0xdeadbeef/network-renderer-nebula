@@ -113,6 +113,9 @@ grep -F 'advertise_addrs_yaml="$(' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'index($n) != null' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'public_lighthouse_endpoint="$lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'public_lighthouse_endpoint6="$lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'if [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'public_lighthouse_endpoint=""' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'public_lighthouse_endpoint6=""' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertised_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertised_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[ "$advertised_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
