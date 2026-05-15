@@ -190,6 +190,8 @@ install_profile() {
   local port_forward_endpoint6
   local public_lighthouse_endpoint
   local public_lighthouse_endpoint6
+  local lighthouse_owned_endpoint
+  local lighthouse_owned_endpoint6
   local lighthouse_port
   local listen_host
   local is_lighthouse
@@ -217,6 +219,8 @@ install_profile() {
   fi
   public_lighthouse_endpoint="$lighthouse_endpoint"
   public_lighthouse_endpoint6="$lighthouse_endpoint6"
+  lighthouse_owned_endpoint="$lighthouse_endpoint"
+  lighthouse_owned_endpoint6="$lighthouse_endpoint6"
   if [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then
     public_lighthouse_endpoint=""
     public_lighthouse_endpoint6=""
@@ -448,10 +452,10 @@ $extra_fw_rule"
     if printf '%s' "$external_port_forward_node_names_json" | jq -e --arg n "$profile_name" 'index($n) != null' >/dev/null; then
       advertised_endpoint4="$port_forward_endpoint"
       advertised_endpoint6="$port_forward_endpoint6"
-      if [ "$advertised_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$lighthouse_port" = "4242" ]; then
+      if [ "$advertised_endpoint4" = "$lighthouse_owned_endpoint" ] && [ "$lighthouse_port" = "4242" ]; then
         advertised_endpoint4=""
       fi
-      if [ "$advertised_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]; then
+      if [ "$advertised_endpoint6" = "$lighthouse_owned_endpoint6" ] && [ "$lighthouse_port" = "4242" ]; then
         advertised_endpoint6=""
       fi
       if [ -z "$advertised_endpoint4" ] && [ -z "$advertised_endpoint6" ]; then
@@ -491,10 +495,10 @@ $extra_fw_rule"
         )"
         external_node_endpoint4="$port_forward_endpoint"
         external_node_endpoint6="$port_forward_endpoint6"
-        if [ "$external_node_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]; then
+        if [ "$external_node_endpoint4" = "$lighthouse_owned_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]; then
           external_node_endpoint4=""
         fi
-        if [ "$external_node_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]; then
+        if [ "$external_node_endpoint6" = "$lighthouse_owned_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]; then
           external_node_endpoint6=""
         fi
         if [ -z "$external_node_endpoint4" ] && [ -z "$external_node_endpoint6" ]; then

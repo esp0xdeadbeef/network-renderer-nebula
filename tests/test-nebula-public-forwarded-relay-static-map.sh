@@ -39,8 +39,10 @@ grep -F 'external_port_forward_node_names_json='\''["c-router-nebula-core"]'\'''
 grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_node_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_node_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F '[ "$external_node_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F '[ "$external_node_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'lighthouse_owned_endpoint="$lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'lighthouse_owned_endpoint6="$lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$external_node_endpoint4" = "$lighthouse_owned_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$external_node_endpoint6" = "$lighthouse_owned_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_node_endpoint4" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$external_node_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 

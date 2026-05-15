@@ -113,14 +113,16 @@ grep -F 'advertise_addrs_yaml="$(' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'index($n) != null' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'public_lighthouse_endpoint="$lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'public_lighthouse_endpoint6="$lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'lighthouse_owned_endpoint="$lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'lighthouse_owned_endpoint6="$lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'if [ "$external_suppress_public_lighthouse_static_map" = "1" ]; then' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'public_lighthouse_endpoint=""' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'public_lighthouse_endpoint6=""' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertised_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertised_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F '[ "$advertised_endpoint4" = "$public_lighthouse_endpoint" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$advertised_endpoint4" = "$lighthouse_owned_endpoint" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertised_endpoint4=""' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F '[ "$advertised_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$advertised_endpoint6" = "$lighthouse_owned_endpoint6" ] && [ "$lighthouse_port" = "4242" ]' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'advertised_endpoint6=""' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'is marked public-forwarded but only has the lighthouse-owned public ${lighthouse_port} endpoint' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'model a unique public endpoint or remove the public-forwarded node' "$tmp_dir/profile-script.sh" >/dev/null
@@ -152,7 +154,8 @@ grep -F '.[$n].service.listenHost // "[::]"' "$tmp_dir/profile-script.sh" >/dev/
 grep -F 'host: "$listen_host"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_node_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'external_node_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F '[ "$external_node_endpoint6" = "$public_lighthouse_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$external_node_endpoint4" = "$lighthouse_owned_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '[ "$external_node_endpoint6" = "$lighthouse_owned_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_node_endpoint4" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$external_node_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/profile-script.sh" >/dev/null
