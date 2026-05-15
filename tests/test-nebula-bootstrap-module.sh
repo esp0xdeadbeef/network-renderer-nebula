@@ -159,6 +159,11 @@ grep -F '[.[$n].certCidr4, .[$n].certCidr6] | .[]? | sub("/.*$"; "")' "$tmp_dir/
 grep -F 'nebula_control_networks_csv' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '.[$n].advertisedUnsafeNetworks | join(",")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '.[$n].advertisedUnsafeNetworks' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'node_default_exit_route_cidrs()' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '.[$n].unsafeRoutes[]?' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F '.route == "0.0.0.0/1" or .route == "128.0.0.0/1" or .route == "::/1" or .route == "8000::/1"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'done < <(node_default_exit_route_cidrs "$node_name")' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'done < <(node_default_exit_route_cidrs "$profile_name")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'endswith("/32") or endswith("/128")' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'remote_runtime_nodes="$(' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'printf '\''%s'\'' "$external_runtime_node_names_json" | jq -r '\''.[]'\''' "$tmp_dir/profile-script.sh" >/dev/null
