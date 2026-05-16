@@ -15,6 +15,8 @@
   runtimeListenHosts ? { },
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
+  externalRemoteLighthouseEndpoint4SecretPath ? null,
+  externalRemoteLighthouseEndpoint6SecretPath ? null,
   externalSuppressPublicLighthouseStaticMap ? false,
 }:
 let
@@ -151,6 +153,8 @@ let
   externalPortForwardPublicIpv6SecretPathArg = shellArgOrEmpty externalPortForwardPublicIpv6SecretPath;
   externalRemoteLighthouseEndpoint4Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint4;
   externalRemoteLighthouseEndpoint6Arg = shellArgOrEmpty externalRemoteLighthouseEndpoint6;
+  externalRemoteLighthouseEndpoint4SecretPathArg = shellArgOrEmpty externalRemoteLighthouseEndpoint4SecretPath;
+  externalRemoteLighthouseEndpoint6SecretPathArg = shellArgOrEmpty externalRemoteLighthouseEndpoint6SecretPath;
   externalSuppressPublicLighthouseStaticMapArg =
     if externalSuppressPublicLighthouseStaticMap then "1" else "0";
 in
@@ -166,6 +170,8 @@ in
     externalRuntimeNodeNamesJson
     externalRemoteLighthouseEndpoint4Arg
     externalRemoteLighthouseEndpoint6Arg
+    externalRemoteLighthouseEndpoint4SecretPathArg
+    externalRemoteLighthouseEndpoint6SecretPathArg
     externalSuppressPublicLighthouseStaticMapArg
     lighthouses
     lighthousesJson

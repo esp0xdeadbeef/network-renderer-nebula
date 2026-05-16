@@ -36,6 +36,8 @@ nix eval --impure --no-warn-dirty --json --expr '
       };
       externalRemoteLighthouseEndpoint4 = "10.90.10.100";
       externalRemoteLighthouseEndpoint6 = "";
+      externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/external-remote-lighthouse-ipv4";
+      externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/external-remote-lighthouse-ipv6";
       externalSuppressPublicLighthouseStaticMap = true;
     };
     externalModule = api.buildExternalLighthouseNixosModule {
@@ -96,6 +98,8 @@ grep -F "external_port_forward_public_ipv4_secret=/run/secrets/portforward-publi
 grep -F "external_port_forward_public_ipv6_secret=/run/secrets/portforward-public-ipv6" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_remote_lighthouse_endpoint4=10.90.10.100" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_remote_lighthouse_endpoint6=''" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_remote_lighthouse_endpoint4_secret=/run/secrets/external-remote-lighthouse-ipv4" "$tmp_dir/profile-script.sh" >/dev/null
+grep -F "external_remote_lighthouse_endpoint6_secret=/run/secrets/external-remote-lighthouse-ipv6" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_suppress_public_lighthouse_static_map=1" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_port_forward_node_names_json='[\"c-router-nebula-core\"]'" "$tmp_dir/profile-script.sh" >/dev/null
 grep -F "external_runtime_node_names_json='[\"c-router-nebula-core\"]'" "$tmp_dir/profile-script.sh" >/dev/null
@@ -106,6 +110,9 @@ grep -F '[ -z "$external_remote_lighthouse_endpoint4" ] \' "$tmp_dir/profile-scr
 grep -F 'route_lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'lighthouse_endpoint="$external_remote_lighthouse_endpoint4"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F 'lighthouse_endpoint6="$external_remote_lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_remote_lighthouse_endpoint4="$(tr -d '\''[:space:]'\'' <"$external_remote_lighthouse_endpoint4_secret")"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_remote_lighthouse_endpoint6="$(tr -d '\''[:space:]'\'' <"$external_remote_lighthouse_endpoint6_secret")"' "$tmp_dir/profile-script.sh" >/dev/null
+grep -F 'external_remote_lighthouse_endpoint6="${external_remote_lighthouse_endpoint6%%/*}"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F -- '--arg endpoint4 "$route_lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F -- '--arg portForwardEndpoint4 "$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
 grep -F '$portForwardEndpoint4,' "$tmp_dir/profile-script.sh" >/dev/null

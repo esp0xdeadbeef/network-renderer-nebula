@@ -239,6 +239,16 @@ install_profile() {
   fi
   route_lighthouse_endpoint="$lighthouse_endpoint"
   route_lighthouse_endpoint6="$lighthouse_endpoint6"
+  if [ -n "$external_remote_lighthouse_endpoint4_secret" ] && [ -s "$external_remote_lighthouse_endpoint4_secret" ]; then
+    external_remote_lighthouse_endpoint4="$(tr -d '[:space:]' <"$external_remote_lighthouse_endpoint4_secret")"
+  fi
+  if [ -n "$external_remote_lighthouse_endpoint6_secret" ] && [ -s "$external_remote_lighthouse_endpoint6_secret" ]; then
+    external_remote_lighthouse_endpoint6="$(tr -d '[:space:]' <"$external_remote_lighthouse_endpoint6_secret")"
+    external_remote_lighthouse_endpoint6="${external_remote_lighthouse_endpoint6%%/*}"
+    if printf '%s' "$external_remote_lighthouse_endpoint6" | grep -q '::$'; then
+      external_remote_lighthouse_endpoint6="${external_remote_lighthouse_endpoint6}1"
+    fi
+  fi
   if
     [ "$profile_context" = "remote" ] \
     || [ "$external_suppress_public_lighthouse_static_map" = "1" ]
