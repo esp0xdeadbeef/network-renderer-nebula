@@ -18,6 +18,7 @@
   externalRemoteLighthouseEndpoint4SecretPath ? null,
   externalRemoteLighthouseEndpoint6SecretPath ? null,
   externalSuppressPublicLighthouseStaticMap ? false,
+  sopsProfileSecretPrefix ? null,
 }:
 let
   sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
@@ -142,6 +143,9 @@ let
 
   runtimeNodesJson = builtins.toJSON runtimeNodes;
   lighthousesJson = builtins.toJSON lighthouses;
+  sopsProfiles = import ./sops-profiles.nix {
+    inherit lib lighthouses runtimeNodeNames sopsProfileSecretPrefix;
+  };
   externalPortForwardNodeNamesJson = builtins.toJSON externalPortForwardNodeNames;
   externalRuntimeNodeNamesJson = builtins.toJSON externalRuntimeNodeNames;
   externalLighthouseReturnIpv4CidrsCsv = lib.concatStringsSep "," externalLighthouseReturnIpv4Cidrs;
@@ -179,4 +183,8 @@ in
     runtimeNodes
     runtimeNodesJson
     ;
+  sopsProfileNames = sopsProfiles.profileNames;
+  sopsProfilePkiSecretPathsJson = sopsProfiles.pkiSecretPathsJson;
+  sopsProfileSecretPaths = sopsProfiles.secretPaths;
+  sopsProfileSecretNames = sopsProfiles.secretNames;
 }

@@ -79,6 +79,32 @@ builtins.listToAttrs (
         else
           true;
       unsafeRoutes = uniqueRoutes (modeledUnsafeRoutesForNode nodeName);
+      unsafeRouteToNebula = route:
+        let
+          via = route.via6 or route.via4 or route.via or null;
+          mtu = if (route.via6 or null) != null then 1280 else 1200;
+        in
+        {
+          route = route.route;
+          inherit mtu;
+          install = route.install or true;
+        }
+        // lib.optionalAttrs (via != null) {
+          inherit via;
+        };
+      unsafeFirewallRules = map (route: {
+        port = "any";
+        proto = "any";
+        host = "any";
+        local_cidr = route.route;
+      }) unsafeRoutes;
+      baseFirewallRules = [
+        {
+          port = "any";
+          proto = "any";
+          host = "any";
+        }
+      ];
       routePreparation = {
         removeRoutes = uniqueStrings (
           map (route: route.route or null) (lib.filter (route: (route.install or true)) unsafeRoutes)
@@ -117,6 +143,17 @@ builtins.listToAttrs (
         materialization = validateMaterialization nodeName runtimePath runtimeNode;
         relay = runtimeNode.relay or { };
         lighthouse = lighthousePlan;
+        nebulaNetwork = {
+          settings = {
+            nebulaFirewallRules = {
+              outbound = baseFirewallRules ++ unsafeFirewallRules;
+              inbound = baseFirewallRules ++ unsafeFirewallRules;
+            };
+            tun = lib.optionalAttrs (unsafeRoutes != [ ]) {
+              unsafe_routes = map unsafeRouteToNebula unsafeRoutes;
+            };
+          };
+        };
       };
     }
   ) (sortedAttrNames runtimeNodes)

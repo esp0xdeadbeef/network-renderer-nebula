@@ -19,6 +19,7 @@
   externalRemoteLighthouseEndpoint4SecretPath ? null,
   externalRemoteLighthouseEndpoint6SecretPath ? null,
   externalSuppressPublicLighthouseStaticMap ? false,
+  sopsProfileSecretPrefix ? null,
 }:
 let
   plan = import ./nixos-module/plan.nix {
@@ -39,39 +40,58 @@ let
       externalRemoteLighthouseEndpoint4SecretPath
       externalRemoteLighthouseEndpoint6SecretPath
       externalSuppressPublicLighthouseStaticMap
+      sopsProfileSecretPrefix
       ;
   };
 
-  caUnsealScript = builtins.readFile ./nixos-module/ca-unseal.bash;
-  profileBootstrapBody = builtins.readFile ./nixos-module/profile-bootstrap.bash;
-  profileBootstrapScript = ''
-    set -euo pipefail
-
-    state_dir="/persist/nebula-runtime"
-    pki_dir="$state_dir/pki"
-    profiles_dir="$state_dir/profiles"
-    signing_ca_key="/run/nebula-runtime/unsealed/ca.key"
-    runtime_nodes_json='${plan.runtimeNodesJson}'
-    lighthouses_json='${plan.lighthousesJson}'
-    external_port_forward_node_names_json='${plan.externalPortForwardNodeNamesJson}'
-    external_runtime_node_names_json='${plan.externalRuntimeNodeNamesJson}'
-    external_lighthouse_return_ipv4_cidrs_csv='${plan.externalLighthouseReturnIpv4CidrsCsv}'
-    external_lighthouse_public_ipv4_secret=${plan.externalLighthousePublicIpv4SecretPathArg}
-    external_lighthouse_public_ipv6_secret=${plan.externalLighthousePublicIpv6SecretPathArg}
-    external_lighthouse_ssh_host_secret=${plan.externalLighthouseSshHostSecretPathArg}
-    external_port_forward_public_ipv4_secret=${plan.externalPortForwardPublicIpv4SecretPathArg}
-    external_port_forward_public_ipv6_secret=${plan.externalPortForwardPublicIpv6SecretPathArg}
-    external_remote_lighthouse_endpoint4=${plan.externalRemoteLighthouseEndpoint4Arg}
-    external_remote_lighthouse_endpoint6=${plan.externalRemoteLighthouseEndpoint6Arg}
-    external_remote_lighthouse_endpoint4_secret=${plan.externalRemoteLighthouseEndpoint4SecretPathArg}
-    external_remote_lighthouse_endpoint6_secret=${plan.externalRemoteLighthouseEndpoint6SecretPathArg}
-    external_suppress_public_lighthouse_static_map=${plan.externalSuppressPublicLighthouseStaticMapArg}
-  '' + profileBootstrapBody;
+  profileSecretEntries = lib.flatten (
+    map
+      (profileName:
+        let
+          names = plan.sopsProfileSecretNames.${profileName};
+          paths = plan.sopsProfileSecretPaths.${profileName};
+        in
+        [
+          {
+            name = names.caCrt;
+            path = paths.caCrt;
+          }
+          {
+            name = names.cert;
+            path = paths.cert;
+          }
+          {
+            name = names.key;
+            path = paths.key;
+          }
+        ]
+      )
+      plan.sopsProfileNames
+  );
+  mkRootSecret = entry: {
+    owner = "root";
+    mode = "0400";
+    path = entry.path;
+  };
 in
 if plan.runtimeNodeNames == [ ] then
   { }
 else
   {
+    assertions = [
+      {
+        assertion = sopsProfileSecretPrefix != null;
+        message = "network-renderer-nebula: buildNebulaBootstrapNixosModule now requires sopsProfileSecretPrefix";
+      }
+    ];
+
+    sops.secrets = builtins.listToAttrs (
+      map (entry: {
+        inherit (entry) name;
+        value = mkRootSecret entry;
+      }) profileSecretEntries
+    );
+
     environment.etc."s-router-test/nebula-bootstrap-spec.json".text =
       builtins.toJSON {
         runtimeNodes = plan.runtimeNodes;
@@ -81,51 +101,7 @@ else
     systemd.tmpfiles.rules =
       [
         "d /persist/nebula-runtime 0700 root root -"
-        "d /persist/nebula-runtime/pki 0700 root root -"
         "d /persist/nebula-runtime/profiles 0700 root root -"
       ]
-      ++ map (nodeName: "d /persist/nebula-runtime/profiles/${nodeName} 0700 root root -") plan.runtimeNodeNames;
-
-    systemd.services.nebula-ca-unseal = {
-      description = "Unlock the Nebula CA into /run for explicit issuance work";
-      serviceConfig.Type = "oneshot";
-      path = with pkgs; [
-        bash
-        coreutils
-        nebula
-        openssl
-        util-linux
-      ];
-      script = caUnsealScript;
-    };
-
-    systemd.services.nebula-profile-bootstrap = {
-      description = "Generate and distribute Nebula runtime profiles for s-router-test";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      serviceConfig.Type = "oneshot";
-      unitConfig.ConditionPathExists = "/run/nebula-runtime/unsealed/ca.key";
-      path = with pkgs; [
-        bash
-        coreutils
-        gnugrep
-        gawk
-        iproute2
-        jq
-        nebula
-        openssh
-        systemd
-        util-linux
-      ];
-      script = profileBootstrapScript;
-    };
-
-    systemd.paths.nebula-profile-bootstrap = {
-      description = "Start Nebula profile bootstrap when the CA is unsealed into /run";
-      wantedBy = [ "multi-user.target" ];
-      pathConfig = {
-        PathExists = "/run/nebula-runtime/unsealed/ca.key";
-        Unit = "nebula-profile-bootstrap.service";
-      };
-    };
+      ++ map (profileName: "d /persist/nebula-runtime/profiles/${profileName} 0700 root root -") plan.sopsProfileNames;
   }

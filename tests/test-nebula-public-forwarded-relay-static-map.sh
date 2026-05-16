@@ -20,35 +20,28 @@ nix eval --impure --no-warn-dirty --json --expr '
       intentPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     };
-    module = api.buildNebulaBootstrapNixosModule {
-      inherit pkgs;
-      nebulaRuntimePlan = plan;
-      externalPortForwardPublicIpv4SecretPath = "/run/secrets/portforward-public-ipv4";
-      externalPortForwardPublicIpv6SecretPath = "/run/secrets/portforward-public-ipv6";
-      externalPortForwardNodeNames = [ "c-router-nebula-core" ];
-      externalRuntimeNodeNames = [ "c-router-nebula-core" ];
-      runtimeListenHosts.c-router-nebula-core = "172.31.254.4";
-      externalRemoteLighthouseEndpoint4 = "10.90.10.100";
-      externalSuppressPublicLighthouseStaticMap = true;
+    nodeName = "c-router-nebula-core";
+    module = api.buildNebulaRuntimeNixosModule {
+      inherit pkgs nodeName;
+      runtimeNode = plan.nodes.${nodeName} // {
+        service = (plan.nodes.${nodeName}.service or { }) // {
+          listenHost = "172.31.254.4";
+        };
+      };
     };
   in
-    module.systemd.services.nebula-profile-bootstrap.script
-' | jq -r . > "$tmp_dir/profile-script.sh"
+    module.services.nebula.networks.runtime
+' > "$tmp_dir/network.json"
 
-grep -F 'external_port_forward_node_names_json='\''["c-router-nebula-core"]'\''' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'external_static_host_map_yaml' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'external_node_endpoint4="$port_forward_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'external_node_endpoint6="$port_forward_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'lighthouse_owned_endpoint="$lighthouse_endpoint"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'lighthouse_owned_endpoint6="$lighthouse_endpoint6"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F '[ "$external_node_endpoint4" = "$lighthouse_owned_endpoint" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F '[ "$external_node_endpoint6" = "$lighthouse_owned_endpoint6" ] && [ "$external_node_port" = "$lighthouse_port" ]' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "%s:%s"\n'\'' "$external_node_endpoint4" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
-grep -F 'printf '\''    - "[%s]:%s"\n'\'' "$external_node_endpoint6" "$external_node_port"' "$tmp_dir/profile-script.sh" >/dev/null
+jq -e '
+  .listen.host == "172.31.254.4" and
+  .staticHostMap != {} and
+  .isRelay == true and
+  .settings.relay.am_relay == true
+' "$tmp_dir/network.json" >/dev/null
 
-if grep -F '.[$n].lighthouse.node == $n' "$tmp_dir/profile-script.sh" >/dev/null; then
-  echo "network-renderer-nebula: public-forwarded relays must receive static_host_map entries even when they are not their own lighthouse" >&2
-  exit 1
-fi
+source_file="${repo_root}/s88/Enterprise/runtime/nixos-module.nix"
+! grep -F '.[$n].lighthouse.node == $n' "$source_file" >/dev/null
+! grep -F 'profile-bootstrap.bash' "$source_file" >/dev/null
 
 echo "PASS test-nebula-public-forwarded-relay-static-map"

@@ -14,14 +14,73 @@ nix eval --impure --no-warn-dirty --json --expr '
     module = api.buildNebulaRuntimeNixosModule {
       inherit pkgs;
       nodeName = "b-router-core-nebula";
+      runtimeNode = {
+        groups = [ "lab" "core" ];
+        lighthouse = {
+          node = "c-router-lighthouse";
+          overlayIps = [ "100.96.10.254" "fd42:dead:beef:ee::254" ];
+          endpoints = [ "198.51.100.10:4242" "[2001:db8:51::10]:4242" ];
+          port = "4242";
+        };
+        relay = {
+          amRelay = false;
+          useRelays = true;
+          relays = [ "100.96.10.3" ];
+        };
+        service = {
+          interface = "nebula1";
+          name = "nebula-runtime";
+        };
+        routePreparation = {
+          removeRoutes = [ "10.20.10.0/24" ];
+          overlayHosts = [ "100.96.10.254" ];
+          underlayEndpoints = [ "198.51.100.10" ];
+        };
+        unsafeRoutes = [
+          {
+            route = "10.20.10.0/24";
+            via4 = "100.96.10.2";
+            install = true;
+          }
+        ];
+        nebulaNetwork = {
+          settings = {
+            nebulaFirewallRules = {
+              inbound = [
+                {
+                  port = "any";
+                  proto = "any";
+                  host = "any";
+                }
+              ];
+              outbound = [
+                {
+                  port = "any";
+                  proto = "any";
+                  host = "any";
+                }
+              ];
+            };
+            tun.unsafe_routes = [
+              {
+                route = "10.20.10.0/24";
+                via = "100.96.10.2";
+                mtu = 1200;
+                install = true;
+              }
+            ];
+          };
+        };
+      };
     };
-    service = module.systemd.services.nebula-runtime;
+    service = module.systemd.services."nebula@runtime";
+    network = module.services.nebula.networks.runtime;
   in
   {
     tmpfiles = module.systemd.tmpfiles.rules;
     firewall = module.networking.firewall;
     nftablesRuleset = module.networking.nftables.ruleset;
-    inherit service;
+    inherit network service;
   }
 ' > "$tmp_dir/runtime-module.json"
 
@@ -33,21 +92,28 @@ jq -e '
   (.nftablesRuleset.content | contains("insert rule inet router input iifname \"nebula1\"")) and
   (.nftablesRuleset.content | contains("insert rule inet router forward iifname \"nebula1\"")) and
   (.nftablesRuleset.content | contains("insert rule inet router forward oifname \"nebula1\"")) and
-  (.service.serviceConfig.ExecStart | contains("nebula -config /persist/etc/nebula/config.yml"))
+  .network.ca == "/persist/etc/nebula/ca.crt" and
+  .network.cert == "/persist/etc/nebula/b-router-core-nebula.crt" and
+  .network.key == "/persist/etc/nebula/b-router-core-nebula.key" and
+  .network.staticHostMap["100.96.10.254"][0] == "198.51.100.10:4242" and
+  (.network.lighthouses | index("100.96.10.254") != null) and
+  .network.tun.device == "nebula1" and
+  .network.settings.static_map.network == "ip" and
+  .network.settings.tun.unsafe_routes[0].route == "10.20.10.0/24"
 ' "$tmp_dir/runtime-module.json" >/dev/null
 
-jq -r '.service.serviceConfig.ExecStartPre[]' "$tmp_dir/runtime-module.json" > "$tmp_dir/exec-start-pre.txt"
-grep -F 'config.yml' "$tmp_dir/exec-start-pre.txt" >/dev/null
-grep -F 'nebula-runtime-prepare-underlay-routes-b-router-core-nebula' "$tmp_dir/exec-start-pre.txt" >/dev/null
-
-prepare_script="$(grep -F 'nebula-runtime-prepare-underlay-routes-b-router-core-nebula' "$tmp_dir/exec-start-pre.txt" | tail -n1)"
-test -n "$prepare_script"
+jq -e '
+  (.service.unitConfig.AssertPathExists | index("/persist/etc/nebula/ca.crt") != null) and
+  (.service.unitConfig.AssertPathExists | index("/persist/etc/nebula/b-router-core-nebula.crt") != null) and
+  (.service.unitConfig.AssertPathExists | index("/persist/etc/nebula/b-router-core-nebula.key") != null)
+' "$tmp_dir/runtime-module.json" >/dev/null
 
 source_file="${repo_root}/s88/Enterprise/runtime/nixos-module.nix"
-grep -F 'route-preparation.json' "$source_file" >/dev/null
-grep -F 'missing rendered route preparation plan' "$source_file" >/dev/null
-grep -F 'ip route replace "$endpoint/32"' "$source_file" >/dev/null
-grep -F 'ip -6 route replace "$endpoint/128"' "$source_file" >/dev/null
+grep -F 'services.nebula.networks.${networkName}' "$source_file" >/dev/null
+! grep -F 'nebula-runtime-prepare-underlay-routes' "$source_file" >/dev/null
+! grep -F 'route-preparation.json' "$source_file" >/dev/null
+! grep -F 'ip route replace "$endpoint/32"' "$source_file" >/dev/null
+! grep -F 'ip -6 route replace "$endpoint/128"' "$source_file" >/dev/null
 ! grep -F 'grep -E' "$source_file" >/dev/null
 
 echo "PASS test-nebula-runtime-module"
