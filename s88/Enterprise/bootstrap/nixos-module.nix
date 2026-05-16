@@ -16,6 +16,8 @@
   runtimeListenHosts ? { },
   externalRemoteLighthouseEndpoint4 ? null,
   externalRemoteLighthouseEndpoint6 ? null,
+  externalRemoteLighthouseEndpoint4SecretPath ? null,
+  externalRemoteLighthouseEndpoint6SecretPath ? null,
   externalSuppressPublicLighthouseStaticMap ? false,
 }:
 let
@@ -34,6 +36,8 @@ let
       runtimeListenHosts
       externalRemoteLighthouseEndpoint4
       externalRemoteLighthouseEndpoint6
+      externalRemoteLighthouseEndpoint4SecretPath
+      externalRemoteLighthouseEndpoint6SecretPath
       externalSuppressPublicLighthouseStaticMap
       ;
   };
@@ -59,6 +63,8 @@ let
     external_port_forward_public_ipv6_secret=${plan.externalPortForwardPublicIpv6SecretPathArg}
     external_remote_lighthouse_endpoint4=${plan.externalRemoteLighthouseEndpoint4Arg}
     external_remote_lighthouse_endpoint6=${plan.externalRemoteLighthouseEndpoint6Arg}
+    external_remote_lighthouse_endpoint4_secret=${plan.externalRemoteLighthouseEndpoint4SecretPathArg}
+    external_remote_lighthouse_endpoint6_secret=${plan.externalRemoteLighthouseEndpoint6SecretPathArg}
     external_suppress_public_lighthouse_static_map=${plan.externalSuppressPublicLighthouseStaticMapArg}
   '' + profileBootstrapBody;
 in

@@ -107,6 +107,8 @@ let
       runtimeListenHosts ? { },
       externalRemoteLighthouseEndpoint4 ? null,
       externalRemoteLighthouseEndpoint6 ? null,
+      externalRemoteLighthouseEndpoint4SecretPath ? null,
+      externalRemoteLighthouseEndpoint6SecretPath ? null,
       externalSuppressPublicLighthouseStaticMap ? false,
     }:
     import ./bootstrap/nixos-module.nix {
@@ -125,6 +127,8 @@ let
         runtimeListenHosts
         externalRemoteLighthouseEndpoint4
         externalRemoteLighthouseEndpoint6
+        externalRemoteLighthouseEndpoint4SecretPath
+        externalRemoteLighthouseEndpoint6SecretPath
         externalSuppressPublicLighthouseStaticMap
         ;
     };
