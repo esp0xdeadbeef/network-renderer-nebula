@@ -124,11 +124,54 @@ let
 
   udpPorts = lib.unique (map (lh: lh.port) lighthouses);
   interfaces = lib.unique (map (lh: lh.interfaceName) lighthouses);
+  stripPrefixLength = value: builtins.head (lib.splitString "/" value);
+  lighthouseNetworkFor = lh: {
+    enable = true;
+    package = pkgs.nebula;
+    ca = "/persist/nebula-runtime/profiles/${lh.certBaseName}/ca.crt";
+    cert = "/persist/nebula-runtime/profiles/${lh.certBaseName}/${lh.certBaseName}.crt";
+    key = "/persist/nebula-runtime/profiles/${lh.certBaseName}/${lh.certBaseName}.key";
+    isLighthouse = true;
+    lighthouses = [ ];
+    listen = {
+      host = "[::]";
+      port = lh.port;
+    };
+    tun = {
+      disable = true;
+      device = lh.interfaceName;
+    };
+    firewall = {
+      outbound = [
+        {
+          port = "any";
+          proto = "any";
+          host = "any";
+        }
+      ];
+      inbound = [
+        {
+          port = "any";
+          proto = "any";
+          host = "any";
+        }
+      ];
+    };
+    settings = {
+      static_map.network = "ip";
+      static_host_map = { };
+      lighthouse.am_lighthouse = true;
+      tun = {
+        disabled = true;
+        dev = lh.interfaceName;
+        mtu = 1200;
+        drop_multicast = false;
+      };
+    };
+  };
 in
 {
   environment.etc."s-router-test/external_lighthouse-nebula-lighthouses.json".text = builtins.toJSON lighthouses;
-
-  environment.systemPackages = [ pkgs.nebula ];
 
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = true;
@@ -141,32 +184,15 @@ in
   systemd.tmpfiles.rules =
     [
       "d /persist/nebula-runtime 0700 root root -"
-      "d /persist/nebula-runtime/lighthouses 0700 root root -"
     ]
     ++ map (
-      lh: "d /persist/nebula-runtime/lighthouses/${lh.certBaseName} 0700 root root -"
+      lh: "d /persist/nebula-runtime/profiles/${lh.certBaseName} 0700 root root -"
     ) lighthouses;
 
-  systemd.services =
-    builtins.listToAttrs (
-      map
-        (lh: {
-          name = lh.serviceName;
-          value = {
-            description = "Nebula lighthouse for s-router-test validation (${lh.name})";
-            after = [ "network-online.target" ];
-            wants = [ "network-online.target" ];
-            wantedBy = [ "multi-user.target" ];
-            unitConfig.ConditionPathExists =
-              "/persist/nebula-runtime/lighthouses/${lh.certBaseName}/${lh.certBaseName}.config.yml";
-            serviceConfig = {
-              ExecStart =
-                "${pkgs.nebula}/bin/nebula -config /persist/nebula-runtime/lighthouses/${lh.certBaseName}/${lh.certBaseName}.config.yml";
-              Restart = "always";
-              RestartSec = 2;
-            };
-          };
-        })
-        lighthouses
-    );
+  services.nebula.networks = builtins.listToAttrs (
+    map (lh: {
+      name = "lighthouse-${lh.name}";
+      value = lighthouseNetworkFor lh;
+    }) lighthouses
+  );
 }

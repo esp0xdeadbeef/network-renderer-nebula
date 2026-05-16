@@ -129,16 +129,16 @@ nix eval --impure --no-warn-dirty --json --expr '
       inherit pkgs;
       nebulaRuntimePlan = plan;
       externalLighthouseReturnIpv4Cidrs = [ "10.70.10.0/24" ];
+      sopsProfileSecretPrefix = "nebula-profile";
     };
   in
   {
-    profileServiceType = module.systemd.services.nebula-profile-bootstrap.serviceConfig.Type;
     spec = builtins.fromJSON module.environment.etc."s-router-test/nebula-bootstrap-spec.json".text;
+    sopsSecrets = module.sops.secrets;
   }
 ' > "$tmp_dir/bootstrap.json"
 
 jq -e '
-	  .profileServiceType == "oneshot" and
 	  .spec.runtimeNodes["c-router-lighthouse"].isLighthouse == true and
 	  .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
 	  (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
@@ -150,7 +150,8 @@ jq -e '
 	  (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("fd42:dead:feed:10::/64") != null) and
 	  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("10.70.10.0/24") == null) and
 	  .spec.lighthouses["east-west"].internal == true and
-	  (.spec.lighthouses["east-west"].unsafeNetworks | index("fd42:dead:beef:10::/64") != null)
+	  (.spec.lighthouses["east-west"].unsafeNetworks | index("fd42:dead:beef:10::/64") != null) and
+	  .sopsSecrets["nebula-profile-b-router-core-nebula-key"].path == "/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key"
 	' "$tmp_dir/bootstrap.json" >/dev/null
 
 echo "PASS test-nebula-plan"

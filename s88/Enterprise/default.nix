@@ -110,6 +110,7 @@ let
       externalRemoteLighthouseEndpoint4SecretPath ? null,
       externalRemoteLighthouseEndpoint6SecretPath ? null,
       externalSuppressPublicLighthouseStaticMap ? false,
+      sopsProfileSecretPrefix ? null,
     }:
     import ./bootstrap/nixos-module.nix {
       inherit
@@ -130,6 +131,7 @@ let
         externalRemoteLighthouseEndpoint4SecretPath
         externalRemoteLighthouseEndpoint6SecretPath
         externalSuppressPublicLighthouseStaticMap
+        sopsProfileSecretPrefix
         ;
     };
 
@@ -150,9 +152,13 @@ let
     };
 
   buildNebulaRuntimeNixosModule =
-    { pkgs, nodeName }:
+    {
+      pkgs,
+      nodeName,
+      runtimeNode,
+    }:
     import ./runtime/nixos-module.nix {
-      inherit lib pkgs nodeName;
+      inherit lib pkgs nodeName runtimeNode;
     };
 in
 {
