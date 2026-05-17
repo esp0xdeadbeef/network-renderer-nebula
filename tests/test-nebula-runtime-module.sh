@@ -85,16 +85,18 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/runtime-module.json"
 
 jq -e '
-  (.tmpfiles | index("d /persist/etc/nebula 0700 root root -") != null) and
+  (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null) and
+  (.tmpfiles | index("d /persist/nebula-runtime/profiles 0700 root root -") != null) and
+  (.tmpfiles | index("d /persist/nebula-runtime/profiles/b-router-core-nebula 0700 root root -") != null) and
   (.firewall.extraInputRules | contains("s88-nebula-runtime-input")) and
   (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-in")) and
   (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-out")) and
   (.nftablesRuleset.content | contains("insert rule inet router input iifname \"nebula1\"")) and
   (.nftablesRuleset.content | contains("insert rule inet router forward iifname \"nebula1\"")) and
   (.nftablesRuleset.content | contains("insert rule inet router forward oifname \"nebula1\"")) and
-  .network.ca == "/persist/etc/nebula/ca.crt" and
-  .network.cert == "/persist/etc/nebula/b-router-core-nebula.crt" and
-  .network.key == "/persist/etc/nebula/b-router-core-nebula.key" and
+  .network.ca == "/persist/nebula-runtime/profiles/b-router-core-nebula/ca.crt" and
+  .network.cert == "/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.crt" and
+  .network.key == "/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key" and
   .network.staticHostMap["100.96.10.254"][0] == "198.51.100.10:4242" and
   (.network.lighthouses | index("100.96.10.254") != null) and
   .network.tun.device == "nebula1" and
@@ -103,9 +105,9 @@ jq -e '
 ' "$tmp_dir/runtime-module.json" >/dev/null
 
 jq -e '
-  (.service.unitConfig.AssertPathExists | index("/persist/etc/nebula/ca.crt") != null) and
-  (.service.unitConfig.AssertPathExists | index("/persist/etc/nebula/b-router-core-nebula.crt") != null) and
-  (.service.unitConfig.AssertPathExists | index("/persist/etc/nebula/b-router-core-nebula.key") != null)
+  (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/ca.crt") != null) and
+  (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.crt") != null) and
+  (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key") != null)
 ' "$tmp_dir/runtime-module.json" >/dev/null
 
 source_file="${repo_root}/s88/Enterprise/runtime/nixos-module.nix"

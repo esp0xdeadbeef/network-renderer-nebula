@@ -42,6 +42,7 @@ The flake exports:
 
 - `libBySystem.<system>.renderer.buildNebulaPlan`
 - `libBySystem.<system>.renderer.buildNebulaPlanFromPaths`
+- `libBySystem.<system>.renderer.buildNebulaBootstrapSpec`
 - `libBySystem.<system>.renderer.buildNebulaBootstrapNixosModule`
 - `libBySystem.<system>.renderer.buildExternalLighthouseNixosModule`
 
