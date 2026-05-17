@@ -107,7 +107,9 @@ jq -e '
 jq -e '
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/ca.crt") != null) and
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.crt") != null) and
-  (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key") != null)
+  (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key") != null) and
+  .service.serviceConfig.User.content == "root" and
+  .service.serviceConfig.Group.content == "root"
 ' "$tmp_dir/runtime-module.json" >/dev/null
 
 source_file="${repo_root}/s88/Enterprise/runtime/nixos-module.nix"
