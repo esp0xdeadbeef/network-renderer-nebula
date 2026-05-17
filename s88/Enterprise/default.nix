@@ -135,6 +135,8 @@ let
         ;
     };
 
+  buildNebulaBootstrapSpec = import ./bootstrap/spec-api.nix { inherit lib; };
+
   buildExternalLighthouseNixosModule =
     {
       pkgs,
@@ -164,6 +166,7 @@ in
 {
   renderer = {
     buildNebulaPlan = buildNebulaPlan;
+    buildNebulaBootstrapSpec = buildNebulaBootstrapSpec;
     buildNebulaBootstrapNixosModule = buildNebulaBootstrapNixosModule;
     buildExternalLighthouseNixosModule = buildExternalLighthouseNixosModule;
     buildNebulaRuntimeNixosModule = buildNebulaRuntimeNixosModule;

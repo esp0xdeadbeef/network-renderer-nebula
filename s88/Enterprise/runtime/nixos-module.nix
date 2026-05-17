@@ -8,7 +8,7 @@
 let
   networkName = "runtime";
   interfaceName = runtimeNode.service.interface or "nebula1";
-  pkiBase = "/persist/etc/nebula";
+  pkiBase = "/persist/nebula-runtime/profiles/${nodeName}";
   isLighthouse = (runtimeNode.lighthouse.node or null) == nodeName;
   lighthouseIps = runtimeNode.lighthouse.overlayIps or [ ];
   lighthouseIp4 = builtins.elemAt lighthouseIps 0;
@@ -31,7 +31,9 @@ let
 in
 {
   systemd.tmpfiles.rules = [
-    "d /persist/etc/nebula 0700 root root -"
+    "d /persist/nebula-runtime 0700 root root -"
+    "d /persist/nebula-runtime/profiles 0700 root root -"
+    "d ${pkiBase} 0700 root root -"
   ];
 
   networking.firewall.extraInputRules = ''

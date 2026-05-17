@@ -16,22 +16,32 @@ let
 
   runtimeTargets = attrsOrEmpty (siteCpm.runtimeTargets or null);
 
-  runtimeTargetForNode =
-    nodeName:
-    let
-      matches = lib.filter (
-        targetName:
+  runtimeTargetsByLogicalNode =
+    builtins.foldl'
+      (
+        acc: targetName:
         let
           target = runtimeTargets.${targetName};
-          logical = attrsOrEmpty (target.logicalNode or null);
+          logicalName = (attrsOrEmpty (target.logicalNode or null)).name or null;
         in
-        (logical.name or null) == nodeName
-      ) (sortedAttrNames runtimeTargets);
+        if isString logicalName then
+          acc
+          // {
+            ${logicalName} = (acc.${logicalName} or [ ]) ++ [ target ];
+          }
+        else
+          acc
+      )
+      { }
+      (sortedAttrNames runtimeTargets);
+
+  runtimeTargetForNode = nodeName:
+    let matches = runtimeTargetsByLogicalNode.${nodeName} or [ ];
     in
     if matches == [ ] then
       { }
     else if builtins.length matches == 1 then
-      runtimeTargets.${builtins.head matches}
+      builtins.head matches
     else
       throw ''
         network-renderer-nebula: multiple runtime targets matched overlay node '${nodeName}'
