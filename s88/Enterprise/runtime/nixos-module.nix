@@ -96,6 +96,10 @@ in
 
   systemd.services."nebula@${networkName}" = {
     after = [ "network.target" ];
+    serviceConfig = {
+      User = lib.mkForce "root";
+      Group = lib.mkForce "root";
+    };
     unitConfig = {
       AssertPathExists = [
         "${pkiBase}/ca.crt"
