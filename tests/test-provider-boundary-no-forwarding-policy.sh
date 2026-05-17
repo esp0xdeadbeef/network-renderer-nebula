@@ -95,9 +95,9 @@ while IFS= read -r example_dir; do
     nix eval --impure --no-warn-dirty --json --expr '
       let
         flake = builtins.getFlake ("path:" + builtins.getEnv "REPO_ROOT");
-        api = flake.libBySystem.x86_64-linux.renderer;
       in
-      api.buildNebulaPlanFromPaths {
+      import "${repo_root}/tests/nix/nebula-plan-from-inputs.nix" {
+        repoRoot = builtins.getEnv "REPO_ROOT";
         intentPath = builtins.getEnv "EXAMPLE_INTENT";
         inventoryPath = builtins.getEnv "EXAMPLE_INVENTORY";
       }

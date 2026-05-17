@@ -3,7 +3,7 @@ set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tests=(
-  test-nebula-plan-from-paths-basic.sh
+  test-nebula-plan-explicit-inputs-basic.sh
   test-nebula-plan-hosted-inventory.sh
   test-nebula-plan-reject-host-uplink.sh
   test-nebula-plan-reject-missing-relay.sh
@@ -29,6 +29,6 @@ for test_name in "${tests[@]}"; do
 done
 
 if [[ "$status" -eq 0 ]]; then
-  echo "PASS test-nebula-plan-from-paths"
+  echo "PASS test-nebula-plan-explicit-inputs"
 fi
 exit "$status"

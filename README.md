@@ -41,7 +41,6 @@ network-forwarding-model -> network-control-plane-model -> network-renderer-nebu
 The flake exports:
 
 - `libBySystem.<system>.renderer.buildNebulaPlan`
-- `libBySystem.<system>.renderer.buildNebulaPlanFromPaths`
 - `libBySystem.<system>.renderer.buildNebulaBootstrapSpec`
 - `libBySystem.<system>.renderer.buildNebulaBootstrapNixosModule`
 - `libBySystem.<system>.renderer.buildExternalLighthouseNixosModule`
@@ -52,6 +51,5 @@ Run:
 
 ```bash
 bash tests/test-nebula-plan.sh
-bash tests/test-nebula-plan-from-paths.sh
 bash tests/test-nebula-bootstrap-module.sh
 ```

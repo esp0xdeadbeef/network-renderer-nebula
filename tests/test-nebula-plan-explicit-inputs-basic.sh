@@ -13,9 +13,9 @@ inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory
 nix eval --impure --no-warn-dirty --json --expr '
   let
     flake = builtins.getFlake (toString '"$repo_root"');
-    api = flake.libBySystem.x86_64-linux.renderer;
   in
-    api.buildNebulaPlanFromPaths {
+    import "'"$repo_root"'/tests/nix/nebula-plan-from-inputs.nix" {
+      repoRoot = "'"$repo_root"'";
       intentPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     }
@@ -33,4 +33,4 @@ jq -e '
   .nodes["c-router-nebula-core"].materialization.container.profile == "core-router-nebula"
 ' "$tmp_dir/plan.json" >/dev/null
 
-echo "PASS test-nebula-plan-from-paths-basic"
+echo "PASS test-nebula-plan-explicit-inputs-basic"

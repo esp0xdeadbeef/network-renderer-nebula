@@ -22,7 +22,7 @@ tests=(
   test-cpm-overlay-contract-boundary.sh
   test-provider-boundary-no-forwarding-policy.sh
   test-nebula-plan.sh
-  test-nebula-plan-from-paths-basic.sh
+  test-nebula-plan-explicit-inputs-basic.sh
   test-nebula-plan-hosted-inventory.sh
   test-nebula-plan-reject-host-uplink.sh
   test-nebula-plan-reject-missing-relay.sh
