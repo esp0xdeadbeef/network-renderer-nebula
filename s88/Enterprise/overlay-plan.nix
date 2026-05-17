@@ -41,6 +41,8 @@ let
   prefixLength4 = readPrefixLength (requireString "${basePath}.ipam.ipv4.prefix" (ipam4.prefix or null));
   prefixLength6 = readPrefixLength (requireString "${basePath}.ipam.ipv6.prefix" (ipam6.prefix or null));
   runtimeNodes = overlayInventory.runtimeNodes or { };
+  nebulaRuntimeNodes =
+    requireAttr "${basePath}.nebula.runtimeNodes" (nebula.runtimeNodes or null);
 
   endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
   endpoint6 = requireString "${basePath}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null);
@@ -107,9 +109,8 @@ in
         overlayName
         overlayId
         overlayNodes
-        siteCpm
-        cpmData
         runtimeNodes
+        nebulaRuntimeNodes
         prefixLength4
         prefixLength6
         lighthousePlan

@@ -6,9 +6,8 @@
   overlayName,
   overlayId,
   overlayNodes,
-  siteCpm,
-  cpmData,
   runtimeNodes,
+  nebulaRuntimeNodes,
   prefixLength4,
   prefixLength6,
   lighthousePlan,
@@ -23,20 +22,6 @@ let
     stripPrefixLength
     uniqueStrings
     withPrefixLength
-    ;
-
-  inherit
-    (import ./modeled-unsafe-routes.nix {
-      inherit
-        lib
-        helpers
-        overlayName
-        overlayId
-        siteCpm
-        cpmData
-        ;
-    })
-    modeledUnsafeRoutesForNode
     ;
 
   uniqueRoutes =
@@ -70,6 +55,9 @@ builtins.listToAttrs (
       runtimePath =
         "inventory.controlPlane.sites.${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
       runtimeNode = requireAttr runtimePath (runtimeNodes.${nodeName} or null);
+      nebulaRuntimePath =
+        "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nebula.runtimeNodes.${nodeName}";
+      nebulaRuntimeNode = requireAttr nebulaRuntimePath (nebulaRuntimeNodes.${nodeName} or null);
       renderedPath =
         "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nodes.${nodeName}";
       renderedNode = requireAttr renderedPath (overlayNodes.${nodeName} or null);
@@ -78,7 +66,11 @@ builtins.listToAttrs (
           throw "${runtimePath}.unsafeRoutes is policy; CPM must provide overlay route contracts"
         else
           true;
-      unsafeRoutes = uniqueRoutes (modeledUnsafeRoutesForNode nodeName);
+      unsafeRoutes =
+        if builtins.isList (nebulaRuntimeNode.unsafeRoutes or null) then
+          uniqueRoutes nebulaRuntimeNode.unsafeRoutes
+        else
+          throw "${nebulaRuntimePath}.unsafeRoutes must be an explicit list";
       unsafeRouteToNebula = route:
         let
           via = route.via6 or route.via4 or route.via or null;

@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-if rg -n 'runtimeNode\.unsafeRoutes|hasInfix|contains\("nebula"\)|contains\("core"\)' \
+if rg -n 'modeledUnsafeRoutes|runtimeNode\.unsafeRoutes|hasInfix|contains\("nebula"\)|contains\("core"\)' \
   "${repo_root}" \
   --glob '*.nix' \
   --glob '!flake.lock' \
@@ -66,7 +66,7 @@ nix eval --impure --no-warn-dirty --expr '
     result = builtins.tryEval plan.nodes.core.unsafeRoutes;
   in
     if result.success then
-      throw "network-renderer-nebula: inventory runtimeNodes.*.unsafeRoutes unexpectedly evaluated"
+      throw "network-renderer-nebula: missing CPM nebula.runtimeNodes.*.unsafeRoutes unexpectedly evaluated"
     else
       true
 ' >/dev/null
