@@ -16,9 +16,11 @@ nix eval --impure --no-warn-dirty --json --expr '
     system = "x86_64-linux";
     api = flake.libBySystem.${system}.renderer;
     pkgs = import flake.inputs.nixpkgs { inherit system; };
-    plan = api.buildNebulaPlanFromPaths {
+    plan = import "'"$repo_root"'/tests/nix/nebula-plan-from-inputs.nix" {
+      repoRoot = "'"$repo_root"'";
       intentPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
+      inherit system;
     };
     nodeName = "c-router-nebula-core";
     module = api.buildNebulaRuntimeNixosModule {

@@ -15,9 +15,9 @@ plan_json="${tmp_dir}/plan.json"
 nix eval --impure --no-warn-dirty --json --expr '
   let
     flake = builtins.getFlake (toString '"$repo_root"');
-    api = flake.libBySystem.x86_64-linux.renderer;
   in
-  api.buildNebulaPlanFromPaths {
+  import "'"${repo_root}"'/tests/nix/nebula-plan-from-inputs.nix" {
+    repoRoot = "'"${repo_root}"'";
     intentPath = "'"${intent_path}"'";
     inventoryPath = "'"${inventory_path}"'";
   }

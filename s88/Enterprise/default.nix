@@ -5,7 +5,6 @@
 }:
 
 let
-  cpmLib = flakeInputs.network-control-plane-model.libBySystem.${system};
   helpers = import ./helpers.nix { inherit lib; };
 
   buildNebulaPlan =
@@ -170,20 +169,5 @@ in
     buildNebulaBootstrapNixosModule = buildNebulaBootstrapNixosModule;
     buildExternalLighthouseNixosModule = buildExternalLighthouseNixosModule;
     buildNebulaRuntimeNixosModule = buildNebulaRuntimeNixosModule;
-
-    buildNebulaPlanFromPaths =
-      {
-        intentPath,
-        inventoryPath,
-        caName ? "s-router-test-lab",
-      }:
-      buildNebulaPlan {
-        controlPlane = cpmLib.compileAndBuildFromPaths {
-          inputPath = intentPath;
-          inventoryPath = inventoryPath;
-        };
-        inventory = cpmLib.readInput inventoryPath;
-        inherit caName;
-      };
   };
 }
