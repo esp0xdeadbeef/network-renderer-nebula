@@ -106,7 +106,7 @@ in
     preStart = lib.mkIf hasExternalEndpointSecret ''
       set -eu
       install -d -m 0700 /run/nebula-runtime
-      cp /etc/nebula/${networkName}.yml ${runtimeConfigPath}
+      install -m 0600 /etc/nebula/${networkName}.yml ${runtimeConfigPath}
       ${pkgs.python3}/bin/python3 - ${runtimeConfigPath} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint4SecretPath)} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint6SecretPath)} ${toString listenPort} <<'PY'
       import sys
       from pathlib import Path
