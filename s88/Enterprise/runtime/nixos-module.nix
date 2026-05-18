@@ -3,6 +3,8 @@
   pkgs,
   nodeName,
   runtimeNode,
+  externalRemoteLighthouseEndpoint4SecretPath ? null,
+  externalRemoteLighthouseEndpoint6SecretPath ? null,
 }:
 
 let
@@ -28,6 +30,11 @@ let
   relay = runtimeNode.relay or { };
   listenHost = runtimeNode.service.listenHost or "[::]";
   listenPort = lib.toInt (runtimeNode.lighthouse.port or 4242);
+  hasExternalEndpointSecret =
+    externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null;
+  secretPathOrEmpty = path: if path == null then "" else path;
+  runtimeConfigPath =
+    if hasExternalEndpointSecret then "/run/nebula-runtime/runtime.yml" else "/etc/nebula/${networkName}.yml";
 in
 {
   systemd.tmpfiles.rules = [
@@ -96,7 +103,69 @@ in
 
   systemd.services."nebula@${networkName}" = {
     after = [ "network.target" ];
+    preStart = lib.mkIf hasExternalEndpointSecret ''
+      set -eu
+      install -d -m 0700 /run/nebula-runtime
+      cp /etc/nebula/${networkName}.yml ${runtimeConfigPath}
+      ${pkgs.python3}/bin/python3 - ${runtimeConfigPath} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint4SecretPath)} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint6SecretPath)} ${toString listenPort} <<'PY'
+      import sys
+      from pathlib import Path
+
+      config_path = Path(sys.argv[1])
+      endpoint4_path = sys.argv[2]
+      endpoint6_path = sys.argv[3]
+      port = sys.argv[4]
+
+      def read_endpoint(path):
+          if not path:
+              return ""
+          value = Path(path).read_text(encoding="utf-8").strip()
+          if not value:
+              raise SystemExit(f"empty lighthouse endpoint secret: {path}")
+          return value
+
+      endpoints = []
+      endpoint4 = read_endpoint(endpoint4_path)
+      endpoint6 = read_endpoint(endpoint6_path)
+      if endpoint4:
+          endpoints.append(f"{endpoint4}:{port}")
+      if endpoint6:
+          endpoints.append(f"'[{endpoint6}]:{port}'")
+      if not endpoints:
+          raise SystemExit("no lighthouse endpoint secret configured")
+
+      lines = config_path.read_text(encoding="utf-8").splitlines(keepends=True)
+      updated = []
+      in_static_map = False
+      replaced_any = False
+
+      for line in lines:
+          if line == "static_host_map:\n":
+              in_static_map = True
+              updated.append(line)
+              continue
+          if in_static_map and line and not line.startswith(" "):
+              in_static_map = False
+              updated.append(line)
+              continue
+          if in_static_map and line.startswith("  ") and line.endswith(":\n") and not line.startswith("  - "):
+              updated.append(line)
+              updated.extend(f"  - {endpoint}\n" for endpoint in endpoints)
+              replaced_any = True
+              continue
+          if in_static_map and line.startswith("  - "):
+              continue
+          updated.append(line)
+
+      if not replaced_any:
+          raise SystemExit("static_host_map had no lighthouse entries to replace")
+      config_path.write_text("".join(updated), encoding="utf-8")
+      PY
+    '';
     serviceConfig = {
+      ExecStart = lib.mkIf hasExternalEndpointSecret (
+        lib.mkForce "${pkgs.nebula}/bin/nebula -config ${runtimeConfigPath}"
+      );
       User = lib.mkForce "root";
       Group = lib.mkForce "root";
     };

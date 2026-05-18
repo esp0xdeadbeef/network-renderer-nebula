@@ -157,9 +157,18 @@ let
       pkgs,
       nodeName,
       runtimeNode,
+      externalRemoteLighthouseEndpoint4SecretPath ? null,
+      externalRemoteLighthouseEndpoint6SecretPath ? null,
     }:
     import ./runtime/nixos-module.nix {
-      inherit lib pkgs nodeName runtimeNode;
+      inherit
+        lib
+        pkgs
+        nodeName
+        runtimeNode
+        externalRemoteLighthouseEndpoint4SecretPath
+        externalRemoteLighthouseEndpoint6SecretPath
+        ;
     };
 in
 {
