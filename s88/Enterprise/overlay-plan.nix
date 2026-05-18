@@ -42,7 +42,10 @@ let
   prefixLength6 = readPrefixLength (requireString "${basePath}.ipam.ipv6.prefix" (ipam6.prefix or null));
   runtimeNodes = overlayInventory.runtimeNodes or { };
   nebulaRuntimeNodes =
-    requireAttr "${basePath}.nebula.runtimeNodes" (nebula.runtimeNodes or null);
+    if builtins.isAttrs (nebula.runtimeNodes or null) then
+      nebula.runtimeNodes
+    else
+      runtimeNodes;
 
   endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
   endpoint6 = requireString "${basePath}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null);
