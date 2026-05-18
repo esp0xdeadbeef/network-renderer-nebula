@@ -122,7 +122,7 @@ in
           value = Path(path).read_text(encoding="utf-8").strip()
           if not value:
               raise SystemExit(f"empty lighthouse endpoint secret: {path}")
-          return value
+          return value.split("/", 1)[0]
 
       endpoints = []
       endpoint4 = read_endpoint(endpoint4_path)
