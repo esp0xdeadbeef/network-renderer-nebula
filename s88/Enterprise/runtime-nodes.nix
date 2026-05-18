@@ -133,7 +133,7 @@ builtins.listToAttrs (
           interface = runtimeNode.service.interface or "nebula1";
         };
         materialization = validateMaterialization nodeName runtimePath runtimeNode;
-        relay = runtimeNode.relay or { };
+        relay = nebulaRuntimeNode.relay or runtimeNode.relay or { };
         lighthouse = lighthousePlan;
         nebulaNetwork = {
           settings = {

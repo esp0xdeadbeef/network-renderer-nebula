@@ -102,7 +102,7 @@ while IFS= read -r example_dir; do
     check_plan_boundary "${example_dir}" "${tmp_dir}/plan.json" || failed=1
   else
     echo "!!!! ${example_dir} Nebula provider plan render failed; boundary not verified" >&2
-    sed -n '1,8p' "${tmp_dir}/render.err" | sed 's/^/!!!!   /' >&2
+    sed -n '1,80p' "${tmp_dir}/render.err" | sed 's/^/!!!!   /' >&2
     failed=1
   fi
 
