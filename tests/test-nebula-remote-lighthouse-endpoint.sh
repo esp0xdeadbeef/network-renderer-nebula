@@ -13,5 +13,6 @@ source_file="${repo_root}/s88/Enterprise/runtime/nixos-module.nix"
 grep -F 'services.nebula.networks.${networkName}' "$source_file" >/dev/null
 grep -F 'staticHostMap = staticHostMap;' "$source_file" >/dev/null
 grep -F 'lighthouseEndpoints = runtimeNode.lighthouse.endpoints or [ ];' "$source_file" >/dev/null
+grep -F 'return value.split("/", 1)[0]' "$source_file" >/dev/null
 
 echo "PASS test-nebula-remote-lighthouse-endpoint"
