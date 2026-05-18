@@ -73,6 +73,13 @@ let
     mode = "0400";
     path = entry.path;
   };
+  materializeProfileSecret = entry: ''
+    source_path="/run/secrets/${entry.name}"
+    target_path=${lib.escapeShellArg entry.path}
+    if [ -s "$source_path" ]; then
+      install -D -m 0400 -o root -g root "$source_path" "$target_path"
+    fi
+  '';
 in
 if plan.runtimeNodeNames == [ ] then
   { }
@@ -104,4 +111,9 @@ else
         "d /persist/nebula-runtime/profiles 0700 root root -"
       ]
       ++ map (profileName: "d /persist/nebula-runtime/profiles/${profileName} 0700 root root -") plan.sopsProfileNames;
+
+    system.activationScripts.nebulaSopsProfiles = {
+      deps = [ "setupSecrets" ];
+      text = lib.concatStringsSep "\n" (map materializeProfileSecret profileSecretEntries);
+    };
   }
