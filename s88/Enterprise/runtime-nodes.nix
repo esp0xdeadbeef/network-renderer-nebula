@@ -66,9 +66,12 @@ builtins.listToAttrs (
           throw "${runtimePath}.unsafeRoutes is policy; CPM must provide overlay route contracts"
         else
           true;
+      unsafeRouteInput = nebulaRuntimeNode.unsafeRoutes or null;
       unsafeRoutes =
-        if builtins.isList (nebulaRuntimeNode.unsafeRoutes or null) then
-          uniqueRoutes nebulaRuntimeNode.unsafeRoutes
+        if unsafeRouteInput == null then
+          [ ]
+        else if builtins.isList unsafeRouteInput then
+          uniqueRoutes unsafeRouteInput
         else
           throw "${nebulaRuntimePath}.unsafeRoutes must be an explicit list";
       unsafeRouteToNebula = route:
