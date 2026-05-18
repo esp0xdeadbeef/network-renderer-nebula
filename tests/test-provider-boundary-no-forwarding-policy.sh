@@ -93,10 +93,7 @@ while IFS= read -r example_dir; do
     EXAMPLE_INTENT="${example_dir}/intent.nix" \
     EXAMPLE_INVENTORY="${inventory_path}" \
     nix eval --impure --no-warn-dirty --json --expr '
-      let
-        flake = builtins.getFlake ("path:" + builtins.getEnv "REPO_ROOT");
-      in
-      import "${repo_root}/tests/nix/nebula-plan-from-inputs.nix" {
+      import "'"${repo_root}"'/tests/nix/nebula-plan-from-inputs.nix" {
         repoRoot = builtins.getEnv "REPO_ROOT";
         intentPath = builtins.getEnv "EXAMPLE_INTENT";
         inventoryPath = builtins.getEnv "EXAMPLE_INVENTORY";
