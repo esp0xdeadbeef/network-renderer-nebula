@@ -166,6 +166,8 @@ in
       ExecStart = lib.mkIf hasExternalEndpointSecret (
         lib.mkForce "${pkgs.nebula}/bin/nebula -config ${runtimeConfigPath}"
       );
+      RuntimeDirectory = lib.mkIf hasExternalEndpointSecret "nebula-runtime";
+      ReadWritePaths = lib.mkIf hasExternalEndpointSecret [ "/run/nebula-runtime" ];
       User = lib.mkForce "root";
       Group = lib.mkForce "root";
     };
