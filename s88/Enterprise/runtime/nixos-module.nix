@@ -109,6 +109,7 @@ in
       install -m 0600 /etc/nebula/${networkName}.yml ${runtimeConfigPath}
       ${pkgs.python3}/bin/python3 - ${runtimeConfigPath} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint4SecretPath)} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint6SecretPath)} ${toString listenPort} <<'PY'
       import sys
+      import ipaddress
       from pathlib import Path
 
       config_path = Path(sys.argv[1])
@@ -122,6 +123,11 @@ in
           value = Path(path).read_text(encoding="utf-8").strip()
           if not value:
               raise SystemExit(f"empty lighthouse endpoint secret: {path}")
+          if "/" in value:
+              network = ipaddress.ip_network(value, strict=False)
+              if network.prefixlen < network.max_prefixlen:
+                  return str(network.network_address + 1)
+              return str(network.network_address)
           return value.split("/", 1)[0]
 
       endpoints = []
