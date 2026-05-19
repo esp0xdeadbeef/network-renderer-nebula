@@ -40,7 +40,8 @@ let
   listenHost = runtimeNode.service.listenHost or "[::]";
   listenPort = lib.toInt (runtimeNode.lighthouse.port or 4242);
   hasExternalEndpointSecret =
-    externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null;
+    !isLighthouse
+    && (externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null);
   secretPathOrEmpty = path: if path == null then "" else path;
   runtimeConfigPath =
     if hasExternalEndpointSecret then "/run/nebula-runtime/runtime.yml" else "/etc/nebula/${networkName}.yml";

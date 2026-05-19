@@ -14,6 +14,8 @@ nix eval --impure --no-warn-dirty --json --expr '
     module = api.buildNebulaRuntimeNixosModule {
       inherit pkgs;
       nodeName = "b-router-core-nebula";
+      externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/hetzner-lighthouse-public-ipv4";
+      externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/hetzner-public-ipv6";
       runtimeNode = {
         groups = [ "lab" "core" ];
         lighthouse = {
@@ -77,14 +79,49 @@ nix eval --impure --no-warn-dirty --json --expr '
         };
       };
     };
+    lighthouseModule = api.buildNebulaRuntimeNixosModule {
+      inherit pkgs;
+      nodeName = "c-router-lighthouse";
+      externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/hetzner-lighthouse-public-ipv4";
+      externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/hetzner-public-ipv6";
+      runtimeNode = {
+        groups = [ "lab" "lighthouse" ];
+        lighthouse = {
+          node = "c-router-lighthouse";
+          overlayIps = [ "100.96.10.254" "fd42:dead:beef:ee::254" ];
+          endpoints = [ "198.51.100.10:4242" "[2001:db8:51::10]:4242" ];
+          port = "4242";
+        };
+        relay = {
+          amRelay = false;
+          useRelays = false;
+          relays = [ ];
+        };
+        service = {
+          interface = "nebula1";
+          name = "nebula-runtime";
+        };
+        overlayAddresses = [
+          "100.96.10.254/24"
+          "fd42:dead:beef:ee::254/64"
+        ];
+        nebulaNetwork = {
+          settings.nebulaFirewallRules = {
+            inbound = [ ];
+            outbound = [ ];
+          };
+        };
+      };
+    };
     service = module.systemd.services."nebula@runtime";
+    lighthouseService = lighthouseModule.systemd.services."nebula@runtime";
     network = module.services.nebula.networks.runtime;
   in
   {
     tmpfiles = module.systemd.tmpfiles.rules;
     firewall = module.networking.firewall;
     nftablesRuleset = module.networking.nftables.ruleset;
-    inherit network service;
+    inherit network service lighthouseService;
   }
 ' > "$tmp_dir/runtime-module.json"
 
@@ -114,8 +151,18 @@ jq -e '
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key") != null) and
   (.service.preStart | contains("ip link delete")) and
   (.service.preStart | contains("ip address delete")) and
+  (.service.preStart | contains("/run/secrets/hetzner-lighthouse-public-ipv4")) and
+  (.service.preStart | contains("/run/nebula-runtime/runtime.yml")) and
+  (.service.serviceConfig.ExecStart.content.content | contains("/run/nebula-runtime/runtime.yml")) and
   .service.serviceConfig.User.content == "root" and
   .service.serviceConfig.Group.content == "root"
+' "$tmp_dir/runtime-module.json" >/dev/null
+
+jq -e '
+  (.lighthouseService.preStart | contains("ip link delete")) and
+  (.lighthouseService.preStart | contains("static_host_map had no lighthouse entries to replace") | not) and
+  (.lighthouseService.preStart | contains("/run/secrets/hetzner-lighthouse-public-ipv4") | not) and
+  .lighthouseService.serviceConfig.ExecStart.condition == false
 ' "$tmp_dir/runtime-module.json" >/dev/null
 
 source_file="${repo_root}/s88/Enterprise/runtime/nixos-module.nix"
