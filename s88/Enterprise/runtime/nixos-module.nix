@@ -16,6 +16,15 @@ let
   lighthouseIp4 = builtins.elemAt lighthouseIps 0;
   lighthouseIp6 = builtins.elemAt lighthouseIps 1;
   lighthouseEndpoints = runtimeNode.lighthouse.endpoints or [ ];
+  overlayAddresses = runtimeNode.overlayAddresses or [ ];
+  duplicateAddressCleanup = import ./duplicate-address-cleanup.nix {
+    inherit
+      lib
+      pkgs
+      interfaceName
+      overlayAddresses
+      ;
+  };
   renderedNetwork = runtimeNode.nebulaNetwork or {
     settings = { };
   };
@@ -103,7 +112,9 @@ in
 
   systemd.services."nebula@${networkName}" = {
     after = [ "network.target" ];
-    preStart = lib.mkIf hasExternalEndpointSecret ''
+    preStart =
+      duplicateAddressCleanup
+      + lib.optionalString hasExternalEndpointSecret ''
       set -eu
       install -d -m 0700 /run/nebula-runtime
       install -m 0600 /etc/nebula/${networkName}.yml ${runtimeConfigPath}
