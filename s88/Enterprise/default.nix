@@ -68,8 +68,9 @@ let
         })
         relayForNode
         ;
+      relayStaticHostMap = import ./relay-static-host-map.nix { inherit lib helpers; };
 
-      nodes =
+      baseNodes =
         builtins.mapAttrs (
           nodeName: node:
           node
@@ -77,6 +78,8 @@ let
             relay = relayForNode nodeName node;
           }
         ) rawNodes;
+
+      nodes = builtins.mapAttrs (_: relayStaticHostMap.addToNode baseNodes) baseNodes;
 
       overlays =
         builtins.mapAttrs (

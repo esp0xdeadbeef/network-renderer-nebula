@@ -110,6 +110,7 @@ builtins.listToAttrs (
           lighthousePlan.endpoint6
         ];
       };
+      relay = nebulaRuntimeNode.relay or runtimeNode.relay or { };
     in
     builtins.seq _noInventoryUnsafeRoutes {
       name = nodeName;
@@ -136,7 +137,7 @@ builtins.listToAttrs (
           interface = runtimeNode.service.interface or "nebula1";
         };
         materialization = validateMaterialization nodeName runtimePath runtimeNode;
-        relay = nebulaRuntimeNode.relay or runtimeNode.relay or { };
+        inherit relay;
         lighthouse = lighthousePlan;
         nebulaNetwork = {
           settings = {

@@ -33,6 +33,7 @@ tests=(
   test-nebula-bootstrap-spec.sh
   test-nebula-remote-lighthouse-endpoint.sh
   test-nebula-public-forwarded-relay-static-map.sh
+  test-nebula-public-relay-endpoint-static-map.sh
   test-nebula-runtime-module.sh
 )
 
