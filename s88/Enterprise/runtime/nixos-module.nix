@@ -108,7 +108,7 @@ in
         ];
     listen = {
       host = listenHost;
-      port = listenPort;
+      port = toString listenPort;
     };
     tun = {
       device = interfaceName;
