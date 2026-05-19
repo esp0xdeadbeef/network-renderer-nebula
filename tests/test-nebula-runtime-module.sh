@@ -112,6 +112,7 @@ jq -e '
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/ca.crt") != null) and
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.crt") != null) and
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key") != null) and
+  (.service.preStart | contains("ip link delete")) and
   (.service.preStart | contains("ip address delete")) and
   .service.serviceConfig.User.content == "root" and
   .service.serviceConfig.Group.content == "root"
