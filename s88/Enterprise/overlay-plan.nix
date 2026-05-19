@@ -84,6 +84,20 @@ let
     ];
   };
 
+  localFirewallCidrs =
+    let
+      tenants = if builtins.isList ((siteCpm.domains or { }).tenants or null) then siteCpm.domains.tenants else [ ];
+      tenantCidrs =
+        builtins.concatLists (
+          map
+            (tenant:
+              (lib.optional (builtins.isString (tenant.ipv4 or null)) tenant.ipv4)
+              ++ (lib.optional (builtins.isString (tenant.ipv6 or null)) tenant.ipv6))
+            tenants
+        );
+    in
+    uniqueStrings tenantCidrs;
+
   validateMaterialization =
     nodeName: path: runtimeNode:
     let
@@ -128,6 +142,7 @@ in
         overlayNodes
         runtimeNodes
         nebulaRuntimeNodes
+        localFirewallCidrs
         prefixLength4
         prefixLength6
         lighthousePlan

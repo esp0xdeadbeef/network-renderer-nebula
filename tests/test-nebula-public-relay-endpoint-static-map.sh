@@ -63,6 +63,8 @@ jq -e '
   .relayNetwork.listen.port == 4243 and
   ([.relayNetwork.firewall.inbound[]? | select(has("local_cidr") | not)] | length) == 0 and
   ([.relayNetwork.firewall.outbound[]? | select(has("local_cidr") | not)] | length) == 0 and
+  ([.relayNetwork.firewall.inbound[]? | select(.local_cidr == "10.90.10.0/24")] | length) == 1 and
+  ([.relayNetwork.firewall.inbound[]? | select(.local_cidr == "fd42:dead:cafe:10::/64")] | length) == 1 and
   .network.staticHostMap["100.96.10.3"] == ["127.0.0.1:4243"] and
   (.preStart | contains("/run/secrets/hetzner-public-ipv4")) and
   (.preStart | contains("static_host_map had no entries to replace for"))
