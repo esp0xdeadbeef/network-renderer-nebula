@@ -41,11 +41,25 @@ let
   prefixLength4 = readPrefixLength (requireString "${basePath}.ipam.ipv4.prefix" (ipam4.prefix or null));
   prefixLength6 = readPrefixLength (requireString "${basePath}.ipam.ipv6.prefix" (ipam6.prefix or null));
   runtimeNodes = overlayInventory.runtimeNodes or { };
+  derivedNebulaRuntimeNodes = import ./derived-runtime-routes.nix {
+    inherit
+      lib
+      helpers
+      cpmData
+      siteCpm
+      overlayName
+      overlayCpm
+      ;
+  };
+  explicitNebulaRuntimeNodes = if builtins.isAttrs (nebula.runtimeNodes or null) then nebula.runtimeNodes else { };
   nebulaRuntimeNodes =
-    if builtins.isAttrs (nebula.runtimeNodes or null) then
-      nebula.runtimeNodes
-    else
-      runtimeNodes;
+    builtins.mapAttrs (
+      nodeName: derived:
+      if builtins.hasAttr nodeName explicitNebulaRuntimeNodes then
+        explicitNebulaRuntimeNodes.${nodeName}
+      else
+        derived
+    ) derivedNebulaRuntimeNodes;
 
   endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
   endpoint6 = requireString "${basePath}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null);
