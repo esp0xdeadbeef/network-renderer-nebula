@@ -71,15 +71,30 @@ in
     entries:
     let
       nodeNames = helpers.uniqueStrings (map (entry: entry.name) entries);
+      stripPrefixLength = value: builtins.head (lib.splitString "/" value);
       mergeRawNodes =
         nodeName:
         let
           matching = map (entry: entry.value) (lib.filter (entry: entry.name == nodeName) entries);
           base = builtins.head matching;
+          overlayAddresses = base.overlayAddresses or [ ];
+          overlayIp4 = if builtins.length overlayAddresses > 0 then stripPrefixLength (builtins.elemAt overlayAddresses 0) else null;
+          overlayIp6 = if builtins.length overlayAddresses > 1 then stripPrefixLength (builtins.elemAt overlayAddresses 1) else null;
+          allUnsafeRoutes = builtins.concatLists (map (entry: entry.value.unsafeRoutes or [ ]) entries);
+          advertisedUnsafeNetworks =
+            helpers.uniqueStrings (
+              map (route: route.route or "")
+                (lib.filter
+                  (route:
+                    (overlayIp4 != null && (route.via4 or route.via or null) == overlayIp4)
+                    || (overlayIp6 != null && (route.via6 or route.via or null) == overlayIp6))
+                  allUnsafeRoutes)
+            );
         in
         base
         // {
           unsafeRoutes = uniqueRoutes (builtins.concatLists (map (node: node.unsafeRoutes or [ ]) matching));
+          inherit advertisedUnsafeNetworks;
           routePreparation = mergeRoutePreparation matching;
           nebulaNetwork = mergeNebulaNetwork matching;
         };

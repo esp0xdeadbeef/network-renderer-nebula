@@ -53,6 +53,11 @@ jq -e '
 	    | length
 	  ) == 1 and
 	  (
+	    .nodes["c-router-nebula-core"].advertisedUnsafeNetworks
+	    | index("10.90.10.0/24") != null
+	    and index("fd42:dead:cafe:10::/64") != null
+	  ) and
+	  (
 	    .nodes["c-router-nebula-core"].unsafeRoutes
 	    | map(select(
 	        .route == "fd42:dead:feed:70::/64"
