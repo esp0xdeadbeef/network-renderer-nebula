@@ -43,7 +43,8 @@ let
     );
   relay = runtimeNode.relay or { };
   listenHost = runtimeNode.service.listenHost or "[::]";
-  listenPort = lib.toInt (runtimeNode.service.port or runtimeNode.lighthouse.port or 4242);
+  rawListenPort = runtimeNode.service.port or runtimeNode.lighthouse.port or 4242;
+  listenPort = if builtins.isInt rawListenPort then rawListenPort else lib.toInt rawListenPort;
   hasExternalEndpointSecret =
     !isLighthouse
     && (externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null);
@@ -108,7 +109,7 @@ in
         ];
     listen = {
       host = listenHost;
-      port = toString listenPort;
+      port = listenPort;
     };
     tun = {
       device = interfaceName;

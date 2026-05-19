@@ -30,11 +30,18 @@ nix eval --impure --no-warn-dirty --json --expr '
       externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/hetzner-lighthouse-public-ipv4";
       externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/hetzner-public-ipv6";
     };
+    relayNodeName = "hetz-router-nebula-core";
+    relayModule = api.buildNebulaRuntimeNixosModule {
+      inherit pkgs;
+      nodeName = relayNodeName;
+      runtimeNode = plan.nodes.${relayNodeName};
+    };
   in
     {
       node = plan.nodes.${nodeName};
-      relay = plan.nodes."hetz-router-nebula-core";
+      relay = plan.nodes.${relayNodeName};
       network = module.services.nebula.networks.runtime;
+      relayNetwork = relayModule.services.nebula.networks.runtime;
       preStart = module.systemd.services."nebula@runtime".preStart;
     }
 ' > "$tmp_dir/result.json"
@@ -51,6 +58,7 @@ jq -e '
   ] and
   .relay.service.port == 4243 and
   .relay.service.publicEndpoints[0].endpointSourceFile == "/run/secrets/hetzner-public-ipv4" and
+  .relayNetwork.listen.port == 4243 and
   .network.staticHostMap["100.96.10.3"] == ["127.0.0.1:4243"] and
   (.preStart | contains("/run/secrets/hetzner-public-ipv4")) and
   (.preStart | contains("static_host_map had no entries to replace for"))
