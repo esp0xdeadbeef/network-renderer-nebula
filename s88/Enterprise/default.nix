@@ -49,17 +49,18 @@ let
         ) entries
       );
 
-      rawNodes = builtins.listToAttrs (
-        builtins.concatLists (
-          map (
-            overlayId:
-            map (nodeName: {
-              name = nodeName;
-              value = rawOverlays.${overlayId}.nodes.${nodeName};
-            }) (helpers.sortedAttrNames rawOverlays.${overlayId}.nodes)
-          ) (helpers.sortedAttrNames rawOverlays)
-        )
+      rawNodeEntries = builtins.concatLists (
+        map (
+          overlayId:
+          map (nodeName: {
+            name = nodeName;
+            value = rawOverlays.${overlayId}.nodes.${nodeName};
+          }) (helpers.sortedAttrNames rawOverlays.${overlayId}.nodes)
+        ) (helpers.sortedAttrNames rawOverlays)
       );
+
+      rawNodes =
+        (import ./node-merge.nix { inherit lib helpers; }).mergeRawNodeEntries rawNodeEntries;
 
       inherit
         (import ./relay-resolution.nix {

@@ -93,6 +93,16 @@ jq -e '
 	    | length
 	  ) == 1 and
 	  (
+	    .nodes["b-router-core-nebula"].nebulaNetwork.settings.tun.unsafe_routes
+	    | map(select(.route == "10.20.10.0/24" and .via == "100.96.10.1" and .install == true))
+	    | length
+	  ) == 1 and
+	  (
+	    .nodes["b-router-core-nebula"].nebulaNetwork.settings.tun.unsafe_routes
+	    | map(select(.route == "fd42:dead:beef:50::/64" and .via == "fd42:dead:beef:ee::1" and .install == true))
+	    | length
+	  ) == 1 and
+	  (
 	    .nodes["b-router-core-nebula"].unsafeRoutes
 	    | map(.route)
 	    | index("10.10.0.16/32") == null and index("fd42:dead:beef:1000:0:0:0:10/128") == null

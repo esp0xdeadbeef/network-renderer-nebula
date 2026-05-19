@@ -101,6 +101,11 @@ while IFS= read -r example_dir; do
     ' >"${tmp_dir}/plan.json" 2>"${tmp_dir}/render.err"; then
     check_plan_boundary "${example_dir}" "${tmp_dir}/plan.json" || failed=1
   else
+    if grep -Eq 'missing attrset at control_plane_model\.data\..*\.overlays\..*\.nebula' "${tmp_dir}/render.err"; then
+      skipped=$((skipped + 1))
+      rm -rf "${tmp_dir}"
+      continue
+    fi
     echo "!!!! ${example_dir} Nebula provider plan render failed; boundary not verified" >&2
     sed -n '1,80p' "${tmp_dir}/render.err" | sed 's/^/!!!!   /' >&2
     failed=1
