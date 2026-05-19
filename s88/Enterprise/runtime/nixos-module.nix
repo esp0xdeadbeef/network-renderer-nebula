@@ -28,23 +28,43 @@ let
   renderedNetwork = runtimeNode.nebulaNetwork or {
     settings = { };
   };
+  renderedStaticHostMap = runtimeNode.staticHostMap or { };
+  staticHostMapSecretEndpoints = runtimeNode.staticHostMapSecretEndpoints or { };
   staticHostMap =
-    if isLighthouse then
-      { }
-    else
-      {
+    renderedStaticHostMap
+    // (
+      if isLighthouse then
+        { }
+      else
+        {
         ${lighthouseIp4} = lighthouseEndpoints;
         ${lighthouseIp6} = lighthouseEndpoints;
-      };
+        }
+    );
   relay = runtimeNode.relay or { };
   listenHost = runtimeNode.service.listenHost or "[::]";
-  listenPort = lib.toInt (runtimeNode.lighthouse.port or 4242);
+  listenPort = lib.toInt (runtimeNode.service.port or runtimeNode.lighthouse.port or 4242);
   hasExternalEndpointSecret =
     !isLighthouse
     && (externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null);
-  secretPathOrEmpty = path: if path == null then "" else path;
+  hasDynamicStaticHostMap = hasExternalEndpointSecret || staticHostMapSecretEndpoints != { };
   runtimeConfigPath =
-    if hasExternalEndpointSecret then "/run/nebula-runtime/runtime.yml" else "/etc/nebula/${networkName}.yml";
+    if hasDynamicStaticHostMap then "/run/nebula-runtime/runtime.yml" else "/etc/nebula/${networkName}.yml";
+  staticHostMapSecretEndpointsJson = builtins.toJSON staticHostMapSecretEndpoints;
+  dynamicStaticHostMapPreStart = import ./dynamic-static-host-map-prestart.nix {
+    inherit
+      lib
+      pkgs
+      networkName
+      runtimeConfigPath
+      externalRemoteLighthouseEndpoint4SecretPath
+      externalRemoteLighthouseEndpoint6SecretPath
+      listenPort
+      lighthouseIp4
+      lighthouseIp6
+      staticHostMapSecretEndpointsJson
+      ;
+  };
 in
 {
   systemd.tmpfiles.rules = [
@@ -117,77 +137,13 @@ in
     after = [ "network.target" ];
     preStart =
       duplicateAddressCleanup
-      + lib.optionalString hasExternalEndpointSecret ''
-      set -eu
-      install -d -m 0700 /run/nebula-runtime
-      install -m 0600 /etc/nebula/${networkName}.yml ${runtimeConfigPath}
-      ${pkgs.python3}/bin/python3 - ${runtimeConfigPath} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint4SecretPath)} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint6SecretPath)} ${toString listenPort} <<'PY'
-      import sys
-      import ipaddress
-      from pathlib import Path
-
-      config_path = Path(sys.argv[1])
-      endpoint4_path = sys.argv[2]
-      endpoint6_path = sys.argv[3]
-      port = sys.argv[4]
-
-      def read_endpoint(path):
-          if not path:
-              return ""
-          value = Path(path).read_text(encoding="utf-8").strip()
-          if not value:
-              raise SystemExit(f"empty lighthouse endpoint secret: {path}")
-          if "/" in value:
-              network = ipaddress.ip_network(value, strict=False)
-              if network.prefixlen < network.max_prefixlen:
-                  return str(network.network_address + 1)
-              return str(network.network_address)
-          return value.split("/", 1)[0]
-
-      endpoints = []
-      endpoint4 = read_endpoint(endpoint4_path)
-      endpoint6 = read_endpoint(endpoint6_path)
-      if endpoint4:
-          endpoints.append(f"{endpoint4}:{port}")
-      if endpoint6:
-          endpoints.append(f"'[{endpoint6}]:{port}'")
-      if not endpoints:
-          raise SystemExit("no lighthouse endpoint secret configured")
-
-      lines = config_path.read_text(encoding="utf-8").splitlines(keepends=True)
-      updated = []
-      in_static_map = False
-      replaced_any = False
-
-      for line in lines:
-          if line == "static_host_map:\n":
-              in_static_map = True
-              updated.append(line)
-              continue
-          if in_static_map and line and not line.startswith(" "):
-              in_static_map = False
-              updated.append(line)
-              continue
-          if in_static_map and line.startswith("  ") and line.endswith(":\n") and not line.startswith("  - "):
-              updated.append(line)
-              updated.extend(f"  - {endpoint}\n" for endpoint in endpoints)
-              replaced_any = True
-              continue
-          if in_static_map and line.startswith("  - "):
-              continue
-          updated.append(line)
-
-      if not replaced_any:
-          raise SystemExit("static_host_map had no lighthouse entries to replace")
-      config_path.write_text("".join(updated), encoding="utf-8")
-      PY
-    '';
+      + lib.optionalString hasDynamicStaticHostMap dynamicStaticHostMapPreStart;
     serviceConfig = {
-      ExecStart = lib.mkIf hasExternalEndpointSecret (
+      ExecStart = lib.mkIf hasDynamicStaticHostMap (
         lib.mkForce "${pkgs.nebula}/bin/nebula -config ${runtimeConfigPath}"
       );
-      RuntimeDirectory = lib.mkIf hasExternalEndpointSecret "nebula-runtime";
-      ReadWritePaths = lib.mkIf hasExternalEndpointSecret [ "/run/nebula-runtime" ];
+      RuntimeDirectory = lib.mkIf hasDynamicStaticHostMap "nebula-runtime";
+      ReadWritePaths = lib.mkIf hasDynamicStaticHostMap [ "/run/nebula-runtime" ];
       User = lib.mkForce "root";
       Group = lib.mkForce "root";
     };
