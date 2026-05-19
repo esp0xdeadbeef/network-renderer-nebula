@@ -93,12 +93,14 @@ builtins.listToAttrs (
         host = "any";
         local_cidr = route.route;
       }) unsafeRoutes;
-      baseFirewallRules = [
-        {
-          port = "any";
-          proto = "any";
-          host = "any";
-        }
+      baseFirewallRules = map (localCidr: {
+        port = "any";
+        proto = "any";
+        host = "any";
+        local_cidr = localCidr;
+      }) [
+        (withPrefixLength (requireString "${renderedPath}.addr4" (renderedNode.addr4 or null)) 32)
+        (withPrefixLength (requireString "${renderedPath}.addr6" (renderedNode.addr6 or null)) 128)
       ];
       routePreparation = {
         removeRoutes = uniqueStrings (
