@@ -31,6 +31,10 @@ nix eval --impure --no-warn-dirty --json --expr '
           interface = "nebula1";
           name = "nebula-runtime";
         };
+        overlayAddresses = [
+          "100.96.10.2/24"
+          "fd42:dead:beef:ee::2/64"
+        ];
         routePreparation = {
           removeRoutes = [ "10.20.10.0/24" ];
           overlayHosts = [ "100.96.10.254" ];
@@ -108,6 +112,7 @@ jq -e '
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/ca.crt") != null) and
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.crt") != null) and
   (.service.unitConfig.AssertPathExists | index("/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key") != null) and
+  (.service.preStart | contains("ip address delete")) and
   .service.serviceConfig.User.content == "root" and
   .service.serviceConfig.Group.content == "root"
 ' "$tmp_dir/runtime-module.json" >/dev/null
