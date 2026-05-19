@@ -8,6 +8,7 @@
   overlayNodes,
   runtimeNodes,
   nebulaRuntimeNodes,
+  localFirewallCidrs,
   prefixLength4,
   prefixLength6,
   lighthousePlan,
@@ -98,10 +99,13 @@ builtins.listToAttrs (
         proto = "any";
         host = "any";
         local_cidr = localCidr;
-      }) [
-        (withPrefixLength (requireString "${renderedPath}.addr4" (renderedNode.addr4 or null)) 32)
-        (withPrefixLength (requireString "${renderedPath}.addr6" (renderedNode.addr6 or null)) 128)
-      ];
+      }) (
+        localFirewallCidrs
+        ++ [
+          (withPrefixLength (requireString "${renderedPath}.addr4" (renderedNode.addr4 or null)) 32)
+          (withPrefixLength (requireString "${renderedPath}.addr6" (renderedNode.addr6 or null)) 128)
+        ]
+      );
       routePreparation = {
         removeRoutes = uniqueStrings (
           map (route: route.route or null) (lib.filter (route: (route.install or true)) unsafeRoutes)
