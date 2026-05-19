@@ -130,9 +130,12 @@ jq -e '
   (.tmpfiles | index("d /persist/nebula-runtime/profiles 0700 root root -") != null) and
   (.tmpfiles | index("d /persist/nebula-runtime/profiles/b-router-core-nebula 0700 root root -") != null) and
   (.firewall.extraInputRules | contains("s88-nebula-runtime-input")) and
+  (.firewall.extraInputRules | contains("udp dport 4242 accept")) and
+  (.firewall.extraInputRules | contains("s88-nebula-runtime-listen")) and
   (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-in")) and
   (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-out")) and
   (.nftablesRuleset.content | contains("insert rule inet router input iifname \"nebula1\"")) and
+  (.nftablesRuleset.content | contains("insert rule inet router input udp dport 4242 accept")) and
   (.nftablesRuleset.content | contains("insert rule inet router forward iifname \"nebula1\"")) and
   (.nftablesRuleset.content | contains("insert rule inet router forward oifname \"nebula1\"")) and
   .network.ca == "/persist/nebula-runtime/profiles/b-router-core-nebula/ca.crt" and
