@@ -1,6 +1,10 @@
 { lib, pkgs, dynamicUnsafeRoutesJson, runtimeConfigPath }:
 
 ''
+  install -d -m 0700 /run/nebula-runtime
+  if [ ! -e ${runtimeConfigPath} ]; then
+    install -m 0600 /etc/nebula/runtime.yml ${runtimeConfigPath}
+  fi
   ${pkgs.python3}/bin/python3 - ${runtimeConfigPath} ${lib.escapeShellArg dynamicUnsafeRoutesJson} <<'PY'
   import ipaddress
   import json
