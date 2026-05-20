@@ -22,6 +22,7 @@ nix eval --impure --no-warn-dirty --json --expr '
 
 jq -e '
   .nodes["hetz-router-nebula-core"] as $node
+  | .nodes["nixos-router-core-nebula"] as $localNode
   | ($node.nebulaNetwork.settings.nebulaFirewallRules.inbound | map(.local_cidr)) as $in
   | ($node.nebulaNetwork.settings.nebulaFirewallRules.outbound | map(.local_cidr)) as $out
   | {
@@ -35,9 +36,11 @@ jq -e '
           and ($in | index("8000::/1") != null)
           and ($out | index("::/1") != null)
           and ($out | index("8000::/1") != null)
+          and ($localNode.dynamicFirewallCidrs | map(.sourceFile) | index("/run/secrets/access-node-ipv6-prefix-esp-nixos-router-access-hostile") != null)
         ),
       advertisedUnsafeNetworks: $node.advertisedUnsafeNetworks,
       unsafeRoutes: $node.unsafeRoutes,
+      dynamicFirewallCidrs: $localNode.dynamicFirewallCidrs,
       firewallDefaults: {
         inbound: ($in | map(select(. == "::/1" or . == "8000::/1"))),
         outbound: ($out | map(select(. == "::/1" or . == "8000::/1")))

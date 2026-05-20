@@ -42,6 +42,12 @@ nix eval --impure --no-warn-dirty --json --expr '
           overlayHosts = [ "100.96.10.254" ];
           underlayEndpoints = [ "198.51.100.10" ];
         };
+        dynamicFirewallCidrs = [
+          {
+            sourceFile = "/run/secrets/access-node-ipv6-prefix-hostile";
+            family = "ipv6";
+          }
+        ];
         unsafeRoutes = [
           {
             route = "10.20.10.0/24";
@@ -155,6 +161,8 @@ jq -e '
   (.service.preStart | contains("ip link delete")) and
   (.service.preStart | contains("ip address delete")) and
   (.service.preStart | contains("/run/secrets/hetzner-lighthouse-public-ipv4")) and
+  (.service.preStart | contains("/run/secrets/access-node-ipv6-prefix-hostile")) and
+  (.service.preStart | contains("local_cidr")) and
   (.service.preStart | contains("/run/nebula-runtime/runtime.yml")) and
   (.service.serviceConfig.ExecStart.content.content | contains("/run/nebula-runtime/runtime.yml")) and
   .service.serviceConfig.User.content == "root" and

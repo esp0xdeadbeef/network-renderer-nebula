@@ -17,6 +17,9 @@ let
   listOrEmpty = value: if builtins.isList value then value else [ ];
   overlayPeerSites = listOrEmpty (overlayCpm.peerSites or null);
   firstPeerSite = if overlayPeerSites == [ ] then null else builtins.head overlayPeerSites;
+  dynamicFirewallCidrsForInterface = import ./derived-dynamic-firewall-cidrs.nix {
+    inherit lib siteCpm overlayName;
+  };
 
   routeKey =
     route:
@@ -115,10 +118,30 @@ let
     in
     builtins.concatLists (map overlayRoutesForInterface matchingInterfaces);
 
+  targetDynamicFirewallCidrs =
+    nodeName: target:
+    let
+      interfaces = attrsOrEmpty ((target.effectiveRuntimeRealization or { }).interfaces or null);
+      matchingInterfaces =
+        lib.filter
+          (iface: (iface.logicalNode or null) == nodeName && ((iface.backingRef or { }).name or null) == overlayName)
+          (builtins.attrValues interfaces);
+    in
+    builtins.concatLists (map dynamicFirewallCidrsForInterface matchingInterfaces);
+
   routesForNode = nodeName:
     uniqueRoutes (
       builtins.concatLists (
         map (targetName: targetOverlayRoutes nodeName siteCpm.runtimeTargets.${targetName})
+          (sortedAttrNames (attrsOrEmpty (siteCpm.runtimeTargets or null)))
+      )
+    );
+
+  dynamicFirewallCidrsForNode =
+    nodeName:
+    lib.unique (
+      builtins.concatLists (
+        map (targetName: targetDynamicFirewallCidrs nodeName siteCpm.runtimeTargets.${targetName})
           (sortedAttrNames (attrsOrEmpty (siteCpm.runtimeTargets or null)))
       )
     );
@@ -129,6 +152,7 @@ builtins.listToAttrs (
       name = nodeName;
       value = {
         unsafeRoutes = routesForNode nodeName;
+        dynamicFirewallCidrs = dynamicFirewallCidrsForNode nodeName;
       };
     })
     (sortedAttrNames (attrsOrEmpty (overlayCpm.nodes or null)))

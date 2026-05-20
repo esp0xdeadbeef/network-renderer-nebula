@@ -68,6 +68,7 @@ builtins.listToAttrs (
         else
           true;
       unsafeRouteInput = nebulaRuntimeNode.unsafeRoutes or null;
+      dynamicFirewallCidrsInput = nebulaRuntimeNode.dynamicFirewallCidrs or null;
       unsafeRoutes =
         if unsafeRouteInput == null then
           [ ]
@@ -75,6 +76,13 @@ builtins.listToAttrs (
           uniqueRoutes unsafeRouteInput
         else
           throw "${nebulaRuntimePath}.unsafeRoutes must be an explicit list";
+      dynamicFirewallCidrs =
+        if dynamicFirewallCidrsInput == null then
+          [ ]
+        else if builtins.isList dynamicFirewallCidrsInput then
+          lib.unique dynamicFirewallCidrsInput
+        else
+          throw "${nebulaRuntimePath}.dynamicFirewallCidrs must be an explicit list";
       unsafeRouteToNebula = route:
         let
           via = route.via6 or route.via4 or route.via or null;
@@ -127,6 +135,7 @@ builtins.listToAttrs (
           overlayName
           overlayId
           unsafeRoutes
+          dynamicFirewallCidrs
           routePreparation
           ;
         overlayAddresses = [

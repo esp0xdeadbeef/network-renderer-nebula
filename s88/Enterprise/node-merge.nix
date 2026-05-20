@@ -66,6 +66,13 @@ let
       };
     };
 
+  dynamicFirewallCidrKey =
+    spec:
+    lib.concatStringsSep "|" [
+      (spec.sourceFile or "")
+      (toString (spec.family or ""))
+    ];
+
   firewallRulesForNetworks =
     networks:
     map (localCidr: {
@@ -101,11 +108,16 @@ in
             );
           baseNebulaNetwork = mergeNebulaNetwork matching;
           advertisedFirewallRules = firewallRulesForNetworks advertisedUnsafeNetworks;
+          dynamicFirewallCidrs =
+            uniqueBy dynamicFirewallCidrKey (
+              builtins.concatLists (map (node: node.dynamicFirewallCidrs or [ ]) matching)
+            );
         in
         base
         // {
           unsafeRoutes = uniqueRoutes (builtins.concatLists (map (node: node.unsafeRoutes or [ ]) matching));
           inherit advertisedUnsafeNetworks;
+          inherit dynamicFirewallCidrs;
           routePreparation = mergeRoutePreparation matching;
           nebulaNetwork =
             baseNebulaNetwork

@@ -28,6 +28,11 @@ let
   renderedNetwork = runtimeNode.nebulaNetwork or {
     settings = { };
   };
+  dynamicFirewallCidrs =
+    if builtins.isList (runtimeNode.dynamicFirewallCidrs or null) then
+      runtimeNode.dynamicFirewallCidrs
+    else
+      [ ];
   renderedStaticHostMap = runtimeNode.staticHostMap or { };
   staticHostMapSecretEndpoints = runtimeNode.staticHostMapSecretEndpoints or { };
   staticHostMap =
@@ -49,8 +54,10 @@ let
     !isLighthouse
     && (externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null);
   hasDynamicStaticHostMap = hasExternalEndpointSecret || staticHostMapSecretEndpoints != { };
+  hasDynamicFirewallCidrs = dynamicFirewallCidrs != [ ];
+  hasDynamicRuntimeConfig = hasDynamicStaticHostMap || hasDynamicFirewallCidrs;
   runtimeConfigPath =
-    if hasDynamicStaticHostMap then "/run/nebula-runtime/runtime.yml" else "/etc/nebula/${networkName}.yml";
+    if hasDynamicRuntimeConfig then "/run/nebula-runtime/runtime.yml" else "/etc/nebula/${networkName}.yml";
   staticHostMapSecretEndpointsJson = builtins.toJSON staticHostMapSecretEndpoints;
   dynamicStaticHostMapPreStart = import ./dynamic-static-host-map-prestart.nix {
     inherit
@@ -65,6 +72,10 @@ let
       lighthouseIp6
       staticHostMapSecretEndpointsJson
       ;
+  };
+  dynamicFirewallCidrsPreStart = import ./dynamic-firewall-cidrs-prestart.nix {
+    inherit lib pkgs runtimeConfigPath;
+    dynamicFirewallCidrsJson = builtins.toJSON dynamicFirewallCidrs;
   };
 in
 {
@@ -138,13 +149,14 @@ in
     after = [ "network.target" ];
     preStart =
       duplicateAddressCleanup
-      + lib.optionalString hasDynamicStaticHostMap dynamicStaticHostMapPreStart;
+      + lib.optionalString hasDynamicStaticHostMap dynamicStaticHostMapPreStart
+      + lib.optionalString hasDynamicFirewallCidrs dynamicFirewallCidrsPreStart;
     serviceConfig = {
-      ExecStart = lib.mkIf hasDynamicStaticHostMap (
+      ExecStart = lib.mkIf hasDynamicRuntimeConfig (
         lib.mkForce "${pkgs.nebula}/bin/nebula -config ${runtimeConfigPath}"
       );
-      RuntimeDirectory = lib.mkIf hasDynamicStaticHostMap "nebula-runtime";
-      ReadWritePaths = lib.mkIf hasDynamicStaticHostMap [ "/run/nebula-runtime" ];
+      RuntimeDirectory = lib.mkIf hasDynamicRuntimeConfig "nebula-runtime";
+      ReadWritePaths = lib.mkIf hasDynamicRuntimeConfig [ "/run/nebula-runtime" ];
       User = lib.mkForce "root";
       Group = lib.mkForce "root";
     };
