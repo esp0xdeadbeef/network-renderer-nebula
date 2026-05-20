@@ -1,8 +1,8 @@
-{
-  repoRoot,
-  intentPath,
-  inventoryPath,
-  system ? "x86_64-linux",
+{ repoRoot
+, intentPath
+, inventoryPath
+, system ? "x86_64-linux"
+,
 }:
 
 let

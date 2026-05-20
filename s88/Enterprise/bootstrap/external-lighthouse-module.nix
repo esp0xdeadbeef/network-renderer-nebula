@@ -1,127 +1,13 @@
-{
-  lib,
-  pkgs,
-  nebulaRuntimePlan ? {
+{ lib
+, pkgs
+, nebulaRuntimePlan ? {
     overlays = { };
     nodes = { };
-  },
+  }
+,
 }:
 let
-  sortedAttrNames = attrs: builtins.sort builtins.lessThan (builtins.attrNames attrs);
-
-  sanitizeName =
-    value:
-    lib.replaceStrings
-      [
-        "::"
-        ":"
-        "."
-        "/"
-        " "
-      ]
-      [
-        "-"
-        "-"
-        "-"
-        "-"
-        "-"
-      ]
-      value;
-
-  overlayNames = sortedAttrNames (nebulaRuntimePlan.overlays or { });
-  toPort = value: builtins.fromJSON (builtins.toString value);
-  lighthouseFingerprints =
-    lib.unique (
-      map
-        (
-          overlayId:
-          let
-            overlay = nebulaRuntimePlan.overlays.${overlayId};
-            lighthouse = overlay.lighthouse or { };
-            addresses = lighthouse.overlayAddresses or [ ];
-          in
-          lib.concatStringsSep "|" [
-            (builtins.elemAt addresses 0)
-            (builtins.elemAt addresses 1)
-            (lighthouse.endpoint or "")
-            (lighthouse.endpoint6 or "")
-            (builtins.toString (lighthouse.port or 4242))
-          ]
-        )
-        overlayNames
-    );
-
-  lighthouses =
-    let
-      externalFingerprints =
-        lib.filter
-          (
-            fingerprint:
-            let
-              matching =
-                lib.filter
-                  (
-                    overlayId:
-                    let
-                      overlay = nebulaRuntimePlan.overlays.${overlayId};
-                      lighthouse = overlay.lighthouse or { };
-                      addresses = lighthouse.overlayAddresses or [ ];
-                    in
-                    fingerprint
-                    == lib.concatStringsSep "|" [
-                      (builtins.elemAt addresses 0)
-                      (builtins.elemAt addresses 1)
-                      (lighthouse.endpoint or "")
-                      (lighthouse.endpoint6 or "")
-                      (builtins.toString (lighthouse.port or 4242))
-                    ]
-                  )
-                  overlayNames;
-              base = nebulaRuntimePlan.overlays.${builtins.head matching};
-            in
-            !(builtins.hasAttr (base.lighthouse.node or "") (nebulaRuntimePlan.nodes or { }))
-          )
-          lighthouseFingerprints;
-    in
-    lib.imap0
-      (
-        index: fingerprint:
-        let
-          matching =
-            lib.filter
-              (
-                overlayId:
-                let
-                  overlay = nebulaRuntimePlan.overlays.${overlayId};
-                  lighthouse = overlay.lighthouse or { };
-                  addresses = lighthouse.overlayAddresses or [ ];
-                in
-                fingerprint
-                == lib.concatStringsSep "|" [
-                  (builtins.elemAt addresses 0)
-                  (builtins.elemAt addresses 1)
-                  (lighthouse.endpoint or "")
-                  (lighthouse.endpoint6 or "")
-                  (builtins.toString (lighthouse.port or 4242))
-                ]
-              )
-              overlayNames;
-          base = nebulaRuntimePlan.overlays.${builtins.head matching};
-          logicalName = sanitizeName base.name;
-          certBaseName = "${logicalName}-${base.lighthouse.node or "lighthouse"}";
-        in
-        {
-          name = logicalName;
-          inherit certBaseName;
-          serviceName = "nebula-s-router-test-lighthouse-${logicalName}";
-          interfaceName = "nebula${builtins.toString index}";
-          port = toPort (base.lighthouse.port or 4242);
-          overlayNetwork4 = builtins.elemAt base.lighthouse.overlayAddresses 0;
-          overlayNetwork6 = builtins.elemAt base.lighthouse.overlayAddresses 1;
-        }
-      )
-      externalFingerprints;
-
+  lighthouses = import ./external-lighthouse-module/lighthouses.nix { inherit lib nebulaRuntimePlan; };
   udpPorts = lib.unique (map (lh: lh.port) lighthouses);
   interfaces = lib.unique (map (lh: lh.interfaceName) lighthouses);
   stripPrefixLength = value: builtins.head (lib.splitString "/" value);
@@ -185,14 +71,18 @@ in
     [
       "d /persist/nebula-runtime 0700 root root -"
     ]
-    ++ map (
-      lh: "d /persist/nebula-runtime/profiles/${lh.certBaseName} 0700 root root -"
-    ) lighthouses;
+    ++ map
+      (
+        lh: "d /persist/nebula-runtime/profiles/${lh.certBaseName} 0700 root root -"
+      )
+      lighthouses;
 
   services.nebula.networks = builtins.listToAttrs (
-    map (lh: {
-      name = "lighthouse-${lh.name}";
-      value = lighthouseNetworkFor lh;
-    }) lighthouses
+    map
+      (lh: {
+        name = "lighthouse-${lh.name}";
+        value = lighthouseNetworkFor lh;
+      })
+      lighthouses
   );
 }

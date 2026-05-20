@@ -1,25 +1,25 @@
-{
-  lib,
-  pkgs,
-  nebulaRuntimePlan ? {
+{ lib
+, pkgs
+, nebulaRuntimePlan ? {
     overlays = { };
     nodes = { };
-  },
-  externalLighthouseReturnIpv4Cidrs ? [ ],
-  externalLighthousePublicIpv4SecretPath ? null,
-  externalLighthousePublicIpv6SecretPath ? null,
-  externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
-  externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
-  externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
-  externalPortForwardNodeNames ? [ ],
-  externalRuntimeNodeNames ? externalPortForwardNodeNames,
-  runtimeListenHosts ? { },
-  externalRemoteLighthouseEndpoint4 ? null,
-  externalRemoteLighthouseEndpoint6 ? null,
-  externalRemoteLighthouseEndpoint4SecretPath ? null,
-  externalRemoteLighthouseEndpoint6SecretPath ? null,
-  externalSuppressPublicLighthouseStaticMap ? false,
-  sopsProfileSecretPrefix ? null,
+  }
+, externalLighthouseReturnIpv4Cidrs ? [ ]
+, externalLighthousePublicIpv4SecretPath ? null
+, externalLighthousePublicIpv6SecretPath ? null
+, externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath
+, externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath
+, externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath
+, externalPortForwardNodeNames ? [ ]
+, externalRuntimeNodeNames ? externalPortForwardNodeNames
+, runtimeListenHosts ? { }
+, externalRemoteLighthouseEndpoint4 ? null
+, externalRemoteLighthouseEndpoint6 ? null
+, externalRemoteLighthouseEndpoint4SecretPath ? null
+, externalRemoteLighthouseEndpoint6SecretPath ? null
+, externalSuppressPublicLighthouseStaticMap ? false
+, sopsProfileSecretPrefix ? null
+,
 }:
 let
   plan = import ./nixos-module/plan.nix {
@@ -93,10 +93,12 @@ else
     ];
 
     sops.secrets = builtins.listToAttrs (
-      map (entry: {
-        inherit (entry) name;
-        value = mkRootSecret entry;
-      }) profileSecretEntries
+      map
+        (entry: {
+          inherit (entry) name;
+          value = mkRootSecret entry;
+        })
+        profileSecretEntries
     );
 
     environment.etc."s-router-test/nebula-bootstrap-spec.json".text =

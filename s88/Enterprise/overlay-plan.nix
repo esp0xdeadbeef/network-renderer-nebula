@@ -1,10 +1,10 @@
-{
-  lib,
-  helpers,
-  caName,
-  hostUplinkBridgeNames,
-  runtimeNodeDeploymentHostFor,
-  entry,
+{ lib
+, helpers
+, caName
+, hostUplinkBridgeNames
+, runtimeNodeDeploymentHostFor
+, entry
+,
 }:
 
 let
@@ -53,13 +53,15 @@ let
   };
   explicitNebulaRuntimeNodes = if builtins.isAttrs (nebula.runtimeNodes or null) then nebula.runtimeNodes else { };
   nebulaRuntimeNodes =
-    builtins.mapAttrs (
-      nodeName: derived:
-      if builtins.hasAttr nodeName explicitNebulaRuntimeNodes then
-        explicitNebulaRuntimeNodes.${nodeName}
-      else
-        derived
-    ) derivedNebulaRuntimeNodes;
+    builtins.mapAttrs
+      (
+        nodeName: derived:
+          if builtins.hasAttr nodeName explicitNebulaRuntimeNodes then
+            explicitNebulaRuntimeNodes.${nodeName}
+          else
+            derived
+      )
+      derivedNebulaRuntimeNodes;
 
   endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
   endpoint6 = requireString "${basePath}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null);

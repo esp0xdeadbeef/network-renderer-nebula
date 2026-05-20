@@ -1,14 +1,14 @@
-{
-  lib,
-  pkgs,
-  networkName,
-  runtimeConfigPath,
-  externalRemoteLighthouseEndpoint4SecretPath,
-  externalRemoteLighthouseEndpoint6SecretPath,
-  listenPort,
-  lighthouseIp4,
-  lighthouseIp6,
-  staticHostMapSecretEndpointsJson,
+{ lib
+, pkgs
+, networkName
+, runtimeConfigPath
+, externalRemoteLighthouseEndpoint4SecretPath
+, externalRemoteLighthouseEndpoint6SecretPath
+, listenPort
+, lighthouseIp4
+, lighthouseIp6
+, staticHostMapSecretEndpointsJson
+,
 }:
 
 let

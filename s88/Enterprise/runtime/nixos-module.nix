@@ -1,10 +1,10 @@
-{
-  lib,
-  pkgs,
-  nodeName,
-  runtimeNode,
-  externalRemoteLighthouseEndpoint4SecretPath ? null,
-  externalRemoteLighthouseEndpoint6SecretPath ? null,
+{ lib
+, pkgs
+, nodeName
+, runtimeNode
+, externalRemoteLighthouseEndpoint4SecretPath ? null
+, externalRemoteLighthouseEndpoint6SecretPath ? null
+,
 }:
 
 let
@@ -47,8 +47,8 @@ let
         { }
       else
         {
-        ${lighthouseIp4} = lighthouseEndpoints;
-        ${lighthouseIp6} = lighthouseEndpoints;
+          ${lighthouseIp4} = lighthouseEndpoints;
+          ${lighthouseIp6} = lighthouseEndpoints;
         }
     );
   relay = runtimeNode.relay or { };
