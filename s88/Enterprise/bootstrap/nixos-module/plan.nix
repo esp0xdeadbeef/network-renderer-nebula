@@ -88,6 +88,7 @@ let
         } // lib.optionalAttrs (runtimeListenHostFor nodeName != null) {
           listenHost = runtimeListenHostFor nodeName;
         };
+        dynamicFirewallCidrs = node.dynamicFirewallCidrs or [ ];
         materialization = node.materialization or { };
         lighthouse = {
           overlayId = node.overlayId or null;
@@ -103,31 +104,20 @@ let
       }
     ) (nebulaRuntimePlan.nodes or { });
 
-  advertisedUnsafeNetworksFor =
-    nodeName:
-    let
-      node = baseRuntimeNodes.${nodeName};
-      overlayIp4 = stripPrefixLength node.certCidr4;
-      overlayIp6 = stripPrefixLength node.certCidr6;
-      allRoutes = builtins.concatLists (
-        map (name: baseRuntimeNodes.${name}.unsafeRoutes or [ ]) runtimeNodeNames
-      );
-      advertisedRoutes =
-        lib.filter (
-          route:
-          (route.via4 or null) == overlayIp4
-          || (route.via6 or null) == overlayIp6
-        ) allRoutes;
-    in
-    lib.unique (map (route: route.route or "") advertisedRoutes);
+  advertisedUnsafeFor = import ./advertised-unsafe-networks.nix {
+    inherit
+      lib
+      baseRuntimeNodes
+      runtimeNodeNames
+      stripPrefixLength
+      ;
+  };
 
   runtimeNodes =
     builtins.mapAttrs (
       nodeName: node:
       node
-      // {
-        advertisedUnsafeNetworks = advertisedUnsafeNetworksFor nodeName;
-      }
+      // advertisedUnsafeFor nodeName
     ) baseRuntimeNodes;
 
   lighthouses = import ./lighthouses.nix {

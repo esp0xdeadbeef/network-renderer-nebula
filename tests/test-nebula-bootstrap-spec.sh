@@ -37,4 +37,45 @@ jq -e '
   .lighthouses["east-west"].internal == true
 ' "$tmp_dir/spec.json" >/dev/null
 
+nix eval --impure --no-warn-dirty --json --expr '
+  let
+    flake = builtins.getFlake (toString '"$repo_root"');
+    api = flake.libBySystem.x86_64-linux.renderer;
+  in
+    api.buildNebulaBootstrapSpec {
+      sopsProfileSecretPrefix = "nebula-profile";
+      nebulaRuntimePlan = {
+        overlays.test = {
+          name = "test";
+          lighthouse = {
+            node = "exit";
+            overlayAddresses = [ "100.96.0.1/24" "fd42:test::1/64" ];
+            overlayIps = [ "100.96.0.1" "fd42:test::1" ];
+          };
+        };
+        nodes.exit = {
+          overlayId = "test";
+          overlayAddresses = [ "100.96.0.1/24" "fd42:test::1/64" ];
+          lighthouse = {
+            node = "exit";
+            overlayAddresses = [ "100.96.0.1/24" "fd42:test::1/64" ];
+            overlayIps = [ "100.96.0.1" "fd42:test::1" ];
+          };
+          groups = [ "core" ];
+          dynamicFirewallCidrs = [
+            {
+              family = "ipv6";
+              sourceFile = "/run/secrets/access-node-ipv6-prefix-test";
+            }
+          ];
+        };
+      };
+    }
+' > "$tmp_dir/dynamic-source-spec.json"
+
+jq -e '
+  .runtimeNodes.exit.advertisedUnsafeNetworkSourceFiles
+  == ["/run/secrets/access-node-ipv6-prefix-test"]
+' "$tmp_dir/dynamic-source-spec.json" >/dev/null
+
 echo "PASS test-nebula-bootstrap-spec"
