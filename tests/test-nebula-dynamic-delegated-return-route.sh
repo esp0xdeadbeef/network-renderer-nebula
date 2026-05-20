@@ -11,6 +11,7 @@ labs_path="$(resolve_input_path "${repo_root}" network-labs)"
 intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
 inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
 plan_json="${tmp_dir}/plan.json"
+s_router_plan_json="${tmp_dir}/s-router-plan.json"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -52,3 +53,47 @@ if ! jq -e '.ok == true' "${tmp_dir}/observed.json" >/dev/null; then
 fi
 
 echo "PASS nebula-dynamic-delegated-return-route"
+
+s_router_intent_path="${labs_path}/labs/lab-s-sigma/s-router-test-three-site/intent.nix"
+s_router_inventory_path="${labs_path}/labs/lab-s-sigma/s-router-test-three-site/inventory.nix"
+
+nix eval --impure --no-warn-dirty --json --expr '
+  let
+    flake = builtins.getFlake (toString '"$repo_root"');
+  in
+  import "'"${repo_root}"'/tests/nix/nebula-plan-from-inputs.nix" {
+    repoRoot = "'"${repo_root}"'";
+    intentPath = "'"${s_router_intent_path}"'";
+    inventoryPath = "'"${s_router_inventory_path}"'";
+  }
+' > "${s_router_plan_json}"
+
+jq -e '
+  .nodes["hetz-router-nebula-core"].dynamicUnsafeRoutes as $routes
+  | {
+      ok:
+        (
+          $routes
+          | map(select(
+              .sourceFile == "/run/secrets/access-node-ipv6-prefix-esp-nixos-router-access-hostile"
+              and .via6 == "fd42:dead:beef:ee::1"
+              and .family == "ipv6"
+            ))
+          | length
+        ) == 1,
+      expected: {
+        node: "hetz-router-nebula-core",
+        sourceFile: "/run/secrets/access-node-ipv6-prefix-esp-nixos-router-access-hostile",
+        via6: "fd42:dead:beef:ee::1"
+      },
+      observedDynamicUnsafeRoutes: $routes
+    }
+' "${s_router_plan_json}" > "${tmp_dir}/s-router-observed.json"
+
+if ! jq -e '.ok == true' "${tmp_dir}/s-router-observed.json" >/dev/null; then
+  echo "FAIL nebula-dynamic-delegated-return-route: expected Hetz Nebula core to carry s-router hostile delegated runtime IPv6 prefix back to local Nebula core" >&2
+  jq . "${tmp_dir}/s-router-observed.json" >&2
+  exit 1
+fi
+
+echo "PASS nebula-s-router-dynamic-delegated-return-route"
