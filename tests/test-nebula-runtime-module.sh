@@ -171,6 +171,7 @@ jq -e '
   (.service.preStart | contains("/run/secrets/access-node-ipv6-prefix-hostile")) and
   (.service.preStart | contains("/run/secrets/access-node-ipv6-prefix-branch-hostile")) and
   (.service.preStart | contains("install -m 0600 /etc/nebula/runtime.yml /run/nebula-runtime/runtime.yml")) and
+  (.service.preStart | contains("unsafe_routes: []")) and
   (.service.preStart | contains("local_cidr")) and
   (.service.preStart | contains("unsafe_routes")) and
   (.service.preStart | contains("/run/nebula-runtime/runtime.yml")) and

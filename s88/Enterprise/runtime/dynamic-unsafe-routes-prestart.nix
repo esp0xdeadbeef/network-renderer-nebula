@@ -67,6 +67,10 @@
   missing_routes = [route for route in routes if route["route"] not in route_keys]
   if missing_routes:
       for idx, line in enumerate(lines):
+          if line.strip() == "unsafe_routes: []":
+              lines[idx] = "  unsafe_routes:\n"
+              insert_at = idx + 1
+              break
           if line == "  unsafe_routes:\n":
               insert_at = idx + 1
               break
