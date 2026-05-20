@@ -48,6 +48,13 @@ nix eval --impure --no-warn-dirty --json --expr '
             family = "ipv6";
           }
         ];
+        dynamicUnsafeRoutes = [
+          {
+            sourceFile = "/run/secrets/access-node-ipv6-prefix-branch-hostile";
+            family = "ipv6";
+            via6 = "fd42:dead:beef:ee::2";
+          }
+        ];
         unsafeRoutes = [
           {
             route = "10.20.10.0/24";
@@ -162,7 +169,9 @@ jq -e '
   (.service.preStart | contains("ip address delete")) and
   (.service.preStart | contains("/run/secrets/hetzner-lighthouse-public-ipv4")) and
   (.service.preStart | contains("/run/secrets/access-node-ipv6-prefix-hostile")) and
+  (.service.preStart | contains("/run/secrets/access-node-ipv6-prefix-branch-hostile")) and
   (.service.preStart | contains("local_cidr")) and
+  (.service.preStart | contains("unsafe_routes")) and
   (.service.preStart | contains("/run/nebula-runtime/runtime.yml")) and
   (.service.serviceConfig.ExecStart.content.content | contains("/run/nebula-runtime/runtime.yml")) and
   .service.serviceConfig.User.content == "root" and

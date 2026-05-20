@@ -18,7 +18,18 @@ let
   overlayPeerSites = listOrEmpty (overlayCpm.peerSites or null);
   firstPeerSite = if overlayPeerSites == [ ] then null else builtins.head overlayPeerSites;
   dynamicFirewallCidrsForInterface = import ./derived-dynamic-firewall-cidrs.nix {
-    inherit lib siteCpm overlayName;
+    inherit lib overlayName;
+    inherit siteCpm;
+  };
+  dynamicUnsafeRoutesForNode = import ./derived-dynamic-unsafe-routes.nix {
+    inherit
+      lib
+      helpers
+      cpmData
+      siteCpm
+      overlayName
+      overlayCpm
+      ;
   };
 
   routeKey =
@@ -153,6 +164,7 @@ builtins.listToAttrs (
       value = {
         unsafeRoutes = routesForNode nodeName;
         dynamicFirewallCidrs = dynamicFirewallCidrsForNode nodeName;
+        dynamicUnsafeRoutes = dynamicUnsafeRoutesForNode nodeName;
       };
     })
     (sortedAttrNames (attrsOrEmpty (overlayCpm.nodes or null)))

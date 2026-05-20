@@ -33,6 +33,11 @@ let
       runtimeNode.dynamicFirewallCidrs
     else
       [ ];
+  dynamicUnsafeRoutes =
+    if builtins.isList (runtimeNode.dynamicUnsafeRoutes or null) then
+      runtimeNode.dynamicUnsafeRoutes
+    else
+      [ ];
   renderedStaticHostMap = runtimeNode.staticHostMap or { };
   staticHostMapSecretEndpoints = runtimeNode.staticHostMapSecretEndpoints or { };
   staticHostMap =
@@ -55,7 +60,8 @@ let
     && (externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null);
   hasDynamicStaticHostMap = hasExternalEndpointSecret || staticHostMapSecretEndpoints != { };
   hasDynamicFirewallCidrs = dynamicFirewallCidrs != [ ];
-  hasDynamicRuntimeConfig = hasDynamicStaticHostMap || hasDynamicFirewallCidrs;
+  hasDynamicUnsafeRoutes = dynamicUnsafeRoutes != [ ];
+  hasDynamicRuntimeConfig = hasDynamicStaticHostMap || hasDynamicFirewallCidrs || hasDynamicUnsafeRoutes;
   runtimeConfigPath =
     if hasDynamicRuntimeConfig then "/run/nebula-runtime/runtime.yml" else "/etc/nebula/${networkName}.yml";
   staticHostMapSecretEndpointsJson = builtins.toJSON staticHostMapSecretEndpoints;
@@ -76,6 +82,10 @@ let
   dynamicFirewallCidrsPreStart = import ./dynamic-firewall-cidrs-prestart.nix {
     inherit lib pkgs runtimeConfigPath;
     dynamicFirewallCidrsJson = builtins.toJSON dynamicFirewallCidrs;
+  };
+  dynamicUnsafeRoutesPreStart = import ./dynamic-unsafe-routes-prestart.nix {
+    inherit lib pkgs runtimeConfigPath;
+    dynamicUnsafeRoutesJson = builtins.toJSON dynamicUnsafeRoutes;
   };
 in
 {
@@ -150,7 +160,8 @@ in
     preStart =
       duplicateAddressCleanup
       + lib.optionalString hasDynamicStaticHostMap dynamicStaticHostMapPreStart
-      + lib.optionalString hasDynamicFirewallCidrs dynamicFirewallCidrsPreStart;
+      + lib.optionalString hasDynamicFirewallCidrs dynamicFirewallCidrsPreStart
+      + lib.optionalString hasDynamicUnsafeRoutes dynamicUnsafeRoutesPreStart;
     serviceConfig = {
       ExecStart = lib.mkIf hasDynamicRuntimeConfig (
         lib.mkForce "${pkgs.nebula}/bin/nebula -config ${runtimeConfigPath}"
