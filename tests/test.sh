@@ -35,6 +35,7 @@ tests=(
   test-nebula-remote-lighthouse-endpoint.sh
   test-nebula-public-forwarded-relay-static-map.sh
   test-nebula-public-relay-endpoint-static-map.sh
+  test-public-ingress-runtime-facts.sh
   test-nebula-runtime-module.sh
 )
 

@@ -1,7 +1,7 @@
-{
-  lib,
-  helpers,
-  inventory,
+{ lib
+, helpers
+, inventory
+,
 }:
 
 let
@@ -9,10 +9,10 @@ let
   realizationNodeValues = map (name: realizationNodes.${name}) (helpers.sortedAttrNames realizationNodes);
 
   hostForLogicalNode =
-    {
-      enterpriseName,
-      siteName,
-      nodeName,
+    { enterpriseName
+    , siteName
+    , nodeName
+    ,
     }:
     let
       matching =
@@ -29,11 +29,11 @@ let
 in
 {
   runtimeNodeDeploymentHostFor =
-    {
-      enterpriseName,
-      siteName,
-      nodeName,
-      runtimeNode,
+    { enterpriseName
+    , siteName
+    , nodeName
+    , runtimeNode
+    ,
     }:
     let
       explicitHost =
@@ -45,10 +45,11 @@ in
       logicalNodeHost = hostForLogicalNode { inherit enterpriseName siteName nodeName; };
       targetContainerHost =
         if builtins.isString targetContainer && targetContainer != "" then
-          hostForLogicalNode {
-            inherit enterpriseName siteName;
-            nodeName = targetContainer;
-          }
+          hostForLogicalNode
+            {
+              inherit enterpriseName siteName;
+              nodeName = targetContainer;
+            }
         else
           null;
     in

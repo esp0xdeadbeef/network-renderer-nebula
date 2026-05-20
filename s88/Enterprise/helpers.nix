@@ -51,14 +51,16 @@ rec {
     in
     lib.unique (
       builtins.concatLists (
-        map (
-          hostName:
-          let
-            host = hosts.${hostName};
-            uplinks = host.uplinks or { };
-          in
-          map (uplinkName: uplinks.${uplinkName}.bridge or null) (sortedAttrNames uplinks)
-        ) (sortedAttrNames hosts)
+        map
+          (
+            hostName:
+            let
+              host = hosts.${hostName};
+              uplinks = host.uplinks or { };
+            in
+            map (uplinkName: uplinks.${uplinkName}.bridge or null) (sortedAttrNames uplinks)
+          )
+          (sortedAttrNames hosts)
       )
     );
 }

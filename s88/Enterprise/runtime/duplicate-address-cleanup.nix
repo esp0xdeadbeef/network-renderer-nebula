@@ -1,8 +1,8 @@
-{
-  lib,
-  pkgs,
-  interfaceName,
-  overlayAddresses,
+{ lib
+, pkgs
+, interfaceName
+, overlayAddresses
+,
 }:
 
 let

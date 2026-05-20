@@ -35,18 +35,20 @@ let
         else
           true;
       _relayTargets =
-        builtins.all (
-          relayName:
-          let
-            target = rawNodes.${relayName} or null;
-          in
-          if target == null then
-            false
-          else if (target.relay.amRelay or false) != true then
-            throw "network-renderer-nebula: runtimeNodes.${nodeName}.relay.relays includes '${relayName}', but that runtime node does not set relay.amRelay=true"
-          else
-            true
-        ) relayNames;
+        builtins.all
+          (
+            relayName:
+            let
+              target = rawNodes.${relayName} or null;
+            in
+            if target == null then
+              false
+            else if (target.relay.amRelay or false) != true then
+              throw "network-renderer-nebula: runtimeNodes.${nodeName}.relay.relays includes '${relayName}', but that runtime node does not set relay.amRelay=true"
+            else
+              true
+          )
+          relayNames;
     in
     builtins.seq _relayShape (
       builtins.seq _relayTargets {

@@ -1,10 +1,10 @@
-{
-  lib,
-  helpers,
-  cpmData,
-  siteCpm,
-  overlayName,
-  overlayCpm,
+{ lib
+, helpers
+, cpmData
+, siteCpm
+, overlayName
+, overlayCpm
+,
 }:
 
 let

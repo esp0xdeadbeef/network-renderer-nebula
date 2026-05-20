@@ -1,10 +1,10 @@
-{
-  lib,
-  helpers,
-  cpmData,
-  siteCpm,
-  overlayName,
-  overlayCpm,
+{ lib
+, helpers
+, cpmData
+, siteCpm
+, overlayName
+, overlayCpm
+,
 }:
 
 let
@@ -46,10 +46,12 @@ let
     routes:
     let
       keyed = builtins.listToAttrs (
-        map (route: {
-          name = routeKey route;
-          value = route;
-        }) routes
+        map
+          (route: {
+            name = routeKey route;
+            value = route;
+          })
+          routes
       );
     in
     map (key: keyed.${key}) (sortedAttrNames keyed);
@@ -65,7 +67,7 @@ let
         enterpriseName = builtins.elemAt parts 0;
         siteName = builtins.elemAt parts 1;
       in
-      (((cpmData.${enterpriseName} or { }).${siteName} or { }).overlays or { }).${overlayName} or null;
+        (((cpmData.${enterpriseName} or { }).${siteName} or { }).overlays or { }).${overlayName} or null;
 
   viaForRoute = route:
     let

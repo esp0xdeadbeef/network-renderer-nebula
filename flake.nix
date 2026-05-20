@@ -11,12 +11,11 @@
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      network-control-plane-model,
-      network-labs,
-      ...
+    { self
+    , nixpkgs
+    , network-control-plane-model
+    , network-labs
+    , ...
     }:
     let
       lib = nixpkgs.lib;

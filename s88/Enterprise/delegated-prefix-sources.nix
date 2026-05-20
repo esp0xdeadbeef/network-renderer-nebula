@@ -1,7 +1,7 @@
-{
-  lib,
-  helpers,
-  cpmData,
+{ lib
+, helpers
+, cpmData
+,
 }:
 
 let
@@ -33,39 +33,45 @@ let
       advertisements = attrsOrEmpty (target.advertisements or null);
       ipv6Ra = listOrEmpty (advertisements.ipv6Ra or null);
     in
-    builtins.concatMap (
-      adv:
-      let
-        routerInterface = attrsOrEmpty (adv.routerInterface or null);
-        subnet = routerInterface.subnet6 or null;
-        sourceFile = sourceFileForAdvertisement target adv;
-      in
-      if isString subnet && isString sourceFile then
-        [ { name = subnet; value = sourceFile; } ]
-      else
-        [ ]
-    ) (lib.filter builtins.isAttrs ipv6Ra);
+    builtins.concatMap
+      (
+        adv:
+        let
+          routerInterface = attrsOrEmpty (adv.routerInterface or null);
+          subnet = routerInterface.subnet6 or null;
+          sourceFile = sourceFileForAdvertisement target adv;
+        in
+        if isString subnet && isString sourceFile then
+          [{ name = subnet; value = sourceFile; }]
+        else
+          [ ]
+      )
+      (lib.filter builtins.isAttrs ipv6Ra);
 
   runtimeTargetsForSite = site: attrsOrEmpty (site.runtimeTargets or null);
 
   entries =
     builtins.concatLists (
       builtins.concatLists (
-        map (
-          enterpriseName:
-          let
-            sites = attrsOrEmpty cpmData.${enterpriseName};
-          in
-          map (
-            siteName:
+        map
+          (
+            enterpriseName:
             let
-              runtimeTargets = runtimeTargetsForSite sites.${siteName};
+              sites = attrsOrEmpty cpmData.${enterpriseName};
             in
-            builtins.concatMap (targetName: entriesForTarget runtimeTargets.${targetName}) (
-              sortedAttrNames runtimeTargets
-            )
-          ) (sortedAttrNames sites)
-        ) (sortedAttrNames cpmData)
+            map
+              (
+                siteName:
+                let
+                  runtimeTargets = runtimeTargetsForSite sites.${siteName};
+                in
+                builtins.concatMap (targetName: entriesForTarget runtimeTargets.${targetName}) (
+                  sortedAttrNames runtimeTargets
+                )
+              )
+              (sortedAttrNames sites)
+          )
+          (sortedAttrNames cpmData)
       )
     );
 in

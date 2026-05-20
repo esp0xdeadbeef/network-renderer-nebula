@@ -1,8 +1,8 @@
-{
-  lib,
-  lighthouses,
-  runtimeNodeNames,
-  sopsProfileSecretPrefix,
+{ lib
+, lighthouses
+, runtimeNodeNames
+, sopsProfileSecretPrefix
+,
 }:
 
 let
@@ -25,17 +25,21 @@ let
       { }
     else
       builtins.listToAttrs (
-        map (profileName: {
-          name = profileName;
-          value = secretNamesFor profileName;
-        }) profileNames
+        map
+          (profileName: {
+            name = profileName;
+            value = secretNamesFor profileName;
+          })
+          profileNames
       );
   secretPaths =
-    builtins.mapAttrs (profileName: _names: {
-      caCrt = "/persist/nebula-runtime/profiles/${profileName}/ca.crt";
-      cert = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.crt";
-      key = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.key";
-    }) secretNames;
+    builtins.mapAttrs
+      (profileName: _names: {
+        caCrt = "/persist/nebula-runtime/profiles/${profileName}/ca.crt";
+        cert = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.crt";
+        key = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.key";
+      })
+      secretNames;
 in
 {
   inherit profileNames secretNames secretPaths;

@@ -16,10 +16,12 @@ let
     keyFor: values:
     let
       keyed = builtins.listToAttrs (
-        map (value: {
-          name = keyFor value;
-          inherit value;
-        }) values
+        map
+          (value: {
+            name = keyFor value;
+            inherit value;
+          })
+          values
       );
     in
     map (key: keyed.${key}) (helpers.sortedAttrNames keyed);
@@ -75,12 +77,14 @@ let
 
   firewallRulesForNetworks =
     networks:
-    map (localCidr: {
-      port = "any";
-      proto = "any";
-      host = "any";
-      local_cidr = localCidr;
-    }) networks;
+    map
+      (localCidr: {
+        port = "any";
+        proto = "any";
+        host = "any";
+        local_cidr = localCidr;
+      })
+      networks;
 in
 {
   mergeRawNodeEntries =
@@ -134,9 +138,11 @@ in
         };
     in
     builtins.listToAttrs (
-      map (nodeName: {
-        name = nodeName;
-        value = mergeRawNodes nodeName;
-      }) nodeNames
+      map
+        (nodeName: {
+          name = nodeName;
+          value = mergeRawNodes nodeName;
+        })
+        nodeNames
     );
 }

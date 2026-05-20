@@ -1,10 +1,10 @@
-{
-  lib,
-  nebulaRuntimePlan,
-  runtimeNodeNames,
-  runtimeNodes,
-  sanitizeName,
-  sortedAttrNames,
+{ lib
+, nebulaRuntimePlan
+, runtimeNodeNames
+, runtimeNodes
+, sanitizeName
+, sortedAttrNames
+,
 }:
 let
   overlayNames = sortedAttrNames (nebulaRuntimePlan.overlays or { });
@@ -72,7 +72,7 @@ let
         unsafeNetworks = unsafeNetworks;
         internal = builtins.hasAttr (baseLighthouse.node or "") runtimeNodes;
         certBaseName = "${logicalName}-${baseLighthouse.node or "lighthouse"}";
-        serviceName = "nebula-s-router-test-lighthouse-${logicalName}";
+        serviceName = "nebula-lighthouse-${logicalName}";
         interfaceName = "nebula${builtins.toString index}";
         overlayNetworks4Csv = builtins.elemAt overlayAddresses 0;
         overlayNetworks6Csv = builtins.elemAt overlayAddresses 1;

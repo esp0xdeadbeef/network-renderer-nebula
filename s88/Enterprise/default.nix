@@ -1,119 +1,50 @@
-{
-  lib,
-  system,
-  flakeInputs,
+{ lib
+, system
+, flakeInputs
+,
 }:
 
 let
   helpers = import ./helpers.nix { inherit lib; };
 
-  buildNebulaPlan =
-    {
-      controlPlane,
-      inventory ? { },
-      caName ? "s-router-test-lab",
-    }:
-    let
-      cpm =
-        if controlPlane ? control_plane_model && builtins.isAttrs controlPlane.control_plane_model then
-          controlPlane.control_plane_model
-        else
-          throw "network-renderer-nebula: controlPlane.control_plane_model is required";
+  buildNebulaPlan = import ./plan-api.nix { inherit lib helpers; };
 
-      entries = import ./overlay-entries.nix {
-        inherit lib helpers inventory;
-        cpmData = cpm.data or { };
-      };
+  selectHostedNebulaRuntimePlan = import ./hosted-runtime-plan.nix { inherit lib; };
 
-      hostUplinkBridgeNames = helpers.collectHostUplinkBridgeNames inventory;
-      inherit
-        (import ./deployment-hosts.nix {
-          inherit lib helpers inventory;
-        })
-        runtimeNodeDeploymentHostFor
-        ;
+  selectDeploymentNebulaRuntimePlan = import ./deployment-runtime-plan.nix { inherit lib; };
 
-      rawOverlays = builtins.listToAttrs (
-        map (
-          entry:
-          import ./overlay-plan.nix {
-            inherit
-              lib
-              helpers
-              caName
-              hostUplinkBridgeNames
-              runtimeNodeDeploymentHostFor
-              entry
-              ;
-          }
-        ) entries
-      );
+  runtimeContainerNameForHost = import ./runtime-container-name.nix { inherit lib; };
 
-      rawNodeEntries = builtins.concatLists (
-        map (
-          overlayId:
-          map (nodeName: {
-            name = nodeName;
-            value = rawOverlays.${overlayId}.nodes.${nodeName};
-          }) (helpers.sortedAttrNames rawOverlays.${overlayId}.nodes)
-        ) (helpers.sortedAttrNames rawOverlays)
-      );
+  selectHostNatIngressTarget = import ./host-nat-ingress-target.nix { inherit lib; };
 
-      rawNodes =
-        (import ./node-merge.nix { inherit lib helpers; }).mergeRawNodeEntries rawNodeEntries;
+  buildNebulaPublicIngressRuntimeFacts = import ./public-ingress-runtime-facts.nix { inherit lib; };
 
-      inherit
-        (import ./relay-resolution.nix {
-          inherit helpers rawNodes;
-        })
-        relayForNode
-        ;
-      relayStaticHostMap = import ./relay-static-host-map.nix { inherit lib helpers; };
+  delegatedPrefixSecretNames = import ./delegated-prefix-secret-names.nix { inherit lib; };
 
-      baseNodes =
-        builtins.mapAttrs (
-          nodeName: node:
-          node
-          // {
-            relay = relayForNode nodeName node;
-          }
-        ) rawNodes;
-
-      nodes = builtins.mapAttrs (_: relayStaticHostMap.addToNode baseNodes) baseNodes;
-
-      overlays =
-        builtins.mapAttrs (
-          overlayId: overlay:
-          overlay
-          // {
-            nodes = builtins.mapAttrs (nodeName: _: nodes.${nodeName}) overlay.nodes;
-          }
-        ) rawOverlays;
-    in
-    { inherit overlays nodes; };
+  buildRuntimeSecretMounts = import ./runtime-secret-mounts.nix { inherit lib; };
 
   buildNebulaBootstrapNixosModule =
-    {
-      pkgs,
-      nebulaRuntimePlan ? {
+    { pkgs
+    , nebulaRuntimePlan ? {
         overlays = { };
         nodes = { };
-      },
-      externalLighthouseReturnIpv4Cidrs ? [ ],
-      externalLighthousePublicIpv4SecretPath ? null,
-      externalLighthousePublicIpv6SecretPath ? null,
-      externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath,
-      externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath,
-      externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath,
-      externalPortForwardNodeNames ? [ ],
-      externalRuntimeNodeNames ? externalPortForwardNodeNames,
-      runtimeListenHosts ? { },
-      externalRemoteLighthouseEndpoint4 ? null,
-      externalRemoteLighthouseEndpoint6 ? null,
-      externalRemoteLighthouseEndpoint4SecretPath ? null,
-      externalRemoteLighthouseEndpoint6SecretPath ? null,
-      externalSuppressPublicLighthouseStaticMap ? false,
-      sopsProfileSecretPrefix ? null,
+      }
+    , externalLighthouseReturnIpv4Cidrs ? [ ]
+    , externalLighthousePublicIpv4SecretPath ? null
+    , externalLighthousePublicIpv6SecretPath ? null
+    , externalLighthouseSshHostSecretPath ? externalLighthousePublicIpv4SecretPath
+    , externalPortForwardPublicIpv4SecretPath ? externalLighthousePublicIpv4SecretPath
+    , externalPortForwardPublicIpv6SecretPath ? externalLighthousePublicIpv6SecretPath
+    , externalPortForwardNodeNames ? [ ]
+    , externalRuntimeNodeNames ? externalPortForwardNodeNames
+    , runtimeListenHosts ? { }
+    , externalRemoteLighthouseEndpoint4 ? null
+    , externalRemoteLighthouseEndpoint6 ? null
+    , externalRemoteLighthouseEndpoint4SecretPath ? null
+    , externalRemoteLighthouseEndpoint6SecretPath ? null
+    , externalSuppressPublicLighthouseStaticMap ? false
+    , sopsProfileSecretPrefix ? null
+    ,
     }:
     import ./bootstrap/nixos-module.nix {
       inherit
@@ -141,12 +72,12 @@ let
   buildNebulaBootstrapSpec = import ./bootstrap/spec-api.nix { inherit lib; };
 
   buildExternalLighthouseNixosModule =
-    {
-      pkgs,
-      nebulaRuntimePlan ? {
+    { pkgs
+    , nebulaRuntimePlan ? {
         overlays = { };
         nodes = { };
-      },
+      }
+    ,
     }:
     import ./bootstrap/external-lighthouse-module.nix {
       inherit
@@ -157,12 +88,12 @@ let
     };
 
   buildNebulaRuntimeNixosModule =
-    {
-      pkgs,
-      nodeName,
-      runtimeNode,
-      externalRemoteLighthouseEndpoint4SecretPath ? null,
-      externalRemoteLighthouseEndpoint6SecretPath ? null,
+    { pkgs
+    , nodeName
+    , runtimeNode
+    , externalRemoteLighthouseEndpoint4SecretPath ? null
+    , externalRemoteLighthouseEndpoint6SecretPath ? null
+    ,
     }:
     import ./runtime/nixos-module.nix {
       inherit
@@ -177,10 +108,8 @@ let
 in
 {
   renderer = {
-    buildNebulaPlan = buildNebulaPlan;
-    buildNebulaBootstrapSpec = buildNebulaBootstrapSpec;
-    buildNebulaBootstrapNixosModule = buildNebulaBootstrapNixosModule;
-    buildExternalLighthouseNixosModule = buildExternalLighthouseNixosModule;
-    buildNebulaRuntimeNixosModule = buildNebulaRuntimeNixosModule;
+    inherit buildNebulaPlan selectHostedNebulaRuntimePlan selectDeploymentNebulaRuntimePlan runtimeContainerNameForHost
+      selectHostNatIngressTarget buildNebulaPublicIngressRuntimeFacts delegatedPrefixSecretNames buildRuntimeSecretMounts
+      buildNebulaBootstrapSpec buildNebulaBootstrapNixosModule buildExternalLighthouseNixosModule buildNebulaRuntimeNixosModule;
   };
 }

@@ -1,8 +1,8 @@
-{
-  lib,
-  baseRuntimeNodes,
-  runtimeNodeNames,
-  stripPrefixLength,
+{ lib
+, baseRuntimeNodes
+, runtimeNodeNames
+, stripPrefixLength
+,
 }:
 
 let
@@ -16,11 +16,13 @@ let
         map (name: baseRuntimeNodes.${name}.unsafeRoutes or [ ]) runtimeNodeNames
       );
       advertisedRoutes =
-        lib.filter (
-          route:
-          (route.via4 or null) == overlayIp4
-          || (route.via6 or null) == overlayIp6
-        ) allRoutes;
+        lib.filter
+          (
+            route:
+            (route.via4 or null) == overlayIp4
+            || (route.via6 or null) == overlayIp6
+          )
+          allRoutes;
     in
     lib.unique (map (route: route.route or "") advertisedRoutes);
 

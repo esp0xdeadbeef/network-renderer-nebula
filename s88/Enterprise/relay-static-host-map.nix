@@ -1,6 +1,6 @@
-{
-  lib,
-  helpers,
+{ lib
+, helpers
+,
 }:
 
 let
@@ -28,18 +28,18 @@ let
     in
     map
       (entry:
-        if !builtins.isAttrs entry then
-          throw "${endpointPath}[] must be an attribute set"
-        else
-          {
-            port = builtins.toString (entry.port or defaultPort);
-          }
-          // lib.optionalAttrs (builtins.isString (entry.endpoint or null) && entry.endpoint != "") {
-            endpoint = entry.endpoint;
-          }
-          // lib.optionalAttrs (builtins.isString (entry.endpointSourceFile or null) && entry.endpointSourceFile != "") {
-            sourceFile = entry.endpointSourceFile;
-          })
+      if !builtins.isAttrs entry then
+        throw "${endpointPath}[] must be an attribute set"
+      else
+        {
+          port = builtins.toString (entry.port or defaultPort);
+        }
+        // lib.optionalAttrs (builtins.isString (entry.endpoint or null) && entry.endpoint != "") {
+          endpoint = entry.endpoint;
+        }
+        // lib.optionalAttrs (builtins.isString (entry.endpointSourceFile or null) && entry.endpointSourceFile != "") {
+          sourceFile = entry.endpointSourceFile;
+        })
       (requirePublicEndpointList endpointPath (relayService.publicEndpoints or null));
 
   overlayIp4For =
@@ -57,19 +57,19 @@ let
       lib.flatten (
         map
           (relayNodeName:
-            let
-              specs = publicEndpointSpecsFor nodes relayNodeName;
-              literalEndpoints =
-                map (spec: "${spec.endpoint}:${spec.port}")
-                  (lib.filter (spec: builtins.isString (spec.endpoint or null) && spec.endpoint != "") specs);
-              dynamicEndpoints =
-                map (spec: "127.0.0.1:${spec.port}")
-                  (lib.filter (spec: builtins.isString (spec.sourceFile or null) && spec.sourceFile != "") specs);
-            in
-            lib.optional (literalEndpoints != [ ] || dynamicEndpoints != [ ]) {
-              name = overlayIp4For nodes relayNodeName;
-              value = literalEndpoints ++ dynamicEndpoints;
-            })
+          let
+            specs = publicEndpointSpecsFor nodes relayNodeName;
+            literalEndpoints =
+              map (spec: "${spec.endpoint}:${spec.port}")
+                (lib.filter (spec: builtins.isString (spec.endpoint or null) && spec.endpoint != "") specs);
+            dynamicEndpoints =
+              map (spec: "127.0.0.1:${spec.port}")
+                (lib.filter (spec: builtins.isString (spec.sourceFile or null) && spec.sourceFile != "") specs);
+          in
+          lib.optional (literalEndpoints != [ ] || dynamicEndpoints != [ ]) {
+            name = overlayIp4For nodes relayNodeName;
+            value = literalEndpoints ++ dynamicEndpoints;
+          })
           relayNodeNames
       )
     );
@@ -80,14 +80,14 @@ let
       lib.flatten (
         map
           (relayNodeName:
-            let
-              specs = publicEndpointSpecsFor nodes relayNodeName;
-              dynamicSpecs = lib.filter (spec: builtins.isString (spec.sourceFile or null) && spec.sourceFile != "") specs;
-            in
-            lib.optional (dynamicSpecs != [ ]) {
-              name = overlayIp4For nodes relayNodeName;
-              value = dynamicSpecs;
-            })
+          let
+            specs = publicEndpointSpecsFor nodes relayNodeName;
+            dynamicSpecs = lib.filter (spec: builtins.isString (spec.sourceFile or null) && spec.sourceFile != "") specs;
+          in
+          lib.optional (dynamicSpecs != [ ]) {
+            name = overlayIp4For nodes relayNodeName;
+            value = dynamicSpecs;
+          })
           relayNodeNames
       )
     );
