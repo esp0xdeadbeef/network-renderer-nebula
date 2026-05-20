@@ -29,6 +29,7 @@ tests=(
   test-nebula-delegated-default-exit.sh
   test-nebula-dynamic-delegated-return-route.sh
   test-nebula-bootstrap-advertised-networks.sh
+  test-nebula-advertised-default-firewall.sh
   test-nebula-bootstrap-module.sh
   test-nebula-bootstrap-spec.sh
   test-nebula-remote-lighthouse-endpoint.sh

@@ -65,6 +65,15 @@ let
           };
       };
     };
+
+  firewallRulesForNetworks =
+    networks:
+    map (localCidr: {
+      port = "any";
+      proto = "any";
+      host = "any";
+      local_cidr = localCidr;
+    }) networks;
 in
 {
   mergeRawNodeEntries =
@@ -90,13 +99,26 @@ in
                     || (overlayIp6 != null && (route.via6 or route.via or null) == overlayIp6))
                   allUnsafeRoutes)
             );
+          baseNebulaNetwork = mergeNebulaNetwork matching;
+          advertisedFirewallRules = firewallRulesForNetworks advertisedUnsafeNetworks;
         in
         base
         // {
           unsafeRoutes = uniqueRoutes (builtins.concatLists (map (node: node.unsafeRoutes or [ ]) matching));
           inherit advertisedUnsafeNetworks;
           routePreparation = mergeRoutePreparation matching;
-          nebulaNetwork = mergeNebulaNetwork matching;
+          nebulaNetwork =
+            baseNebulaNetwork
+            // {
+              settings =
+                baseNebulaNetwork.settings
+                // {
+                  nebulaFirewallRules = {
+                    inbound = uniqueFirewallRules (baseNebulaNetwork.settings.nebulaFirewallRules.inbound ++ advertisedFirewallRules);
+                    outbound = uniqueFirewallRules (baseNebulaNetwork.settings.nebulaFirewallRules.outbound ++ advertisedFirewallRules);
+                  };
+                };
+            };
         };
     in
     builtins.listToAttrs (
