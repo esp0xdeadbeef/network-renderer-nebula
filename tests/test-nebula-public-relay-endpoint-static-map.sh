@@ -57,25 +57,25 @@ nix eval --impure --no-warn-dirty --json --expr '
 jq -e '
   .node.relay.nodes == ["hetz-router-nebula-core"] and
   .node.relay.relays == ["100.96.10.3"] and
-  .node.staticHostMap["100.96.10.3"] == ["127.0.0.1:4243"] and
+  .node.staticHostMap["100.96.10.3"] == ["127.0.0.1:443"] and
   .node.staticHostMapSecretEndpoints["100.96.10.3"] == [
     {
-      "port": "4243",
+      "port": "443",
       "sourceFile": "/run/secrets/hetzner-public-ipv4"
     }
   ] and
-  .relay.service.port == 4243 and
+  .relay.service.port == 443 and
   .relay.service.listenHost == "172.31.254.4" and
   .relay.service.publicEndpoints[0].endpointSourceFile == "/run/secrets/hetzner-public-ipv4" and
   .relayNetwork.listen.host == "172.31.254.4" and
-  .relayNetwork.listen.port == 4243 and
-  (.relayDynamicPreStart | contains("/run/secrets/hetzner-lighthouse-public-ipv4 /run/secrets/hetzner-public-ipv6 4243 172.31.254.4 4242 100.96.10.254")) and
+  .relayNetwork.listen.port == 443 and
+  (.relayDynamicPreStart | contains("/run/secrets/hetzner-lighthouse-public-ipv4 /run/secrets/hetzner-public-ipv6 443 172.31.254.4 4242 100.96.10.254")) and
   (.relayDynamicPreStart | contains("if endpoint6 and not is_ipv4_literal(listen_host):")) and
   ([.relayNetwork.firewall.inbound[]? | select(has("local_cidr") | not)] | length) == 0 and
   ([.relayNetwork.firewall.outbound[]? | select(has("local_cidr") | not)] | length) == 0 and
   ([.relayNetwork.firewall.inbound[]? | select(.local_cidr == "10.90.10.0/24")] | length) == 1 and
   ([.relayNetwork.firewall.inbound[]? | select(.local_cidr == "fd42:dead:cafe:10::/64")] | length) == 1 and
-  .network.staticHostMap["100.96.10.3"] == ["127.0.0.1:4243"] and
+  .network.staticHostMap["100.96.10.3"] == ["127.0.0.1:443"] and
   (.preStart | contains("/run/secrets/hetzner-public-ipv4")) and
   (.preStart | contains("static_host_map had no entries to replace for"))
 ' "$tmp_dir/result.json" >/dev/null || {
