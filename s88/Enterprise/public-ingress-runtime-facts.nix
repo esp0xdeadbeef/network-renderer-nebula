@@ -11,7 +11,6 @@
 , runtimeNode
 , runtimeForwardInterfaceName ? "public-ingress"
 , runtimeForwardHostBridge ? "br-wan"
-, runtimeForwardDports ? [ ]
 ,
 }:
 let
@@ -92,6 +91,14 @@ let
     else
       throw "network-renderer-nebula: hostNatIngressTargetWan.hostAddress4 must be a CIDR address";
   runtimeForwardAddress4 = "${runtimeForwardAddress4Bare}/${hostNatIngressPrefixLength4}";
+  runtimeForwardDports =
+    let
+      port = runtimeNode.service.port or null;
+    in
+    if builtins.isInt port then
+      [ port ]
+    else
+      throw "network-renderer-nebula: runtimeNode.service.port must provide an integer public runtime UDP port for ${runtimeContainerName}";
   site = ((cpmRoot.${enterpriseName} or { }).${siteName} or { });
   service =
     let

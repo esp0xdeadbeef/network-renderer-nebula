@@ -16,7 +16,7 @@ api.buildNebulaPublicIngressRuntimeFacts {
   runtimePublicIPv4SecretPath = "/run/secrets/runtime-public-ipv4";
   runtimeContainerName = "edge-nebula";
   runtimeNode.service.listenHost = "172.31.254.4";
-  runtimeForwardDports = [ 4243 ];
+  runtimeNode.service.port = 443;
   hostNatIngressTargetWan = {
     hostAddress4 = "172.31.254.1/24";
     hostGateway4 = "172.31.254.1";
@@ -61,7 +61,8 @@ jq -e '
   .publicIngress.runtimeForwards[0].targetIPv4 == "172.31.254.4" and
   .publicIngress.runtimeForwards[0].exceptTcpDports == [22] and
   .publicIngress.runtimeForwards[0].containerInterface.container == "edge-nebula" and
-  .publicIngress.runtimeForwards[0].containerInterface.inputDports == [4243]
+  .publicIngress.runtimeForwards[0].inputDports == [443] and
+  .publicIngress.runtimeForwards[0].containerInterface.inputDports == [443]
 ' "${tmp_json}" >/dev/null
 
 echo "PASS public-ingress-runtime-facts"
