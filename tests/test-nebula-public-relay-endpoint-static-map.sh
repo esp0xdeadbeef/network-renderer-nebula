@@ -36,12 +36,20 @@ nix eval --impure --no-warn-dirty --json --expr '
       nodeName = relayNodeName;
       runtimeNode = plan.nodes.${relayNodeName};
     };
+    relayDynamicModule = api.buildNebulaRuntimeNixosModule {
+      inherit pkgs;
+      nodeName = relayNodeName;
+      runtimeNode = plan.nodes.${relayNodeName};
+      externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/hetzner-lighthouse-public-ipv4";
+      externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/hetzner-public-ipv6";
+    };
   in
     {
       node = plan.nodes.${nodeName};
       relay = plan.nodes.${relayNodeName};
       network = module.services.nebula.networks.runtime;
       relayNetwork = relayModule.services.nebula.networks.runtime;
+      relayDynamicPreStart = relayDynamicModule.systemd.services."nebula@runtime".preStart;
       preStart = module.systemd.services."nebula@runtime".preStart;
     }
 ' > "$tmp_dir/result.json"
@@ -61,6 +69,8 @@ jq -e '
   .relay.service.publicEndpoints[0].endpointSourceFile == "/run/secrets/hetzner-public-ipv4" and
   .relayNetwork.listen.host == "172.31.254.4" and
   .relayNetwork.listen.port == 4243 and
+  (.relayDynamicPreStart | contains("/run/secrets/hetzner-lighthouse-public-ipv4 /run/secrets/hetzner-public-ipv6 4243 172.31.254.4 4242 100.96.10.254")) and
+  (.relayDynamicPreStart | contains("if endpoint6 and not is_ipv4_literal(listen_host):")) and
   ([.relayNetwork.firewall.inbound[]? | select(has("local_cidr") | not)] | length) == 0 and
   ([.relayNetwork.firewall.outbound[]? | select(has("local_cidr") | not)] | length) == 0 and
   ([.relayNetwork.firewall.inbound[]? | select(.local_cidr == "10.90.10.0/24")] | length) == 1 and

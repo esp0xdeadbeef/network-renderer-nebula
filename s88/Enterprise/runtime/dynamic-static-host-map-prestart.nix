@@ -5,6 +5,8 @@
 , externalRemoteLighthouseEndpoint4SecretPath
 , externalRemoteLighthouseEndpoint6SecretPath
 , listenPort
+, listenHost
+, lighthousePort
 , lighthouseIp4
 , lighthouseIp6
 , staticHostMapSecretEndpointsJson
@@ -18,7 +20,7 @@ in
   set -eu
   install -d -m 0700 /run/nebula-runtime
   install -m 0600 /etc/nebula/${networkName}.yml ${runtimeConfigPath}
-  ${pkgs.python3}/bin/python3 - ${runtimeConfigPath} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint4SecretPath)} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint6SecretPath)} ${toString listenPort} ${lib.escapeShellArg lighthouseIp4} ${lib.escapeShellArg lighthouseIp6} ${lib.escapeShellArg staticHostMapSecretEndpointsJson} <<'PY'
+  ${pkgs.python3}/bin/python3 - ${runtimeConfigPath} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint4SecretPath)} ${lib.escapeShellArg (secretPathOrEmpty externalRemoteLighthouseEndpoint6SecretPath)} ${toString listenPort} ${lib.escapeShellArg listenHost} ${toString lighthousePort} ${lib.escapeShellArg lighthouseIp4} ${lib.escapeShellArg lighthouseIp6} ${lib.escapeShellArg staticHostMapSecretEndpointsJson} <<'PY'
   import sys
   import ipaddress
   import json
@@ -28,9 +30,17 @@ in
   endpoint4_path = sys.argv[2]
   endpoint6_path = sys.argv[3]
   port = sys.argv[4]
-  lighthouse_ip4 = sys.argv[5]
-  lighthouse_ip6 = sys.argv[6]
-  secret_endpoint_specs = json.loads(sys.argv[7])
+  listen_host = sys.argv[5]
+  lighthouse_port = sys.argv[6]
+  lighthouse_ip4 = sys.argv[7]
+  lighthouse_ip6 = sys.argv[8]
+  secret_endpoint_specs = json.loads(sys.argv[9])
+
+  def is_ipv4_literal(value):
+      try:
+          return ipaddress.ip_address(value.strip()).version == 4
+      except ValueError:
+          return False
 
   def read_endpoint(path):
       if not path:
@@ -55,9 +65,9 @@ in
   endpoint6 = read_endpoint(endpoint6_path)
   endpoints = []
   if endpoint4:
-      endpoints.append(format_endpoint(endpoint4, port))
-  if endpoint6:
-      endpoints.append(format_endpoint(endpoint6, port))
+      endpoints.append(format_endpoint(endpoint4, lighthouse_port))
+  if endpoint6 and not is_ipv4_literal(listen_host):
+      endpoints.append(format_endpoint(endpoint6, lighthouse_port))
   if endpoints:
       replacements[lighthouse_ip4] = endpoints
       replacements[lighthouse_ip6] = endpoints
