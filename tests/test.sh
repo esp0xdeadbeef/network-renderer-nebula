@@ -28,6 +28,7 @@ tests=(
   test-nebula-plan-reject-missing-relay.sh
   test-nebula-delegated-default-exit.sh
   test-nebula-dynamic-delegated-return-route.sh
+  test-delegated-prefix-secret-names.sh
   test-nebula-bootstrap-advertised-networks.sh
   test-nebula-advertised-default-firewall.sh
   test-nebula-bootstrap-module.sh
