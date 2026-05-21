@@ -55,6 +55,8 @@ let
   listenHost = runtimeNode.service.listenHost or "[::]";
   rawListenPort = runtimeNode.service.port or runtimeNode.lighthouse.port or 4242;
   listenPort = if builtins.isInt rawListenPort then rawListenPort else lib.toInt rawListenPort;
+  rawLighthousePort = runtimeNode.lighthouse.port or 4242;
+  lighthousePort = if builtins.isInt rawLighthousePort then rawLighthousePort else lib.toInt rawLighthousePort;
   hasExternalEndpointSecret =
     !isLighthouse
     && (externalRemoteLighthouseEndpoint4SecretPath != null || externalRemoteLighthouseEndpoint6SecretPath != null);
@@ -77,6 +79,8 @@ let
       lighthouseIp4
       lighthouseIp6
       staticHostMapSecretEndpointsJson
+      listenHost
+      lighthousePort
       ;
   };
   dynamicFirewallCidrsPreStart = import ./dynamic-firewall-cidrs-prestart.nix {
