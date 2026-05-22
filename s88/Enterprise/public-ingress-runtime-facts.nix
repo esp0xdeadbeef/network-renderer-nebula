@@ -130,15 +130,15 @@ let
       builtins.head addresses
     else
       throw "network-renderer-nebula: service ${lighthouseServiceName} provider endpoint must have exactly one IPv4 address";
+  publicIngressServices = import ./public-ingress-services.nix { inherit lib; } {
+    inherit enterpriseName hostNatIngressTargetWan lighthousePublicIPv4SecretPath lighthouseServiceName site;
+  };
 in
 {
   localLighthouseEndpoint4 = endpoint4;
   publicIngress = {
     snatSourceCidr4 = hostNatIngressTargetWan.hostAddress4;
-    services.${enterpriseName}.${siteName}.${lighthouseServiceName} = {
-      publicIPv4SecretPath = lighthousePublicIPv4SecretPath;
-      gateway4 = hostNatIngressTargetWan.coreAddress4Bare;
-    };
+    services.${enterpriseName}.${siteName} = publicIngressServices;
     runtimeForwards = [
       {
         publicIPv4SecretPath = runtimePublicIPv4SecretPath;

@@ -48,6 +48,28 @@ api.buildNebulaPublicIngressRuntimeFacts {
         }
       ];
     }
+    {
+      name = "client-https";
+      trafficType = "tcp-443";
+      providerEndpoints = [
+        {
+          ipv4 = [ "10.90.20.10" ];
+        }
+      ];
+    }
+  ];
+  controlPlane.control_plane_model.data.acme.edge.relations = [
+    {
+      action = "allow";
+      from = {
+        kind = "external";
+        name = "wan";
+      };
+      to = {
+        kind = "service";
+        name = "client-https";
+      };
+    }
   ];
 }
 ' >"${tmp_json}"
@@ -57,6 +79,8 @@ jq -e '
   .publicIngress.snatSourceCidr4 == "172.31.254.1/24" and
   .publicIngress.services.acme.edge."relay-nebula".publicIPv4SecretPath == "/run/secrets/relay-public-ipv4" and
   .publicIngress.services.acme.edge."relay-nebula".gateway4 == "172.31.254.3" and
+  .publicIngress.services.acme.edge."client-https".publicIPv4SecretPath == "/run/secrets/relay-public-ipv4" and
+  .publicIngress.services.acme.edge."client-https".gateway4 == "172.31.254.3" and
   .publicIngress.runtimeForwards[0].publicIPv4SecretPath == "/run/secrets/runtime-public-ipv4" and
   .publicIngress.runtimeForwards[0].targetIPv4 == "172.31.254.4" and
   .publicIngress.runtimeForwards[0].exceptTcpDports == [22] and
