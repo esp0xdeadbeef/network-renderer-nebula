@@ -99,21 +99,6 @@ in
     "d ${pkiBase} 0700 root root -"
   ];
 
-  networking.firewall.extraInputRules = ''
-    udp dport ${toString listenPort} accept comment "s88-nebula-runtime-listen"
-    iifname "nebula1" accept comment "s88-nebula-runtime-input"
-  '';
-  networking.firewall.extraForwardRules = ''
-    iifname "nebula1" accept comment "s88-nebula-runtime-forward-in"
-    oifname "nebula1" accept comment "s88-nebula-runtime-forward-out"
-  '';
-  networking.nftables.ruleset = lib.mkAfter ''
-    insert rule inet router input udp dport ${toString listenPort} accept comment "s88-nebula-runtime-listen"
-    insert rule inet router input iifname "nebula1" accept comment "s88-nebula-runtime-input"
-    insert rule inet router forward iifname "nebula1" accept comment "s88-nebula-runtime-forward-in"
-    insert rule inet router forward oifname "nebula1" accept comment "s88-nebula-runtime-forward-out"
-  '';
-
   services.nebula.networks.${networkName} = {
     enable = true;
     package = pkgs.nebula;

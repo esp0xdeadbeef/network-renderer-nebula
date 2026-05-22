@@ -8,8 +8,6 @@
 }:
 let
   lighthouses = import ./external-lighthouse-module/lighthouses.nix { inherit lib nebulaRuntimePlan; };
-  udpPorts = lib.unique (map (lh: lh.port) lighthouses);
-  interfaces = lib.unique (map (lh: lh.interfaceName) lighthouses);
   stripPrefixLength = value: builtins.head (lib.splitString "/" value);
   lighthouseNetworkFor = lh: {
     enable = true;
@@ -58,14 +56,6 @@ let
 in
 {
   environment.etc."s-router-test/external_lighthouse-nebula-lighthouses.json".text = builtins.toJSON lighthouses;
-
-  boot.kernel.sysctl = {
-    "net.ipv4.ip_forward" = true;
-    "net.ipv6.conf.all.forwarding" = true;
-  };
-
-  networking.firewall.allowedUDPPorts = udpPorts;
-  networking.firewall.trustedInterfaces = interfaces;
 
   systemd.tmpfiles.rules =
     [

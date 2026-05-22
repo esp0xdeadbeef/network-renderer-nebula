@@ -21,6 +21,8 @@ tests=(
   test-regression-md-resolved-states.sh
   test-cpm-overlay-contract-boundary.sh
   test-provider-boundary-no-forwarding-policy.sh
+  test-nixos-module-no-host-reachability-policy.sh
+  test-cli-render-node.sh
   test-nebula-plan.sh
   test-nebula-plan-explicit-inputs-basic.sh
   test-nebula-plan-hosted-inventory.sh
