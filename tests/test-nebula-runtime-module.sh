@@ -132,8 +132,8 @@ nix eval --impure --no-warn-dirty --json --expr '
   in
   {
     tmpfiles = module.systemd.tmpfiles.rules;
-    firewall = module.networking.firewall;
-    nftablesRuleset = module.networking.nftables.ruleset;
+    firewall = module.networking.firewall or { };
+    nftablesRuleset = module.networking.nftables.ruleset or null;
     inherit network service lighthouseService;
   }
 ' > "$tmp_dir/runtime-module.json"
@@ -142,15 +142,9 @@ jq -e '
   (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null) and
   (.tmpfiles | index("d /persist/nebula-runtime/profiles 0700 root root -") != null) and
   (.tmpfiles | index("d /persist/nebula-runtime/profiles/b-router-core-nebula 0700 root root -") != null) and
-  (.firewall.extraInputRules | contains("s88-nebula-runtime-input")) and
-  (.firewall.extraInputRules | contains("udp dport 4242 accept")) and
-  (.firewall.extraInputRules | contains("s88-nebula-runtime-listen")) and
-  (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-in")) and
-  (.firewall.extraForwardRules | contains("s88-nebula-runtime-forward-out")) and
-  (.nftablesRuleset.content | contains("insert rule inet router input iifname \"nebula1\"")) and
-  (.nftablesRuleset.content | contains("insert rule inet router input udp dport 4242 accept")) and
-  (.nftablesRuleset.content | contains("insert rule inet router forward iifname \"nebula1\"")) and
-  (.nftablesRuleset.content | contains("insert rule inet router forward oifname \"nebula1\"")) and
+  (.firewall | has("extraInputRules") | not) and
+  (.firewall | has("extraForwardRules") | not) and
+  (.nftablesRuleset == null) and
   .network.ca == "/persist/nebula-runtime/profiles/b-router-core-nebula/ca.crt" and
   .network.cert == "/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.crt" and
   .network.key == "/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key" and

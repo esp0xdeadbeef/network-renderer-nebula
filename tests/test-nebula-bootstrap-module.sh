@@ -42,7 +42,8 @@ nix eval --impure --no-warn-dirty --json --expr '
     sopsSecrets = module.sops.secrets;
     tmpfiles = module.systemd.tmpfiles.rules;
     externalNetworks = externalModule.services.nebula.networks or { };
-    externalFirewall = externalModule.networking.firewall;
+    externalFirewall = externalModule.networking.firewall or { };
+    externalSysctl = externalModule.boot.kernel.sysctl or { };
     externalTmpfiles = externalModule.systemd.tmpfiles.rules;
   }
 ' > "$tmp_dir/bootstrap.json"
@@ -69,7 +70,10 @@ jq -e '
 
 jq -e '
   (.externalNetworks | keys | index("lighthouse-east-west") == null) and
-  (.externalFirewall.allowedUDPPorts | index(4242) == null)
+  (.externalFirewall | has("allowedUDPPorts") | not) and
+  (.externalFirewall | has("trustedInterfaces") | not) and
+  (.externalSysctl | has("net.ipv4.ip_forward") | not) and
+  (.externalSysctl | has("net.ipv6.conf.all.forwarding") | not)
 ' "$tmp_dir/bootstrap.json" >/dev/null
 
 source_file="${repo_root}/s88/Enterprise/bootstrap/nixos-module.nix"

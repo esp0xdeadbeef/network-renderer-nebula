@@ -37,9 +37,36 @@
               ;
           };
         };
+
+      mkPackage =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          executable = pkgs.replaceVars ./bin/network-renderer-nebula {
+            SELF_PATH = self.outPath;
+          };
+        in
+        pkgs.writeShellApplication {
+          name = "network-renderer-nebula";
+          runtimeInputs = [
+            pkgs.jq
+            pkgs.nix
+          ];
+          text = builtins.readFile executable;
+        };
     in
     {
       libBySystem = forAllSystems mkSystemLib;
       lib = mkSystemLib "x86_64-linux";
+      packages = forAllSystems (system: {
+        default = mkPackage system;
+        network-renderer-nebula = mkPackage system;
+      });
+      apps = forAllSystems (system: {
+        default = {
+          type = "app";
+          program = "${self.packages.${system}.default}/bin/network-renderer-nebula";
+        };
+      });
     };
 }

@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+self_path="@SELF_PATH@"
+
+usage() {
+  cat <<'EOF'
+usage:
+  network-renderer-nebula render-node --cpm FILE [--inventory FILE] --node NAME [--out DIR]
+  network-renderer-nebula render-node --cpm FILE --node NAME --extra-node --overlay ID --addr4 CIDR --addr6 CIDR [--group NAME ...] [--out DIR]
+EOF
+}
+
+cmd="${1:-}"
+if [[ -z "${cmd}" || "${cmd}" == "-h" || "${cmd}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+shift
+
+if [[ "${cmd}" != "render-node" ]]; then
+  usage >&2
+  exit 2
+fi
+
+cpm=""
+inventory=""
+node=""
+overlay=""
+addr4=""
+addr6=""
+out=""
+extra_node=0
+groups=()
+
+while (($# > 0)); do
+  case "$1" in
+    --cpm)
+      cpm="${2:-}"
+      shift 2
+      ;;
+    --inventory)
+      inventory="${2:-}"
+      shift 2
+      ;;
+    --node)
+      node="${2:-}"
+      shift 2
+      ;;
+    --overlay)
+      overlay="${2:-}"
+      shift 2
+      ;;
+    --addr4)
+      addr4="${2:-}"
+      shift 2
+      ;;
+    --addr6)
+      addr6="${2:-}"
+      shift 2
+      ;;
+    --group)
+      groups+=("${2:-}")
+      shift 2
+      ;;
+    --extra-node)
+      extra_node=1
+      shift
+      ;;
+    --out)
+      out="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "network-renderer-nebula: unknown argument '$1'" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "${cpm}" || -z "${node}" ]]; then
+  usage >&2
+  exit 2
+fi
+
+groups_json="$(
+  printf '%s\n' "${groups[@]}" \
+    | jq -R . \
+    | jq -s .
+)"
+
+expr="$(cat <<EOF
+  let
+    flake = builtins.getFlake (toString "${self_path}");
+    system = builtins.currentSystem;
+    lib = flake.inputs.nixpkgs.lib;
+    renderer = flake.libBySystem.\${system}.renderer;
+  in
+  import (builtins.toPath "${self_path}/s88/Enterprise/cli/render-node.nix") {
+    inherit lib renderer;
+    cpmPath = builtins.getEnv "NEBULA_RENDERER_CPM";
+    inventoryPath =
+      let value = builtins.getEnv "NEBULA_RENDERER_INVENTORY"; in
+      if value == "" then null else value;
+    nodeName = builtins.getEnv "NEBULA_RENDERER_NODE";
+    overlayId =
+      let value = builtins.getEnv "NEBULA_RENDERER_OVERLAY"; in
+      if value == "" then null else value;
+    extraNode = builtins.getEnv "NEBULA_RENDERER_EXTRA_NODE" == "1";
+    addr4 =
+      let value = builtins.getEnv "NEBULA_RENDERER_ADDR4"; in
+      if value == "" then null else value;
+    addr6 =
+      let value = builtins.getEnv "NEBULA_RENDERER_ADDR6"; in
+      if value == "" then null else value;
+    groups = builtins.fromJSON (builtins.getEnv "NEBULA_RENDERER_GROUPS_JSON");
+  }
+EOF
+)"
+
+json="$(
+  NEBULA_RENDERER_CPM="${cpm}" \
+  NEBULA_RENDERER_INVENTORY="${inventory}" \
+  NEBULA_RENDERER_NODE="${node}" \
+  NEBULA_RENDERER_OVERLAY="${overlay}" \
+  NEBULA_RENDERER_EXTRA_NODE="${extra_node}" \
+  NEBULA_RENDERER_ADDR4="${addr4}" \
+  NEBULA_RENDERER_ADDR6="${addr6}" \
+  NEBULA_RENDERER_GROUPS_JSON="${groups_json}" \
+    nix eval --impure --json --expr "${expr}"
+)"
+
+if [[ -n "${out}" ]]; then
+  mkdir -p "${out}"
+  printf '%s\n' "${json}" >"${out}/runtime-node.json"
+else
+  printf '%s\n' "${json}"
+fi

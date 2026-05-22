@@ -23,7 +23,8 @@ network-forwarding-model -> network-control-plane-model -> network-renderer-nebu
 
 - Render Nebula runtime plans.
 - Render node identities, overlay addresses, groups, lighthouse data, unsafe
-  routes, service metadata, cert/signing inputs, and NixOS bootstrap modules.
+  routes, service metadata, cert/signing inputs, and NixOS modules that enable
+  Nebula itself.
 - Render external lighthouse validation host material from explicit runtime
   values supplied before evaluation.
 
@@ -31,6 +32,8 @@ network-forwarding-model -> network-control-plane-model -> network-renderer-nebu
 
 - Decide forwarding policy, tenant reachability, overlay termination, public
   exit, DNS behavior, or prefix ownership.
+- Open host firewalls, install nftables policy, enable kernel forwarding, or
+  otherwise make host/router reachability decisions for consumers.
 - Guess Nebula routes, addresses, lighthouses, or groups from names.
 - Patch missing unsafe routes after boot.
 - Require `network-renderer-nixos` or `s-router-test` to reinterpret Nebula
@@ -44,6 +47,32 @@ The flake exports:
 - `libBySystem.<system>.renderer.buildNebulaBootstrapSpec`
 - `libBySystem.<system>.renderer.buildNebulaBootstrapNixosModule`
 - `libBySystem.<system>.renderer.buildExternalLighthouseNixosModule`
+- `libBySystem.<system>.renderer.buildNebulaRuntimeNixosModule`
+
+The flake also exports a CLI for standalone runtime-node materialization from
+explicit CPM/provider data:
+
+```bash
+nix run github:esp0xdeadbeef/network-renderer-nebula -- \
+  render-node --cpm ./cpm-bundle.json --node b-router-core-nebula
+```
+
+`--cpm` must point to JSON containing either `nebulaRuntimePlan`, or
+`controlPlane`/`control_plane_model` plus `inventory`. If inventory is kept in a
+separate JSON file, pass `--inventory ./inventory.json`.
+
+Unmanaged members such as laptops may be rendered only with explicit overlay and
+address input:
+
+```bash
+nix run github:esp0xdeadbeef/network-renderer-nebula -- \
+  render-node --cpm ./cpm-bundle.json --node laptop-01 --extra-node \
+  --overlay espbranch::site-b::east-west \
+  --addr4 100.96.10.77/24 --addr6 fd42:dead:beef:ee::77/64
+```
+
+This does not grant forwarding, unsafe routes, public exit, host firewall
+policy, or DNS behavior. It only renders an explicit Nebula member.
 
 ## Tests
 
@@ -52,4 +81,5 @@ Run:
 ```bash
 bash tests/test-nebula-plan.sh
 bash tests/test-nebula-bootstrap-module.sh
+bash tests/test-cli-render-node.sh
 ```
