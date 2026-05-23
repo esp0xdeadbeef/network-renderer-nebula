@@ -8,8 +8,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "${tmp_dir}"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/labs/lab-s-sigma/s-router-test-three-site/intent.nix"
-inventory_path="${labs_path}/labs/lab-s-sigma/s-router-test-three-site/inventory.nix"
+intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
+inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
 plan_json="${tmp_dir}/plan.json"
 
 nix eval --impure --no-warn-dirty --json --expr '
@@ -21,8 +21,8 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "${plan_json}"
 
 jq -e '
-  .nodes["hetz-router-nebula-core"] as $node
-  | .nodes["nixos-router-core-nebula"] as $localNode
+  .nodes["c-router-nebula-core"] as $node
+  | .nodes["b-router-core-nebula"] as $localNode
   | ($node.nebulaNetwork.settings.nebulaFirewallRules.inbound | map(.local_cidr)) as $in
   | ($node.nebulaNetwork.settings.nebulaFirewallRules.outbound | map(.local_cidr)) as $out
   | {
@@ -36,11 +36,14 @@ jq -e '
           and ($in | index("8000::/1") != null)
           and ($out | index("::/1") != null)
           and ($out | index("8000::/1") != null)
-          and ($localNode.dynamicFirewallCidrs | map(.sourceFile) | index("/run/secrets/access-node-ipv6-prefix-esp-nixos-router-access-hostile") != null)
+          and ($node.unsafeRoutes | map(.route) | index("0.0.0.0/1") == null)
+          and ($node.unsafeRoutes | map(.route) | index("128.0.0.0/1") == null)
+          and ($localNode.unsafeRoutes | map(.route) | index("::/1") != null)
+          and ($localNode.unsafeRoutes | map(.route) | index("8000::/1") != null)
         ),
       advertisedUnsafeNetworks: $node.advertisedUnsafeNetworks,
       unsafeRoutes: $node.unsafeRoutes,
-      dynamicFirewallCidrs: $localNode.dynamicFirewallCidrs,
+      peerUnsafeRoutes: $localNode.unsafeRoutes,
       firewallDefaults: {
         inbound: ($in | map(select(. == "::/1" or . == "8000::/1"))),
         outbound: ($out | map(select(. == "::/1" or . == "8000::/1")))
