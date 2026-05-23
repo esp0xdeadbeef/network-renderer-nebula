@@ -132,7 +132,7 @@ json="$(
   NEBULA_RENDERER_ADDR4="${addr4}" \
   NEBULA_RENDERER_ADDR6="${addr6}" \
   NEBULA_RENDERER_GROUPS_JSON="${groups_json}" \
-    nix eval --impure --json --expr "${expr}"
+    nix --extra-experimental-features "nix-command flakes" eval --impure --json --expr "${expr}"
 )"
 
 if [[ -n "${out}" ]]; then
