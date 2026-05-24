@@ -12,8 +12,7 @@
 , prefixLength6
 , lighthousePlan
 , validateMaterialization
-,
-}:
+, }:
 
 let
   inherit (helpers)
