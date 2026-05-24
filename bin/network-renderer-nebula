@@ -88,6 +88,10 @@ if [[ -z "${cpm}" || -z "${node}" ]]; then
   exit 2
 fi
 
+if [[ -z "${NIX_REMOTE:-}" && ! -w /nix/var/nix/db ]]; then
+  export NIX_REMOTE="local?root=${TMPDIR:-/tmp}/network-renderer-nebula-nix-store"
+fi
+
 groups_json="$(
   printf '%s\n' "${groups[@]}" \
     | jq -R . \
