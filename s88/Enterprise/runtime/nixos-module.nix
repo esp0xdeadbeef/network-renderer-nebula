@@ -40,17 +40,17 @@ let
       [ ];
   renderedStaticHostMap = runtimeNode.staticHostMap or { };
   staticHostMapSecretEndpoints = runtimeNode.staticHostMapSecretEndpoints or { };
+  lighthouseStaticHostMap =
+    if isLighthouse then
+      { }
+    else
+      {
+        ${lighthouseIp4} = lighthouseEndpoints;
+        ${lighthouseIp6} = lighthouseEndpoints;
+      };
   staticHostMap =
     renderedStaticHostMap
-    // (
-      if isLighthouse then
-        { }
-      else
-        {
-          ${lighthouseIp4} = lighthouseEndpoints;
-          ${lighthouseIp6} = lighthouseEndpoints;
-        }
-    );
+    // lib.filterAttrs (address: _: !(builtins.hasAttr address renderedStaticHostMap)) lighthouseStaticHostMap;
   relay = runtimeNode.relay or { };
   listenHost = runtimeNode.service.listenHost or "[::]";
   rawListenPort = runtimeNode.service.port or runtimeNode.lighthouse.port or 4242;
