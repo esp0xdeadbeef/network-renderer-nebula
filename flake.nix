@@ -44,6 +44,7 @@
           pkgs = import nixpkgs { inherit system; };
           executable = pkgs.replaceVars ./bin/network-renderer-nebula {
             SELF_PATH = self.outPath;
+            NIXPKGS_LIB_PATH = "${nixpkgs}/lib";
           };
         in
         pkgs.writeShellApplication {
