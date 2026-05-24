@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${repo_root}/tests/lib/input-path.sh"
 tmp_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir"' EXIT
+trap 'chmod -R u+w "$tmp_dir" 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
 intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
@@ -40,6 +40,18 @@ jq -e '
   (.runtimeNode.unsafeRoutes | length) > 0 and
   (.runtimeNode.materialization.unmanaged // false | not)
 ' "$tmp_dir/modeled/runtime-node.json" >/dev/null
+
+NIX_REMOTE="local?root=$tmp_dir/local-nix-store" "$runner" render-node \
+  --cpm "$tmp_dir/cpm-bundle.json" \
+  --node b-router-core-nebula \
+  --out "$tmp_dir/modeled-local-store"
+
+jq -e '
+  .nodeName == "b-router-core-nebula" and
+  .selectedOverlayId == "espbranch::site-b::east-west" and
+  .runtimeNode.overlayAddresses[0] == "100.96.10.2/24" and
+  (.runtimeNode.unsafeRoutes | length) > 0
+' "$tmp_dir/modeled-local-store/runtime-node.json" >/dev/null
 
 "$runner" render-node \
   --cpm "$tmp_dir/cpm-bundle.json" \
