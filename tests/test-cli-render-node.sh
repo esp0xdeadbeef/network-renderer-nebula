@@ -42,6 +42,8 @@ jq -e '
   .nodeName == "b-router-core-nebula" and
   .selectedOverlayId == "espbranch::site-b::east-west" and
   .runtimeNode.overlayAddresses[0] == "100.96.10.2/24" and
+  .runtimeNode.staticHostMap["100.96.10.254"][0] == "198.51.100.10:4242" and
+  .runtimeNode.staticHostMap["fd42:dead:beef:ee::254"][0] == "198.51.100.10:4242" and
   (.runtimeNode.unsafeRoutes | length) > 0 and
   (.runtimeNode.materialization.unmanaged // false | not)
 ' "$tmp_dir/modeled/runtime-node.json" >/dev/null

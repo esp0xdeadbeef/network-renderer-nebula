@@ -140,6 +140,18 @@ builtins.listToAttrs (
           ];
         };
         relay = nebulaRuntimeNode.relay or runtimeNode.relay or { };
+        lighthouseStaticHostMap =
+          if lighthousePlan.node == nodeName then
+            { }
+          else
+            builtins.listToAttrs (
+              map
+                (overlayIp: {
+                  name = overlayIp;
+                  value = lighthousePlan.endpoints;
+                })
+                lighthousePlan.overlayIps
+            );
       in
       builtins.seq _noInventoryUnsafeRoutes {
         name = nodeName;
@@ -169,6 +181,7 @@ builtins.listToAttrs (
           };
           materialization = validateMaterialization nodeName runtimePath runtimeNode;
           inherit relay;
+          staticHostMap = (runtimeNode.staticHostMap or { }) // lighthouseStaticHostMap;
           lighthouse = lighthousePlan;
           nebulaNetwork = {
             settings = {
