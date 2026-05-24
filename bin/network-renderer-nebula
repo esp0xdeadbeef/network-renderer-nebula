@@ -2,6 +2,7 @@
 set -euo pipefail
 
 self_path="@SELF_PATH@"
+nixpkgs_lib_path="@NIXPKGS_LIB_PATH@"
 
 usage() {
   cat <<'EOF'
@@ -100,10 +101,12 @@ groups_json="$(
 
 expr="$(cat <<EOF
   let
-    flake = builtins.getFlake (toString "${self_path}");
     system = builtins.currentSystem;
-    lib = flake.inputs.nixpkgs.lib;
-    renderer = flake.libBySystem.\${system}.renderer;
+    lib = import (builtins.toPath "${nixpkgs_lib_path}");
+    renderer = (import (builtins.toPath "${self_path}/s88/Enterprise/default.nix") {
+      inherit lib system;
+      flakeInputs = {};
+    }).renderer;
   in
   import (builtins.toPath "${self_path}/s88/Enterprise/cli/render-node.nix") {
     inherit lib renderer;

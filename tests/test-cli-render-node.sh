@@ -28,6 +28,11 @@ nix eval --impure --no-warn-dirty --json --expr '
 nix build --no-warn-dirty --print-out-paths "${repo_root}#default" >"$tmp_dir/package-path"
 runner="$(cat "$tmp_dir/package-path")/bin/network-renderer-nebula"
 
+if grep -F "builtins.getFlake" "$runner" >/dev/null; then
+  echo "standalone render-node CLI must not fetch flake inputs at runtime" >&2
+  exit 1
+fi
+
 "$runner" render-node \
   --cpm "$tmp_dir/cpm-bundle.json" \
   --node b-router-core-nebula \
