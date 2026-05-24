@@ -76,6 +76,7 @@ jq -e '
   ([.relayNetwork.firewall.inbound[]? | select(.local_cidr == "10.90.10.0/24")] | length) == 1 and
   ([.relayNetwork.firewall.inbound[]? | select(.local_cidr == "fd42:dead:cafe:10::/64")] | length) == 1 and
   .network.staticHostMap["100.96.10.3"] == ["127.0.0.1:4243"] and
+  .network.staticHostMap["100.96.10.254"][0] == "198.51.100.10:4242" and
   (.preStart | contains("/run/secrets/hetzner-public-ipv4")) and
   (.preStart | contains("static_host_map had no entries to replace for"))
 ' "$tmp_dir/result.json" >/dev/null || {
