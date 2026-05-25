@@ -87,7 +87,13 @@ let
       { };
 
   baseUnsafeRoute = route:
-    { route = route.dst; install = route.install or true; }
+    let
+      isDefaultRoute = (route.dst or null) == "0.0.0.0/0" || (route.dst or null) == "::/0";
+    in
+    {
+      route = route.dst;
+      install = if (route.policyOnly or false) || isDefaultRoute then false else route.install or true;
+    }
     // viaForRoute route
     // lib.optionalAttrs (builtins.isString (route.routeSourceFile or null)) {
       inherit (route) routeSourceFile;
@@ -96,13 +102,13 @@ let
   splitDefault = route:
     if (route.family or null) == 4 && (route.dst or null) == "0.0.0.0/0" then
       [
-        (baseUnsafeRoute (route // { dst = "0.0.0.0/1"; }))
-        (baseUnsafeRoute (route // { dst = "128.0.0.0/1"; }))
+        (baseUnsafeRoute (route // { dst = "0.0.0.0/1"; install = false; }))
+        (baseUnsafeRoute (route // { dst = "128.0.0.0/1"; install = false; }))
       ]
     else if (route.family or null) == 6 && (route.dst or null) == "::/0" then
       [
-        (baseUnsafeRoute (route // { dst = "::/1"; }))
-        (baseUnsafeRoute (route // { dst = "8000::/1"; }))
+        (baseUnsafeRoute (route // { dst = "::/1"; install = false; }))
+        (baseUnsafeRoute (route // { dst = "8000::/1"; install = false; }))
       ]
     else
       [ (baseUnsafeRoute route) ];

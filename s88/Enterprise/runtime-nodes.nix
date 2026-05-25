@@ -24,31 +24,8 @@ let
     withPrefixLength
     ;
 
-  uniqueRoutes =
-    routes:
-    let
-      keyed = builtins.listToAttrs (
-        map
-          (
-            route:
-            let
-              key = lib.concatStringsSep "|" [
-                (route.route or "")
-                (route.via4 or "")
-                (route.via6 or "")
-                (route.routeSourceFile or "")
-                (if route.install or true then "install" else "noinstall")
-              ];
-            in
-            {
-              name = key;
-              value = route;
-            }
-          )
-          routes
-      );
-    in
-    map (key: keyed.${key}) (sortedAttrNames keyed);
+  unsafeRouteHelpers = import ./unsafe-routes.nix { inherit lib helpers; };
+  inherit (unsafeRouteHelpers) normalizeUnsafeRoutes;
 in
 builtins.listToAttrs (
   map
@@ -76,7 +53,7 @@ builtins.listToAttrs (
           if unsafeRouteInput == null then
             [ ]
           else if builtins.isList unsafeRouteInput then
-            uniqueRoutes unsafeRouteInput
+            normalizeUnsafeRoutes unsafeRouteInput
           else
             throw "${nebulaRuntimePath}.unsafeRoutes must be an explicit list";
         dynamicFirewallCidrs =
