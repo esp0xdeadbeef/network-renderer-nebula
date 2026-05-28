@@ -44,6 +44,9 @@ jq -e '
   .runtimeNode.overlayAddresses[0] == "100.96.10.2/24" and
   .runtimeNode.staticHostMap["100.96.10.254"][0] == "198.51.100.10:4242" and
   .runtimeNode.staticHostMap["fd42:dead:beef:ee::254"][0] == "198.51.100.10:4242" and
+  .runtimeNode.staticHostMapSecretEndpoints["100.96.10.254"][0].sourceFile == "/run/secrets/site-c-lighthouse-public-ipv4" and
+  .runtimeNode.staticHostMapSecretEndpoints["100.96.10.254"][1].sourceFile == "/run/secrets/site-c-lighthouse-public-ipv6" and
+  .runtimeNode.staticHostMapSecretEndpoints["fd42:dead:beef:ee::254"][0].port == "4242" and
   (.runtimeNode.unsafeRoutes | length) > 0 and
   (.runtimeNode.materialization.unmanaged // false | not)
 ' "$tmp_dir/modeled/runtime-node.json" >/dev/null

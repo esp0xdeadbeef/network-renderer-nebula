@@ -66,6 +66,8 @@ let
   endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
   endpoint6 = requireString "${basePath}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null);
   port = builtins.toString (lighthouse.port or 4242);
+  endpointSourceFile = lighthouse.endpointSourceFile or null;
+  endpoint6SourceFile = lighthouse.endpoint6SourceFile or null;
   lighthouseAddr4 = requireString "${basePath}.nodes.${lighthouseNodeName}.addr4" (lighthouseNode.addr4 or null);
   lighthouseAddr6 = requireString "${basePath}.nodes.${lighthouseNodeName}.addr6" (lighthouseNode.addr6 or null);
 
@@ -84,6 +86,12 @@ let
       (stripPrefixLength lighthouseAddr4)
       (stripPrefixLength lighthouseAddr6)
     ];
+  }
+  // lib.optionalAttrs (builtins.isString endpointSourceFile && endpointSourceFile != "") {
+    inherit endpointSourceFile;
+  }
+  // lib.optionalAttrs (builtins.isString endpoint6SourceFile && endpoint6SourceFile != "") {
+    inherit endpoint6SourceFile;
   };
 
   localFirewallCidrs =

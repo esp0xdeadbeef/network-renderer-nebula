@@ -128,6 +128,25 @@ builtins.listToAttrs (
                 })
                 lighthousePlan.overlayIps
             );
+        lighthouseStaticHostMapSecretEndpoints =
+          let
+	            dynamicEndpointSpecs =
+	              lib.filter (spec: builtins.isString (spec.sourceFile or null) && spec.sourceFile != "") [
+	                { sourceFile = lighthousePlan.endpointSourceFile or null; port = lighthousePlan.port; }
+	                { sourceFile = lighthousePlan.endpoint6SourceFile or null; port = lighthousePlan.port; }
+	              ];
+          in
+          if lighthousePlan.node == nodeName || dynamicEndpointSpecs == [ ] then
+            { }
+          else
+            builtins.listToAttrs (
+              map
+                (overlayIp: {
+                  name = overlayIp;
+                  value = dynamicEndpointSpecs;
+                })
+                lighthousePlan.overlayIps
+            );
       in
       builtins.seq _noInventoryUnsafeRoutes {
         name = nodeName;
@@ -158,6 +177,8 @@ builtins.listToAttrs (
           materialization = validateMaterialization nodeName runtimePath runtimeNode;
           inherit relay;
           staticHostMap = (runtimeNode.staticHostMap or { }) // lighthouseStaticHostMap;
+          staticHostMapSecretEndpoints =
+            (runtimeNode.staticHostMapSecretEndpoints or { }) // lighthouseStaticHostMapSecretEndpoints;
           lighthouse = lighthousePlan;
           nebulaNetwork = {
             settings = {
