@@ -2,9 +2,15 @@
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-001
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-002
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-005
+# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-006
+# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-007
+# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-008
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-CMC-001-001
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-CMC-001-002
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-CMC-001-005
+# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-CMC-001-006
+# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-CMC-001-007
+# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-002-SMS-001-CMC-001-008
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -37,6 +43,17 @@ nix eval --impure --no-warn-dirty --json --expr '
         c-router-nebula-core = "172.31.254.4";
       };
       sopsProfileSecretPrefix = "nebula-profile";
+      profileSecretMaterializationMode = "sops-runtime";
+    };
+    operatorModule = api.buildNebulaBootstrapNixosModule {
+      inherit pkgs;
+      nebulaRuntimePlan = plan;
+      externalPortForwardNodeNames = [ "c-router-nebula-core" ];
+      externalRuntimeNodeNames = [ "c-router-nebula-core" ];
+      runtimeListenHosts = {
+        c-router-nebula-core = "172.31.254.4";
+      };
+      profileSecretMaterializationMode = "operator-unlock";
     };
     externalModule = api.buildExternalLighthouseNixosModule {
       inherit pkgs;
@@ -51,6 +68,13 @@ nix eval --impure --no-warn-dirty --json --expr '
     externalFirewall = externalModule.networking.firewall or { };
     externalSysctl = externalModule.boot.kernel.sysctl or { };
     externalTmpfiles = externalModule.systemd.tmpfiles.rules;
+    activation = module.system.activationScripts.nebulaSopsProfiles;
+    operator = {
+      sopsSecrets = operatorModule.sops.secrets or { };
+      activationScripts = operatorModule.system.activationScripts or { };
+      profileTargets = builtins.fromJSON operatorModule.environment.etc."s-router-test/nebula-profile-targets.json".text;
+      tmpfiles = operatorModule.systemd.tmpfiles.rules;
+    };
   }
 ' > "$tmp_dir/bootstrap.json"
 
@@ -71,7 +95,22 @@ jq -e '
   .sopsSecrets["nebula-profile-c-router-nebula-core-key"].path == "/persist/nebula-runtime/profiles/c-router-nebula-core/c-router-nebula-core.key" and
   (.spec.lighthouses["east-west"].unsafeNetworks | index("fd42:dead:beef:10::/64") != null) and
   (.tmpfiles | index("d /persist/nebula-runtime 0700 root root -") != null) and
-  (.tmpfiles | index("d /persist/nebula-runtime/profiles/c-router-nebula-core 0700 root root -") != null)
+  (.tmpfiles | index("d /persist/nebula-runtime/profiles/c-router-nebula-core 0700 root root -") != null) and
+  .activation.deps == ["setupSecrets"] and
+  (.activation.text | contains("source_path=\"/run/secrets/nebula-profile-c-router-nebula-core-ca-crt\"")) and
+  (.activation.text | contains("target_path=/persist/nebula-runtime/profiles/c-router-nebula-core/ca.crt")) and
+  (.activation.text | contains("missing prepared Nebula profile secret")) and
+  (.activation.text | contains("exit 1")) and
+  (.activation.text | contains("install -D -m 0400 -o root -g root \"$source_path\" \"$target_path\""))
+' "$tmp_dir/bootstrap.json" >/dev/null
+
+jq -e '
+  (.operator.sopsSecrets | keys | length) == 0 and
+  (.operator.activationScripts | has("nebulaSopsProfiles") | not) and
+  .operator.profileTargets["c-router-nebula-core"].caCrt == "/persist/nebula-runtime/profiles/c-router-nebula-core/ca.crt" and
+  .operator.profileTargets["c-router-nebula-core"].cert == "/persist/nebula-runtime/profiles/c-router-nebula-core/c-router-nebula-core.crt" and
+  .operator.profileTargets["c-router-nebula-core"].key == "/persist/nebula-runtime/profiles/c-router-nebula-core/c-router-nebula-core.key" and
+  (.operator.tmpfiles | index("d /persist/nebula-runtime/profiles/c-router-nebula-core 0700 root root -") != null)
 ' "$tmp_dir/bootstrap.json" >/dev/null
 
 jq -e '
@@ -85,7 +124,11 @@ jq -e '
 source_file="${repo_root}/s88/Enterprise/bootstrap/nixos-module.nix"
 ! grep -F 'profile-bootstrap.bash' "$source_file" >/dev/null
 ! grep -F 'nebula-profile-bootstrap' "$source_file" >/dev/null
+! grep -E 'ssh[[:space:]]|sops[[:space:]]+--decrypt|age[[:space:]]+--decrypt|nebula-cert|read[[:space:]]+-p' "$source_file" >/dev/null
 grep -F 'sops.secrets' "$source_file" >/dev/null
 grep -F 'path = entry.path;' "$source_file" >/dev/null
+grep -F 'deps = [ "setupSecrets" ];' "$source_file" >/dev/null
+grep -F 'profileSecretMaterializationMode = "operator-unlock"' "$0" >/dev/null
+grep -F 'profileSecretMaterializationMode = "sops-runtime"' "$0" >/dev/null
 
 echo "PASS test-nebula-bootstrap-module"

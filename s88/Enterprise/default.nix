@@ -44,6 +44,7 @@ let
     , externalRemoteLighthouseEndpoint6SecretPath ? null
     , externalSuppressPublicLighthouseStaticMap ? false
     , sopsProfileSecretPrefix ? null
+    , profileSecretMaterializationMode ? null
     ,
     }:
     import ./bootstrap/nixos-module.nix {
@@ -66,6 +67,7 @@ let
         externalRemoteLighthouseEndpoint6SecretPath
         externalSuppressPublicLighthouseStaticMap
         sopsProfileSecretPrefix
+        profileSecretMaterializationMode
         ;
     };
 

@@ -27,6 +27,7 @@ nix eval --impure --no-warn-dirty --json --expr '
       nebulaRuntimePlan = plan;
       externalLighthouseReturnIpv4Cidrs = [ "10.70.10.0/24" ];
       sopsProfileSecretPrefix = "nebula-profile";
+      profileSecretMaterializationMode = "sops-runtime";
     };
   in
   {
