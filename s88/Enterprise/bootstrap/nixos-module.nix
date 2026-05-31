@@ -19,6 +19,7 @@
 , externalRemoteLighthouseEndpoint6SecretPath ? null
 , externalSuppressPublicLighthouseStaticMap ? false
 , sopsProfileSecretPrefix ? null
+, profileSecretMaterializationMode ? null
 ,
 }:
 let
@@ -73,12 +74,21 @@ let
     mode = "0400";
     path = entry.path;
   };
+  validProfileSecretMaterializationModes = [
+    "operator-unlock"
+    "sops-runtime"
+  ];
+  profileSecretMaterializationModeIsValid =
+    builtins.elem profileSecretMaterializationMode validProfileSecretMaterializationModes;
+  useSopsRuntimeProfileMaterialization = profileSecretMaterializationMode == "sops-runtime";
   materializeProfileSecret = entry: ''
     source_path="/run/secrets/${entry.name}"
     target_path=${lib.escapeShellArg entry.path}
-    if [ -s "$source_path" ]; then
-      install -D -m 0400 -o root -g root "$source_path" "$target_path"
+    if [ ! -s "$source_path" ]; then
+      echo "network-renderer-nebula: missing prepared Nebula profile secret $source_path for $target_path" >&2
+      exit 1
     fi
+    install -D -m 0400 -o root -g root "$source_path" "$target_path"
   '';
 in
 if plan.runtimeNodeNames == [ ] then
@@ -87,25 +97,35 @@ else
   {
     assertions = [
       {
-        assertion = sopsProfileSecretPrefix != null;
-        message = "network-renderer-nebula: buildNebulaBootstrapNixosModule now requires sopsProfileSecretPrefix";
+        assertion = profileSecretMaterializationModeIsValid;
+        message = "network-renderer-nebula: buildNebulaBootstrapNixosModule requires profileSecretMaterializationMode to be operator-unlock or sops-runtime";
+      }
+      {
+        assertion = !useSopsRuntimeProfileMaterialization || sopsProfileSecretPrefix != null;
+        message = "network-renderer-nebula: sops-runtime profile materialization requires sopsProfileSecretPrefix";
       }
     ];
 
-    sops.secrets = builtins.listToAttrs (
-      map
-        (entry: {
-          inherit (entry) name;
-          value = mkRootSecret entry;
-        })
-        profileSecretEntries
-    );
+    sops.secrets =
+      if useSopsRuntimeProfileMaterialization then
+        builtins.listToAttrs (
+          map
+            (entry: {
+              inherit (entry) name;
+              value = mkRootSecret entry;
+            })
+            profileSecretEntries
+        )
+      else
+        { };
 
     environment.etc."s-router-test/nebula-bootstrap-spec.json".text =
       builtins.toJSON {
         runtimeNodes = plan.runtimeNodes;
         lighthouses = plan.lighthouses;
       };
+    environment.etc."s-router-test/nebula-profile-targets.json".text =
+      plan.sopsProfilePkiSecretPathsJson;
 
     systemd.tmpfiles.rules =
       [
@@ -114,8 +134,14 @@ else
       ]
       ++ map (profileName: "d /persist/nebula-runtime/profiles/${profileName} 0700 root root -") plan.sopsProfileNames;
 
-    system.activationScripts.nebulaSopsProfiles = {
-      deps = [ "setupSecrets" ];
-      text = lib.concatStringsSep "\n" (map materializeProfileSecret profileSecretEntries);
-    };
+    system.activationScripts =
+      if useSopsRuntimeProfileMaterialization then
+        {
+          nebulaSopsProfiles = {
+            deps = [ "setupSecrets" ];
+            text = lib.concatStringsSep "\n" (map materializeProfileSecret profileSecretEntries);
+          };
+        }
+      else
+        { };
   }

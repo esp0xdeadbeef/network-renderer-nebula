@@ -33,13 +33,18 @@ let
           profileNames
       );
   secretPaths =
-    builtins.mapAttrs
-      (profileName: _names: {
-        caCrt = "/persist/nebula-runtime/profiles/${profileName}/ca.crt";
-        cert = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.crt";
-        key = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.key";
-      })
-      secretNames;
+    builtins.listToAttrs (
+      map
+        (profileName: {
+          name = profileName;
+          value = {
+            caCrt = "/persist/nebula-runtime/profiles/${profileName}/ca.crt";
+            cert = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.crt";
+            key = "/persist/nebula-runtime/profiles/${profileName}/${profileName}.key";
+          };
+        })
+        profileNames
+    );
 in
 {
   inherit profileNames secretNames secretPaths;
