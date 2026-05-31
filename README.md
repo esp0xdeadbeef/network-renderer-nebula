@@ -5,6 +5,13 @@ CPM overlay data and Nebula realization input.
 
 It is a provider renderer, not a forwarding model.
 
+Pipeline position: this repository is downstream of
+`network-control-plane-model` and upstream of runtime consumers such as NixOS
+or lab orchestration.
+
+Migration, deviation, exception, transition, or temporary compatibility behavior
+must be explicit in the README, tests, and owning layer before it is accepted.
+
 ```text
 network-forwarding-model -> network-control-plane-model -> network-renderer-nebula
 ```
@@ -16,6 +23,7 @@ network-forwarding-model -> network-control-plane-model -> network-renderer-nebu
   semantics.
 - This renderer consumes explicit Nebula input and emits Nebula runtime output.
 - Missing, partial, or inconsistent Nebula input must fail evaluation.
+- Renderer output must be deterministic for the same CPM/provider input.
 - Consumers must wire the emitted output; they must not derive Nebula semantics
   locally.
 
