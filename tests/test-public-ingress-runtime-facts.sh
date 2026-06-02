@@ -59,6 +59,16 @@ api.buildNebulaPublicIngressRuntimeFacts {
         }
       ];
     }
+    {
+      name = "wireguard-provider";
+      trafficType = "wireguard";
+      providerEndpoints = [
+        {
+          ipv4 = [ ];
+          ipv6 = [ ];
+        }
+      ];
+    }
   ];
   controlPlane.control_plane_model.data.acme.edge.relations = [
     {
@@ -72,6 +82,17 @@ api.buildNebulaPublicIngressRuntimeFacts {
         name = "client-https";
       };
     }
+    {
+      action = "allow";
+      from = {
+        kind = "external";
+        uplinks = [ "wan" ];
+      };
+      to = {
+        kind = "service";
+        name = "wireguard-provider";
+      };
+    }
   ];
 }
 ' >"${tmp_json}"
@@ -83,6 +104,8 @@ jq -e '
   .publicIngress.services.acme.edge."relay-nebula".gateway4 == "172.31.254.3" and
   .publicIngress.services.acme.edge."client-https".publicIPv4SecretPath == "/run/secrets/relay-public-ipv4" and
   .publicIngress.services.acme.edge."client-https".gateway4 == "172.31.254.3" and
+  (.publicIngress.services.acme.edge."wireguard-provider" | not) and
+  .publicIngress.unsupportedServices.acme.edge[0].name == "wireguard-provider" and
   .publicIngress.runtimeForwards[0].publicIPv4SecretPath == "/run/secrets/runtime-public-ipv4" and
   .publicIngress.runtimeForwards[0].targetIPv4 == "172.31.254.4" and
   .publicIngress.runtimeForwards[0].exceptTcpDports == [22] and
