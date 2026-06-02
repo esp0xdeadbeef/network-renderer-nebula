@@ -35,6 +35,10 @@ network-forwarding-model -> network-control-plane-model -> network-renderer-nebu
   Nebula itself.
 - Render external lighthouse validation host material from explicit runtime
   values supplied before evaluation.
+- Emit Nebula-owned public-ingress runtime facts for the lighthouse service and
+  compatible public services with concrete CPM provider endpoints. Public
+  ingress for another provider class is reported as unsupported in the runtime
+  facts and remains owned by that provider renderer.
 
 ## Not Allowed
 
@@ -46,6 +50,8 @@ network-forwarding-model -> network-control-plane-model -> network-renderer-nebu
 - Patch missing unsafe routes after boot.
 - Require `network-renderer-nixos` or `s-router-test` to reinterpret Nebula
   provider semantics.
+- Materialize WireGuard, OpenVPN, or other non-Nebula provider public ingress
+  through Nebula runtime facts.
 
 ## API
 

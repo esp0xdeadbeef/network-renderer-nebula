@@ -138,7 +138,8 @@ in
   localLighthouseEndpoint4 = endpoint4;
   publicIngress = {
     snatSourceCidr4 = hostNatIngressTargetWan.hostAddress4;
-    services.${enterpriseName}.${siteName} = publicIngressServices;
+    services.${enterpriseName}.${siteName} = publicIngressServices.services;
+    unsupportedServices.${enterpriseName}.${siteName} = publicIngressServices.unsupportedWanServices;
     runtimeForwards = [
       {
         publicIPv4SecretPath = runtimePublicIPv4SecretPath;
