@@ -35,7 +35,7 @@ nix eval --impure --no-warn-dirty --json --expr '
   }
 ' >"$tmp_dir/cpm-bundle.json"
 
-nix build --no-warn-dirty --print-out-paths "${repo_root}#default" >"$tmp_dir/package-path"
+nix build --no-link --no-warn-dirty --print-out-paths "${repo_root}#default" >"$tmp_dir/package-path"
 runner="$(cat "$tmp_dir/package-path")/bin/network-renderer-nebula"
 
 if grep -F "builtins.getFlake" "$runner" >/dev/null; then
