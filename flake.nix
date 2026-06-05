@@ -45,6 +45,8 @@
           executable = pkgs.replaceVars ./bin/network-renderer-nebula {
             SELF_PATH = self.outPath;
             NIXPKGS_LIB_PATH = "${nixpkgs}/lib";
+            RENDERER_GIT_REV = self.rev or (self.dirtyRev or "unknown");
+            RENDERER_DIRTY = if self ? dirtyRev then "true" else "false";
           };
         in
         pkgs.writeShellApplication {
