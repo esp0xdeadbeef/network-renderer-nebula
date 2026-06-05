@@ -15,8 +15,6 @@ let
 
   attrsOrEmpty = value: if builtins.isAttrs value then value else { };
   listOrEmpty = value: if builtins.isList value then value else [ ];
-  overlayPeerSites = listOrEmpty (overlayCpm.peerSites or null);
-  firstPeerSite = if overlayPeerSites == [ ] then null else builtins.head overlayPeerSites;
   dynamicFirewallCidrsForInterface = import ./derived-dynamic-firewall-cidrs.nix {
     inherit lib overlayName;
     inherit siteCpm;
@@ -69,10 +67,28 @@ let
       in
         (((cpmData.${enterpriseName} or { }).${siteName} or { }).overlays or { }).${overlayName} or null;
 
+  routeContext = route: "overlay '${overlayName}' route '${route.dst or "<missing-dst>"}'";
+
+  requireRoutePeerSite = route:
+    if builtins.isString (route.peerSite or null) && route.peerSite != "" then
+      route.peerSite
+    else
+      throw "network-renderer-nebula: ${routeContext route} must carry concrete peerSite metadata";
+
+  routeIntentKind = route:
+    if builtins.isAttrs (route.intent or null) then route.intent.kind or null else null;
+
+  isDefaultRoute = route:
+    (route.dst or null) == "0.0.0.0/0" || (route.dst or null) == "::/0";
+
+  validateDefaultRoute = route:
+    if isDefaultRoute route && routeIntentKind route != "delegated-public-egress"
+    then throw "network-renderer-nebula: ${routeContext route} is a default route but is not delegated-public-egress"
+    else route;
+
   viaForRoute = route:
     let
-      routePeerSite = route.peerSite or null;
-      peerSite = if builtins.isString routePeerSite then routePeerSite else firstPeerSite;
+      peerSite = requireRoutePeerSite route;
       peerOverlay = if builtins.isString peerSite then siteForPeer peerSite else null;
       terminateOn = if builtins.isAttrs peerOverlay then listOrEmpty (peerOverlay.terminateOn or null) else [ ];
       peerNodeName = if terminateOn == [ ] then null else builtins.head terminateOn;
@@ -87,12 +103,9 @@ let
       { };
 
   baseUnsafeRoute = route:
-    let
-      isDefaultRoute = (route.dst or null) == "0.0.0.0/0" || (route.dst or null) == "::/0";
-    in
     {
       route = route.dst;
-      install = if (route.policyOnly or false) || isDefaultRoute then false else route.install or true;
+      install = if (route.policyOnly or false) || isDefaultRoute route then false else route.install or true;
     }
     // viaForRoute route
     // lib.optionalAttrs (builtins.isString (route.routeSourceFile or null)) {
@@ -100,18 +113,21 @@ let
     };
 
   splitDefault = route:
-    if (route.family or null) == 4 && (route.dst or null) == "0.0.0.0/0" then
+    let
+      validatedRoute = validateDefaultRoute route;
+    in
+    if (validatedRoute.family or null) == 4 && (validatedRoute.dst or null) == "0.0.0.0/0" then
       [
-        (baseUnsafeRoute (route // { dst = "0.0.0.0/1"; install = false; }))
-        (baseUnsafeRoute (route // { dst = "128.0.0.0/1"; install = false; }))
+        (baseUnsafeRoute (validatedRoute // { dst = "0.0.0.0/1"; install = false; }))
+        (baseUnsafeRoute (validatedRoute // { dst = "128.0.0.0/1"; install = false; }))
       ]
-    else if (route.family or null) == 6 && (route.dst or null) == "::/0" then
+    else if (validatedRoute.family or null) == 6 && (validatedRoute.dst or null) == "::/0" then
       [
-        (baseUnsafeRoute (route // { dst = "::/1"; install = false; }))
-        (baseUnsafeRoute (route // { dst = "8000::/1"; install = false; }))
+        (baseUnsafeRoute (validatedRoute // { dst = "::/1"; install = false; }))
+        (baseUnsafeRoute (validatedRoute // { dst = "8000::/1"; install = false; }))
       ]
     else
-      [ (baseUnsafeRoute route) ];
+      [ (baseUnsafeRoute validatedRoute) ];
 
   overlayRoutesForInterface = iface:
     let

@@ -29,6 +29,7 @@ tests=(
   test-nebula-plan-hosted-inventory.sh
   test-nebula-plan-reject-host-uplink.sh
   test-nebula-plan-reject-missing-relay.sh
+  test-fs460-nebula-remote-egress-smt.sh
   test-nebula-delegated-default-exit.sh
   test-nebula-dynamic-delegated-return-route.sh
   test-delegated-prefix-secret-names.sh
