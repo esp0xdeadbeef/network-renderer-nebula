@@ -23,6 +23,7 @@ tests=(
   test-provider-boundary-no-forwarding-policy.sh
   test-provider-boundary-no-dns-egress.sh
   test-nixos-module-no-host-reachability-policy.sh
+  test-fs100-renderer-output-provenance.sh
   test-cli-render-node.sh
   test-nebula-plan.sh
   test-nebula-plan-explicit-inputs-basic.sh

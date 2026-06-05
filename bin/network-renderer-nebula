@@ -3,6 +3,8 @@ set -euo pipefail
 
 self_path="@SELF_PATH@"
 nixpkgs_lib_path="@NIXPKGS_LIB_PATH@"
+renderer_git_rev="@RENDERER_GIT_REV@"
+renderer_dirty="@RENDERER_DIRTY@"
 
 usage() {
   cat <<'EOF'
@@ -93,6 +95,223 @@ if [[ -z "${NIX_REMOTE:-}" && ! -w /nix/var/nix/db ]]; then
   export NIX_REMOTE="local?root=${TMPDIR:-/tmp}/network-renderer-nebula-nix-store"
 fi
 
+renderer_lock_summary() {
+  local lock_path="${self_path}/flake.lock"
+  if [[ ! -r "${lock_path}" ]]; then
+    printf '{"available":false}\n'
+    return
+  fi
+
+  jq -c '
+    def lock_fields:
+      with_entries(select(.key as $key | [
+        "type",
+        "owner",
+        "repo",
+        "rev",
+        "narHash",
+        "lastModified"
+      ] | index($key)));
+
+    if (.nodes | type) != "object" then
+      {"available": false}
+    else
+      {
+        "available": true,
+        "nodes": (
+          .nodes
+          | to_entries
+          | map(
+              select(.value.locked | type == "object")
+              | {
+                  "key": .key,
+                  "value": (.value.locked | lock_fields)
+                }
+              | select(.value != {})
+            )
+          | from_entries
+        )
+      }
+    end
+  ' "${lock_path}"
+}
+
+build_provenance() {
+  local rendered_json="$1"
+  local artifact="$2"
+  local renderer_locks
+
+  renderer_locks="$(renderer_lock_summary)"
+
+  jq -n -c \
+    --slurpfile input "${cpm}" \
+    --argjson rendered "${rendered_json}" \
+    --arg artifact "${artifact}" \
+    --arg git_rev "${renderer_git_rev}" \
+    --arg renderer_dirty "${renderer_dirty}" \
+    --argjson renderer_locks "${renderer_locks}" '
+      def secret_key:
+        test("password|passphrase|private|secret|token"; "i");
+
+      def safe:
+        if type == "object" then
+          with_entries(
+            .value = (
+              if (.key | secret_key) then
+                "<redacted>"
+              else
+                (.value | safe)
+              end
+            )
+          )
+        elif type == "array" then
+          map(safe)
+        elif type == "string" or type == "number" or type == "boolean" or type == "null" then
+          .
+        else
+          tostring
+        end;
+
+      def first_non_null($items):
+        reduce $items[] as $item (
+          null;
+          if . == null and $item != null then $item else . end
+        );
+
+      def first_object($items):
+        first_non_null($items) as $value
+        | if ($value | type) == "object" then $value else {} end;
+
+      def source_classes($meta):
+        if ($meta.sourceClasses | type) == "object" then
+          $meta.sourceClasses | safe
+        else
+          {
+            "userIntent": first_non_null([
+              $meta.userIntent,
+              $meta.userIntentSource,
+              $meta.intent,
+              $meta.intentSource
+            ]),
+            "publicInventory": first_non_null([
+              $meta.publicInventory,
+              $meta.publicInventorySource,
+              $meta.inventory,
+              $meta.inventorySource
+            ]),
+            "protectedInventory": first_non_null([
+              $meta.protectedInventory,
+              $meta.protectedInventorySource
+            ]),
+            "runtimeFacts": first_non_null([
+              $meta.runtimeFacts,
+              $meta.runtimeFactSet,
+              $meta.runtimeFactSource
+            ]),
+            "validationContext": first_non_null([
+              $meta.validationContext,
+              $meta.validationContextFacts,
+              $meta.validationContextSource
+            ])
+          }
+          | with_entries(select(.value != null) | .value |= safe)
+        end;
+
+      def upstream_locks($meta):
+        first_object([
+          $meta.locks,
+          $meta.lock,
+          $meta.lockedToolChain,
+          $meta.toolChainLocks,
+          $meta.flakeLocks
+        ]) | safe;
+
+      def derived_scope($rendered):
+        {
+          "nodeName": $rendered.nodeName,
+          "overlayId": $rendered.selectedOverlayId,
+          "enterprise": $rendered.runtimeNode.enterpriseName,
+          "site": $rendered.runtimeNode.siteName,
+          "overlayName": $rendered.runtimeNode.overlayName
+        }
+        | with_entries(select(.value != null))
+        | if . == {} then {} else . + {"derivedFromOutput": true} end;
+
+      ($input[0] // {}) as $source
+      | first_object([
+          $source.nebulaRuntimePlan.meta,
+          $source.controlPlane.meta,
+          $source.control_plane_model.meta,
+          $source.meta
+        ]) as $meta
+      | first_object([$meta.requested, $meta.request]) as $requested
+      | derived_scope($rendered) as $derived_scope
+      | source_classes($meta) as $source_classes
+      | {
+          "renderer": {
+            "repository": "network-renderer-nebula",
+            "gitRev": $git_rev,
+            "dirty": ($renderer_dirty == "true"),
+            "schemaVersion": 2
+          },
+          "input": {
+            "kind": (
+              if ($source.nebulaRuntimePlan | type) == "object" then
+                "nebula-runtime-plan"
+              else
+                "control-plane-model"
+              end
+            ),
+            "path": env.NEBULA_RENDERER_CPM
+          },
+          "output": {
+            "kind": "nebula-runtime-node",
+            "artifact": $artifact,
+            "nodeName": $rendered.nodeName
+          },
+          "sources": {
+            "sourceClasses": $source_classes,
+            "missingSourceClasses": (
+              ["userIntent", "publicInventory", "protectedInventory"]
+              | map(select($source_classes[.] == null))
+              + (
+                  ["runtimeFacts", "validationContext"]
+                  | map(select($source_classes[.] == null) | . + ":not-declared")
+                )
+            )
+          },
+          "requested": {
+            "scope": (first_object([$requested.scope, $meta.requestedScope, $derived_scope]) | safe),
+            "target": (
+              first_object([$requested.target, $meta.requestedTarget])
+              | if . == {} then
+                  {
+                    "renderer": "nebula",
+                    "role": "renderer-output",
+                    "derivedFromRenderer": true
+                  }
+                else
+                  .
+                end
+              | safe
+            ),
+            "derivedScope": ($derived_scope | safe)
+          },
+          "locks": {
+            "upstream": upstream_locks($meta),
+            "renderer": $renderer_locks
+          },
+          "redaction": {
+            "protectedValues": "redacted"
+          }
+        }
+        + (
+            first_non_null([$meta.controlledBaseline, $meta.sourceBaseline]) as $baseline
+            | if $baseline == null then {} else {"controlledBaseline": ($baseline | safe)} end
+          )
+    '
+}
+
 groups_json="$(
   printf '%s\n' "${groups[@]}" \
     | jq -R . \
@@ -141,6 +360,14 @@ json="$(
   NEBULA_RENDERER_GROUPS_JSON="${groups_json}" \
     nix --extra-experimental-features "nix-command flakes" eval --impure --json --expr "${expr}"
 )"
+
+artifact="stdout"
+if [[ -n "${out}" ]]; then
+  artifact="${out}/runtime-node.json"
+fi
+
+provenance="$(build_provenance "${json}" "${artifact}")"
+json="$(jq -c --argjson provenance "${provenance}" '. + {"provenance": $provenance}' <<<"${json}")"
 
 if [[ -n "${out}" ]]; then
   mkdir -p "${out}"
