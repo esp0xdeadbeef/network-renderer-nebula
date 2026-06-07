@@ -19,10 +19,12 @@
     }:
     let
       lib = nixpkgs.lib;
+
       systems = [
         "x86_64-linux"
         "aarch64-linux"
       ];
+
       forAllSystems = lib.genAttrs systems;
 
       mkSystemLib =
@@ -35,6 +37,21 @@
               network-control-plane-model
               network-labs
               ;
+          };
+        };
+
+      withHostModule =
+        systemLib:
+        systemLib // {
+          renderer = systemLib.renderer // {
+            hostModule =
+              _rendererInput:
+              { ... }:
+              {
+                # TODO: implement the Nebula backend NixOS host module.
+                # Temporary no-op so consumers can depend on the standard renderer
+                # contract without patching downstream NixOS host profiles.
+              };
           };
         };
 
@@ -59,12 +76,18 @@
         };
     in
     {
-      libBySystem = forAllSystems mkSystemLib;
-      lib = mkSystemLib "x86_64-linux";
+      libBySystem = forAllSystems (
+        system:
+        withHostModule (mkSystemLib system)
+      );
+
+      lib = withHostModule (mkSystemLib "x86_64-linux");
+
       packages = forAllSystems (system: {
         default = mkPackage system;
         network-renderer-nebula = mkPackage system;
       });
+
       apps = forAllSystems (system: {
         default = {
           type = "app";
