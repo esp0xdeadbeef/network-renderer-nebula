@@ -42,15 +42,76 @@
 
       withHostModule =
         systemLib:
+        system:
+        let
+          cpmLib = network-control-plane-model.libBySystem.${system};
+        in
         systemLib // {
           renderer = systemLib.renderer // {
             hostModule =
-              _rendererInput:
-              { ... }:
+              rendererInput:
+              let
+                controlPlane = cpmLib.compileAndBuildFromPaths {
+                  inputPath = rendererInput.intent;
+                  inventoryPath = rendererInput.inventory;
+                };
+                inventory = cpmLib.readInput rendererInput.inventory;
+                plan = systemLib.renderer.buildNebulaPlan {
+                  inherit controlPlane inventory;
+                };
+                hostedPlan = systemLib.renderer.selectHostedNebulaRuntimePlan {
+                  nebulaRuntimePlan = plan;
+                  inherit inventory;
+                  hostName = rendererInput.hostName;
+                };
+
+                # Only include nodes actually deployed on this host
+                hostedNodes = lib.filterAttrs
+                  (_nodeName: node:
+                    (node.materialization.deploymentHost or null) == rendererInput.hostName
+                  )
+                  (hostedPlan.nodes or { });
+                containerNameForNode =
+                  nodeName:
+                  systemLib.renderer.runtimeContainerNameForHost {
+                    inherit inventory;
+                    hostName = rendererInput.hostName;
+                    logicalName = nodeName;
+                  };
+              in
+              { config, lib, pkgs, ... }:
+              let
+                nodeModules =
+                  lib.mapAttrsToList
+                    (
+                      nodeName: runtimeNode:
+                      let
+                        cName = containerNameForNode nodeName;
+                        mod = systemLib.renderer.buildNebulaRuntimeNixosModule {
+                          inherit pkgs nodeName runtimeNode;
+                        };
+                      in
+                      { container = cName; module = mod; }
+                    )
+                    (hostedNodes);
+
+                grouped =
+                  lib.foldl
+                    (
+                      acc: { container, module }:
+                      acc // {
+                        ${container} = (acc.${container} or [ ]) ++ [ module ];
+                      }
+                    )
+                    { }
+                    nodeModules;
+              in
               {
-                # TODO: implement the Nebula backend NixOS host module.
-                # Temporary no-op so consumers can depend on the standard renderer
-                # contract without patching downstream NixOS host profiles.
+                containers = lib.mapAttrs
+                  (containerName: modules: {
+                    config = lib.mkMerge modules;
+                  })
+                  grouped;
               };
           };
         };
@@ -78,10 +139,10 @@
     {
       libBySystem = forAllSystems (
         system:
-        withHostModule (mkSystemLib system)
+        withHostModule (mkSystemLib system) system
       );
 
-      lib = withHostModule (mkSystemLib "x86_64-linux");
+      lib = withHostModule (mkSystemLib "x86_64-linux") "x86_64-linux";
 
       packages = forAllSystems (system: {
         default = mkPackage system;
