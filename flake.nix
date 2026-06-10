@@ -56,6 +56,31 @@
                   inventoryPath = rendererInput.inventory;
                 };
                 inventory = cpmLib.readInput rendererInput.inventory;
+
+                # Check if this site has any nebula overlays before proceeding
+                cpmData = controlPlane.control_plane_model.data or { };
+                siteOverlays = lib.concatLists (
+                  lib.mapAttrsToList
+                    (_enterprise: enterpriseData:
+                      lib.concatLists (
+                        lib.mapAttrsToList
+                          (_site: siteData:
+                            let overlays = siteData.overlays or { };
+                            in builtins.attrNames overlays
+                          )
+                          enterpriseData
+                      )
+                    )
+                    cpmData
+                );
+                hasNebulaOverlay = builtins.any
+                  (name: lib.hasPrefix "nebula" name || lib.hasPrefix "nebula-" name)
+                  siteOverlays;
+              in
+              if !hasNebulaOverlay then
+                { config, lib, pkgs, ... }: { }
+              else
+              let
                 plan = systemLib.renderer.buildNebulaPlan {
                   inherit controlPlane inventory;
                 };
