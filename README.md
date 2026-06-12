@@ -16,6 +16,50 @@ must be explicit in the README, tests, and owning layer before it is accepted.
 network-forwarding-model -> network-control-plane-model -> network-renderer-nebula
 ```
 
+## Spec Chain
+
+This renderer materializes Nebula runtime output from explicit CPM overlay data.
+All behavior requirements originate from the FS-460 spec chain.
+
+### Owning Chain: Remote Egress over Nebula
+
+| Layer | ID | Description |
+|-------|----|-------------|
+| URS   | Via FS-460 | Provider overlay transport — explicit policy-routed path |
+| FS    | FS-460 | Remote Egress over Nebula — explicit policy-routed path with fail-closed |
+| HDS   | FS-460-HDS-010 | Nebula Remote Egress hardware design — substrate facts (peer ID, overlay readiness, egress surface) |
+| SDS   | FS-460-HDS-010-SDS-010 | Nebula Remote Egress software design — architecture, failure boundaries, overlay identity preservation |
+| SMS   | FS-460-HDS-010-SDS-010-SMS-010 | **Coordinator** — Nebula renderer module: container binary in nix store, persistent daemon (not bash wrapper), service name `s88-provider-interface-nebula1.service` (SMT: OK) |
+| SMS   | FS-460-HDS-010-SDS-010-SMS-020 | Underlay-payload separation — Nebula bootstrap reachability ≠ tenant/payload reachability |
+| SMS   | FS-460-HDS-010-SDS-010-SMS-030 | Overlay route metadata — every overlay route record carries overlay identity + concrete peer-site identity |
+| SMS   | FS-460-HDS-010-SDS-010-SMS-040 | Default route denial — WAN egress must not be converted to Nebula overlay reachability |
+| SMS   | FS-460-HDS-010-SDS-010-SMS-050 | Delegated public-egress default — remote public-egress via overlay path only when explicitly modeled |
+
+### SMT Status (2026-06-12)
+
+- FS-460-HDS-010-SDS-010-SMS-010 (Coordinator): **OK** — All child atoms tested at `network-renderer-nebula@805894b3`
+- SMS-020 through SMS-050: **OK** — Full suite 25/25 passing
+- All child SMS rows delegate to coordinator. Coordinator has no independent construction beyond child module contracts.
+
+### Pipeline
+
+```
+network-labs (intent + inventory) → network-compiler → NFM → CPM → network-renderer-nebula
+```
+
+Required inputs: CPM bundle JSON (containing `nebulaRuntimePlan` or `controlPlane` plus `inventory`).
+Inventory is a required input per SMS-010 — the pipeline must include it.
+
+### SMS-010 Key Requirements
+
+- Container definition MUST include `nebula` binary in nix store closure
+- Persistent systemd service required (no bash wrapper that exits)
+- Service name: `s88-provider-interface-nebula1.service`
+
+### Owning Repository
+
+Construction tests: `network-renderer-nebula/tests/`
+
 ## Contract
 
 - The forwarding model and CPM are the source of truth.
