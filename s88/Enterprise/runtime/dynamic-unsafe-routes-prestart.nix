@@ -28,7 +28,7 @@
           continue
       cidr = read_prefix(spec)
       cidrs.append(cidr)
-      route = {"route": cidr, "mtu": 1280 if ":" in cidr else 1200, "install": True}
+      route = {"route": cidr, "mtu": spec.get("mtu") or (1280 if ":" in cidr else 1200), "install": True}  # FIXME: CPM must provide explicit mtu per route
       via = spec.get("via6") or spec.get("via4") or spec.get("via")
       if via:
           route["via"] = via

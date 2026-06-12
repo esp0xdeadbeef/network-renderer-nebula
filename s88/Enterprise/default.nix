@@ -29,6 +29,7 @@ let
         overlays = { };
         nodes = { };
       }
+    , consumerName ? "s-router-test"
     , externalLighthouseReturnIpv4Cidrs ? [ ]
     , externalLighthousePublicIpv4SecretPath ? null
     , externalLighthousePublicIpv6SecretPath ? null
@@ -68,6 +69,7 @@ let
         externalSuppressPublicLighthouseStaticMap
         sopsProfileSecretPrefix
         profileSecretMaterializationMode
+        consumerName
         ;
     };
 
@@ -79,6 +81,7 @@ let
         overlays = { };
         nodes = { };
       }
+    , consumerName ? "s-router-test"
     ,
     }:
     import ./bootstrap/external-lighthouse-module.nix {
@@ -86,6 +89,7 @@ let
         lib
         pkgs
         nebulaRuntimePlan
+        consumerName
         ;
     };
 

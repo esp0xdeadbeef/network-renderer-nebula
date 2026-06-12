@@ -87,7 +87,7 @@ let
       groups = lib.unique (groups ++ [ "unmanaged" ]);
       service = {
         name = "nebula-runtime";
-        interface = "nebula1";
+        interface = "nebula1";  # renderer-owned naming convention for unmanaged extras
       };
       materialization = {
         unmanaged = true;

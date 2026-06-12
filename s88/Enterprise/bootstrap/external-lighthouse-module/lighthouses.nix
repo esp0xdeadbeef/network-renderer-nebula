@@ -34,7 +34,7 @@ let
       (builtins.elemAt addresses 1)
       (lighthouse.endpoint or "")
       (lighthouse.endpoint6 or "")
-      (builtins.toString (lighthouse.port or 4242))
+      (builtins.toString (lighthouse.port or (throw "network-renderer-nebula: external lighthouse ${overlayId} missing port from CPM")))
     ];
   lighthouseFingerprints = lib.unique (map fingerprintFor overlayNames);
   matchingOverlaysFor = fingerprint:
@@ -65,7 +65,7 @@ lib.imap0
       inherit certBaseName;
       serviceName = "nebula-lighthouse-${logicalName}";
       interfaceName = "nebula${builtins.toString index}";
-      port = toPort (base.lighthouse.port or 4242);
+      port = toPort (base.lighthouse.port or (throw "network-renderer-nebula: external lighthouse ${base.name} missing port from CPM"));
       overlayNetwork4 = builtins.elemAt base.lighthouse.overlayAddresses 0;
       overlayNetwork6 = builtins.elemAt base.lighthouse.overlayAddresses 1;
     }

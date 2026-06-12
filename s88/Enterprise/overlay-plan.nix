@@ -65,7 +65,7 @@ let
 
   endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
   endpoint6 = requireString "${basePath}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null);
-  port = builtins.toString (lighthouse.port or 4242);
+  port = builtins.toString (lighthouse.port or (throw "network-renderer-nebula: overlay ${overlayName} lighthouse missing port from CPM"));
   endpointSourceFile = lighthouse.endpointSourceFile or null;
   endpoint6SourceFile = lighthouse.endpoint6SourceFile or null;
   lighthouseAddr4 = requireString "${basePath}.nodes.${lighthouseNodeName}.addr4" (lighthouseNode.addr4 or null);
