@@ -85,7 +85,7 @@ let
             };
             service = node.service or {
               name = "nebula-runtime";
-              interface = "nebula1";
+              interface = "nebula1";  # FIXME: CPM must provide explicit service.interface
             } // lib.optionalAttrs (runtimeListenHostFor nodeName != null) {
               listenHost = runtimeListenHostFor nodeName;
             };
@@ -96,7 +96,7 @@ let
               node = lighthouse.node or null;
               endpoint = lighthouse.endpoint or null;
               endpoint6 = lighthouse.endpoint6 or null;
-              port = builtins.toString (lighthouse.port or 4242);
+              port = builtins.toString (lighthouse.port or 4242);  # FIXME: CPM must provide explicit lighthouse.port
               certCidr4 = builtins.elemAt lighthouseAddresses 0;
               certCidr6 = builtins.elemAt lighthouseAddresses 1;
               overlayIp4 = builtins.elemAt lighthouseIps 0;

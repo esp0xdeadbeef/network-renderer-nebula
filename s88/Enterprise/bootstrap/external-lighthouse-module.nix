@@ -4,6 +4,7 @@
     overlays = { };
     nodes = { };
   }
+, consumerName ? (throw "network-renderer-nebula: buildNebulaBootstrapExternalLighthouseModule requires consumerName")
 ,
 }:
 let
@@ -48,14 +49,14 @@ let
       tun = {
         disabled = true;
         dev = lh.interfaceName;
-        mtu = 1200;
+        mtu = lh.mtu or (throw "network-renderer-nebula: external lighthouse ${lh.name} missing mtu from CPM");
         drop_multicast = false;
       };
     };
   };
 in
 {
-  environment.etc."s-router-test/external_lighthouse-nebula-lighthouses.json".text = builtins.toJSON lighthouses;
+  environment.etc."${consumerName}/external_lighthouse-nebula-lighthouses.json".text = builtins.toJSON lighthouses;
 
   systemd.tmpfiles.rules =
     [

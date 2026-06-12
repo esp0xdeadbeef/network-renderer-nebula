@@ -73,7 +73,7 @@ builtins.listToAttrs (
         unsafeRouteToNebula = route:
           let
             via = route.via6 or route.via4 or route.via or null;
-            mtu = if (route.via6 or null) != null then 1280 else 1200;
+            mtu = route.mtu or (if (route.via6 or null) != null then 1280 else 1200);  # FIXME: CPM must provide explicit mtu per route
           in
           {
             route = route.route;
@@ -85,16 +85,16 @@ builtins.listToAttrs (
           };
         unsafeFirewallRules = map
           (route: {
-            port = "any";
-            proto = "any";
+            port = "any";  # FIXME: CPM must provide traffic class scoped port
+            proto = "any"; # FIXME: CPM must provide traffic class scoped proto
             host = "any";
             local_cidr = route.route;
           })
           unsafeRoutes;
         baseFirewallRules = map
           (localCidr: {
-            port = "any";
-            proto = "any";
+            port = "any";  # FIXME: CPM must provide traffic class scoped port
+            proto = "any"; # FIXME: CPM must provide traffic class scoped proto
             host = "any";
             local_cidr = localCidr;
           })
@@ -172,7 +172,7 @@ builtins.listToAttrs (
               [ ];
           service = (runtimeNode.service or { }) // {
             name = runtimeNode.service.name or "nebula-runtime";
-            interface = runtimeNode.service.interface or "nebula1";
+            interface = runtimeNode.service.interface or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.interface from CPM");
           };
           materialization = validateMaterialization nodeName runtimePath runtimeNode;
           inherit relay;

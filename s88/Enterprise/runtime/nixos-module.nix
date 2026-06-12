@@ -9,7 +9,7 @@
 
 let
   networkName = "runtime";
-  interfaceName = runtimeNode.service.interface or "nebula1";
+  interfaceName = runtimeNode.service.interface or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.interface from CPM");
   pkiBase = "/persist/nebula-runtime/profiles/${nodeName}";
   isLighthouse = (runtimeNode.lighthouse.node or null) == nodeName;
   lighthouseIps = runtimeNode.lighthouse.overlayIps or [ ];
@@ -53,9 +53,9 @@ let
     // lib.filterAttrs (address: _: !(builtins.hasAttr address renderedStaticHostMap)) lighthouseStaticHostMap;
   relay = runtimeNode.relay or { };
   listenHost = runtimeNode.service.listenHost or "[::]";
-  rawListenPort = runtimeNode.service.port or runtimeNode.lighthouse.port or 4242;
+  rawListenPort = runtimeNode.service.port or runtimeNode.lighthouse.port or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.port or lighthouse.port from CPM");
   listenPort = if builtins.isInt rawListenPort then rawListenPort else lib.toInt rawListenPort;
-  rawLighthousePort = runtimeNode.lighthouse.port or 4242;
+  rawLighthousePort = runtimeNode.lighthouse.port or (throw "network-renderer-nebula: runtime node ${nodeName} missing lighthouse.port from CPM");
   lighthousePort = if builtins.isInt rawLighthousePort then rawLighthousePort else lib.toInt rawLighthousePort;
   hasExternalEndpointSecret =
     !isLighthouse
@@ -137,7 +137,7 @@ in
         relays = relay.relays or [ ];
       };
       tun = {
-        mtu = 1200;
+        mtu = 1200;  # FIXME: CPM must provide tun MTU via nebulaNetwork.settings.tun.mtu or service.mtu
         drop_multicast = false;
       }
       // (renderedNetwork.settings.tun or { });

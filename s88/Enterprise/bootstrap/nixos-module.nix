@@ -4,6 +4,7 @@
     overlays = { };
     nodes = { };
   }
+, consumerName ? (throw "network-renderer-nebula: buildNebulaBootstrapNixosModule requires consumerName")
 , externalLighthouseReturnIpv4Cidrs ? [ ]
 , externalLighthousePublicIpv4SecretPath ? null
 , externalLighthousePublicIpv6SecretPath ? null
@@ -119,12 +120,12 @@ else
       else
         { };
 
-    environment.etc."s-router-test/nebula-bootstrap-spec.json".text =
+    environment.etc."${consumerName}/nebula-bootstrap-spec.json".text =
       builtins.toJSON {
         runtimeNodes = plan.runtimeNodes;
         lighthouses = plan.lighthouses;
       };
-    environment.etc."s-router-test/nebula-profile-targets.json".text =
+    environment.etc."${consumerName}/nebula-profile-targets.json".text =
       plan.sopsProfilePkiSecretPathsJson;
 
     systemd.tmpfiles.rules =

@@ -25,7 +25,7 @@ let
       throw "network-renderer-nebula: service ${serviceName} provider endpoint must have exactly one IPv4 address";
   isWanExternal = endpoint:
     (endpoint.kind or null) == "external"
-    && ((endpoint.name or null) == "wan" || builtins.elem "wan" (endpoint.uplinks or [ ]));
+    && ((endpoint.name or null) == "wan" || builtins.elem "wan" (endpoint.uplinks or []));  # FIXME: CPM must provide trafficClass/egressSurface instead of hardcoded "wan" string match
   relationTargetServiceName = relation:
     let
       target = relation.to or { };
