@@ -43,6 +43,7 @@ tests=(
   test-nebula-public-relay-endpoint-static-map.sh
   test-public-ingress-runtime-facts.sh
   test-nebula-runtime-module.sh
+  test-fs460-boundary-scan.sh
 )
 
 tmp_dir="$(mktemp -d)"
