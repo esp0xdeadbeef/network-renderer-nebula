@@ -24,7 +24,7 @@ let
           )
           allRoutes;
     in
-    lib.unique (map (route: route.route or "") advertisedRoutes);
+    lib.unique (map (route: route.route or (throw "FS-310-HDS-010-SDS-010-SMS-110: route.route is required by CPM contract, cannot default to empty string")) advertisedRoutes);
 
   advertisedUnsafeNetworkSourceFilesFor =
     nodeName:

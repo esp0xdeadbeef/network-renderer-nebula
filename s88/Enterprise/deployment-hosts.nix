@@ -18,9 +18,9 @@ let
       matching =
         lib.filter
           (target:
-            ((target.logicalNode or { }).enterprise or "") == enterpriseName
-            && ((target.logicalNode or { }).site or "") == siteName
-            && ((target.logicalNode or { }).name or "") == nodeName
+            ((target.logicalNode or { }).enterprise or null) == enterpriseName
+            && ((target.logicalNode or { }).site or null) == siteName
+            && ((target.logicalNode or { }).name or null) == nodeName
             && builtins.isString (target.host or null)
             && target.host != "")
           realizationNodeValues;

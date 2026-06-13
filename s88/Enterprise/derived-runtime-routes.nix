@@ -33,10 +33,10 @@ let
   routeKey =
     route:
     lib.concatStringsSep "|" [
-      (route.route or "")
-      (route.via4 or "")
-      (route.via6 or "")
-      (route.routeSourceFile or "")
+      (route.route or (throw "FS-310-HDS-010-SDS-010-SMS-110: route.route is required by CPM contract, cannot default to empty string"))
+      (toString (route.via4 or null))
+      (toString (route.via6 or null))
+      (toString (route.routeSourceFile or null))
       (if route.install or true then "install" else "noinstall")
     ];
 

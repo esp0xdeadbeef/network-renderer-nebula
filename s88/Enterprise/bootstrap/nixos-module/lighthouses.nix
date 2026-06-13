@@ -18,8 +18,8 @@ let
     lib.concatStringsSep "|" [
       (builtins.elemAt overlayAddresses 0)
       (builtins.elemAt overlayAddresses 1)
-      (lighthouse.endpoint or "")
-      (lighthouse.endpoint6 or "")
+      (toString (lighthouse.endpoint or null))
+      (toString (lighthouse.endpoint6 or null))
       (builtins.toString (lighthouse.port or 4242))
     ];
 
@@ -30,13 +30,13 @@ let
 
   memberNodesFor = matchingOverlayIds:
     lib.filter
-      (nodeName: builtins.elem (runtimeNodes.${nodeName}.overlayId or "") matchingOverlayIds)
+      (nodeName: builtins.elem (runtimeNodes.${nodeName}.overlayId or null) matchingOverlayIds)
       runtimeNodeNames;
 
   unsafeNetworksFor = memberNodeNames:
     lib.unique (
       builtins.concatLists (
-        map (nodeName: map (route: route.route or "") (runtimeNodes.${nodeName}.unsafeRoutes or [ ])) memberNodeNames
+        map (nodeName: map (route: route.route or (throw "FS-310-HDS-010-SDS-010-SMS-110: route.route is required by CPM contract, cannot default to empty string")) (runtimeNodes.${nodeName}.unsafeRoutes or [ ])) memberNodeNames
       )
     );
 
@@ -70,7 +70,7 @@ let
           (builtins.elemAt overlayAddresses 1)
         ];
         unsafeNetworks = unsafeNetworks;
-        internal = builtins.hasAttr (baseLighthouse.node or "") runtimeNodes;
+        internal = builtins.isString (baseLighthouse.node or null) && builtins.hasAttr baseLighthouse.node runtimeNodes;
         certBaseName = "${logicalName}-${baseLighthouse.node or "lighthouse"}";
         serviceName = "nebula-lighthouse-${logicalName}";
         interfaceName = "nebula${builtins.toString index}";

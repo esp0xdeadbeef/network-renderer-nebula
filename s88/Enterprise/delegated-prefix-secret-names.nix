@@ -44,7 +44,7 @@ let
           else
             { };
       in
-      [ (secretNameFromPath (delegatedPrefix.sourceFile or "")) ]
+      [ (secretNameFromPath (delegatedPrefix.sourceFile or null)) ]
     ) ((target.advertisements or { }).ipv6Ra or [ ]);
 in
 lib.sort builtins.lessThan (
