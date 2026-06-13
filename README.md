@@ -1,7 +1,7 @@
 # network-renderer-nebula
 
-`network-renderer-nebula` emits Nebula runtime materialization from explicit
-CPM overlay data and Nebula realization input.
+`network-renderer-nebula` emits Nebula runtime materialization exclusively from
+CPM output. It consumes no raw intent, inventory, or forwarding-model files.
 
 It is a provider renderer, not a forwarding model.
 
@@ -19,7 +19,9 @@ network-forwarding-model -> network-control-plane-model -> network-renderer-nebu
 ## Spec Chain
 
 This renderer materializes Nebula runtime output from explicit CPM overlay data.
-All behavior requirements originate from the FS-460 spec chain.
+All behavior requirements originate from the FS-460 spec chain. Cross-cutting
+renderer policy (CPM-only consumption, fail-closed, no naming inference) is
+governed by FS-310.
 
 ### Owning Chain: Remote Egress over Nebula
 
@@ -35,10 +37,19 @@ All behavior requirements originate from the FS-460 spec chain.
 | SMS   | FS-460-HDS-010-SDS-010-SMS-040 | Default route denial — WAN egress must not be converted to Nebula overlay reachability |
 | SMS   | FS-460-HDS-010-SDS-010-SMS-050 | Delegated public-egress default — remote public-egress via overlay path only when explicitly modeled |
 
-### SMT Status (2026-06-12)
+### Cross-Cutting SMS (FS-310)
 
-- FS-460-HDS-010-SDS-010-SMS-010 (Coordinator): **OK** — All child atoms tested at `network-renderer-nebula@805894b3`
-- SMS-020 through SMS-050: **OK** — Full suite 25/25 passing
+| Layer | ID | Description |
+|-------|----|-------------|
+| SMS   | FS-310-HDS-010-SDS-010-SMS-100 | Renderer CPM-only consumption — no raw intent/inventory reads |
+| SMS   | FS-310-HDS-010-SDS-010-SMS-110 | Renderer fail-closed contract — throw on missing/ambiguous input |
+| SMS   | FS-310-HDS-010-SDS-010-SMS-120 | Renderer no-naming-inference — never derive semantics from names |
+
+### SMT Status (2026-06-13)
+
+- FS-460-HDS-010-SDS-010-SMS-010 (Coordinator): **OK** — All child atoms tested at `network-renderer-nebula@6f2c6b8`
+- SMS-020 through SMS-050: **OK** — Full suite 29/29 passing
+- FS-310 SMS-100: **OK** — CPM-only consumption enforced; no --inventory CLI, no raw inventory walks
 - All child SMS rows delegate to coordinator. Coordinator has no independent construction beyond child module contracts.
 
 ### Pipeline
@@ -47,7 +58,7 @@ All behavior requirements originate from the FS-460 spec chain.
 network-labs (intent + inventory) → network-compiler → NFM → CPM → network-renderer-nebula
 ```
 
-Required inputs: CPM output JSON (containing generic overlay runtime data — `controlPlane`/`control_plane_model` plus CPM-processed inventory). Per FS-983, the renderer consumes data through CPM's provider-neutral overlay output; inventory data arrives as CPM-processed records, not as raw `inventory.nix` parsing.
+Required input: CPM output (single `controlPlane` attribute containing `control_plane_model` plus CPM-processed inventory). Per FS-983 and FS-310 SMS-100, the renderer consumes data exclusively through CPM's provider-neutral overlay output. No separate inventory file, no raw `inventory.nix` parsing, no upstream source file reads.
 
 ### SMS-010 Key Requirements
 
@@ -57,22 +68,22 @@ Required inputs: CPM output JSON (containing generic overlay runtime data — `c
 
 ### Owning Repository
 
-Construction tests: `network-renderer-nebula/tests/`
+Construction tests: `network-renderer-nebula/tests/` (run via `bash run-all-tests.sh`)
 
 ## Contract
 
 - The forwarding model and CPM are the source of truth.
 - CPM decides overlay ownership, termination, prefixes, policy, and public-exit
   semantics.
-- This renderer consumes explicit Nebula input and emits Nebula runtime output.
-- Missing, partial, or inconsistent Nebula input must fail evaluation.
-- Renderer output must be deterministic for the same CPM/provider input.
+- This renderer consumes CPM output and emits Nebula runtime output.
+- Missing, partial, or inconsistent CPM input must fail evaluation.
+- Renderer output must be deterministic for the same CPM input.
 - Consumers must wire the emitted output; they must not derive Nebula semantics
   locally.
 
 ## Allowed
 
-- Render Nebula runtime plans.
+- Render Nebula runtime plans from CPM output.
 - Render node identities, overlay addresses, groups, lighthouse data, unsafe
   routes, service metadata, cert/signing inputs, and NixOS modules that enable
   Nebula itself.
@@ -85,6 +96,8 @@ Construction tests: `network-renderer-nebula/tests/`
 
 ## Not Allowed
 
+- Read `intent.nix`, `inventory.nix`, `inventory-nixos.nix`, or forwarding-model
+  files directly (FS-310 SMS-100).
 - Decide forwarding policy, tenant reachability, overlay termination, public
   exit, DNS behavior, or prefix ownership.
 - Open host firewalls, install nftables policy, enable kernel forwarding, or
@@ -98,23 +111,40 @@ Construction tests: `network-renderer-nebula/tests/`
 
 ## API
 
-The flake exports:
+The flake exports as `libBySystem.<system>.renderer.<function>`:
 
-- `libBySystem.<system>.renderer.buildNebulaPlan`
-- `libBySystem.<system>.renderer.buildNebulaBootstrapSpec`
-- `libBySystem.<system>.renderer.buildNebulaBootstrapNixosModule`
-- `libBySystem.<system>.renderer.buildExternalLighthouseNixosModule`
-- `libBySystem.<system>.renderer.buildNebulaRuntimeNixosModule`
+**Core rendering:**
+- `buildNebulaPlan` — produce a Nebula runtime plan from CPM output
+- `hostModule` — primary NixOS host integration (accepts `controlPlane`, emits containers)
+- `buildNebulaRuntimeNixosModule` — per-node NixOS module with Nebula daemon
+
+**Bootstrap & lighthouse:**
+- `buildNebulaBootstrapSpec` — bootstrap configuration from runtime plan
+- `buildNebulaBootstrapNixosModule` — NixOS module for bootstrap daemon
+- `buildExternalLighthouseNixosModule` — external lighthouse validation host module
+
+**Hosting & runtime:**
+- `selectHostedNebulaRuntimePlan` — filter plan to nodes hosted on a given host
+- `selectDeploymentNebulaRuntimePlan` — filter plan to deployment-scoped nodes
+- `runtimeContainerNameForHost` — resolve container name for a logical node on a host
+
+**Public ingress & secrets:**
+- `buildNebulaPublicIngressRuntimeFacts` — public-ingress facts for lighthouse/relay
+- `selectHostNatIngressTarget` — NAT ingress target selection
+- `delegatedPrefixSecretNames` — secret names for delegated prefixes
+- `buildRuntimeSecretMounts` — secret mount paths for runtime nodes
 
 The flake also exports a CLI for standalone runtime-node materialization from
-explicit CPM/provider data:
+explicit CPM data:
 
 ```bash
 nix run github:esp0xdeadbeef/network-renderer-nebula -- \
   render-node --cpm ./cpm-bundle.json --node b-router-core-nebula
 ```
 
-`--cpm` must point to JSON containing CPM's provider-neutral overlay output (`controlPlane`/`control_plane_model` plus CPM-processed inventory). All data reaches the renderer through CPM output — no separate inventory file is accepted.
+`--cpm` must point to JSON containing CPM's provider-neutral overlay output
+(`controlPlane`/`control_plane_model` plus CPM-processed inventory). All data
+reaches the renderer through CPM output — no separate inventory file is accepted.
 
 Unmanaged members such as laptops may be rendered only with explicit overlay and
 address input:
@@ -131,10 +161,17 @@ policy, or DNS behavior. It only renders an explicit Nebula member.
 
 ## Tests
 
-Run:
+Run the full auto-discovered test suite:
+
+```bash
+bash run-all-tests.sh
+```
+
+This discovers and runs all `tests/test-*.sh` files. Individual tests can be
+run directly:
 
 ```bash
 bash tests/test-nebula-plan.sh
-bash tests/test-nebula-bootstrap-module.sh
+bash tests/test-fs460-nebula-remote-egress-smt.sh
 bash tests/test-cli-render-node.sh
 ```
