@@ -114,8 +114,7 @@ nix run github:esp0xdeadbeef/network-renderer-nebula -- \
   render-node --cpm ./cpm-bundle.json --node b-router-core-nebula
 ```
 
-`--cpm` must point to JSON containing CPM's provider-neutral overlay output (`controlPlane`/`control_plane_model` plus CPM-processed inventory). If CPM-processed inventory is kept in a
-separate JSON file, pass `--inventory ./inventory.json` (CPM-emitted inventory, not raw `inventory.nix`).
+`--cpm` must point to JSON containing CPM's provider-neutral overlay output (`controlPlane`/`control_plane_model` plus CPM-processed inventory). All data reaches the renderer through CPM output — no separate inventory file is accepted.
 
 Unmanaged members such as laptops may be rendered only with explicit overlay and
 address input:
