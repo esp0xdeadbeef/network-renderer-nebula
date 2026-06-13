@@ -171,7 +171,7 @@ builtins.listToAttrs (
             else
               [ ];
           service = (runtimeNode.service or { }) // {
-            name = runtimeNode.service.name or "nebula-runtime";
+            name = runtimeNode.service.name or (throw "FS-310-HDS-010-SDS-010-SMS-110: service.name required by CPM provider contract, cannot default to nebula-runtime");
             interface = runtimeNode.service.interface or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.interface from CPM");
           };
           materialization = validateMaterialization nodeName runtimePath runtimeNode;

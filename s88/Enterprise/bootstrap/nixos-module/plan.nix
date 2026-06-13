@@ -96,7 +96,7 @@ let
               node = lighthouse.node or null;
               endpoint = lighthouse.endpoint or null;
               endpoint6 = lighthouse.endpoint6 or null;
-              port = builtins.toString (lighthouse.port or 4242);  # FIXME: CPM must provide explicit lighthouse.port
+              port = builtins.toString (lighthouse.port or (throw "FS-310-HDS-010-SDS-010-SMS-110: lighthouse.port required by CPM provider contract, cannot default to 4242"));
               certCidr4 = builtins.elemAt lighthouseAddresses 0;
               certCidr6 = builtins.elemAt lighthouseAddresses 1;
               overlayIp4 = builtins.elemAt lighthouseIps 0;
