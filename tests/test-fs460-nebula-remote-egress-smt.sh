@@ -10,15 +10,8 @@ nix eval --impure --no-warn-dirty --json --expr '
     flake = builtins.getFlake ("path:'"${repo_root}"'");
     api = flake.libBySystem.x86_64-linux.renderer;
 
-    baseInventory = {
-      controlPlane.sites.enterprise.local.overlays.east-west = {
-        provider = "nebula";
-        runtimeNodes.core = {
-          groups = [ "core" ];
-          container.targetContainer = "core";
-          service.interface = "nebula1";
-        };
-      };
+    render = routes: api.buildNebulaPlan {
+      controlPlane = mkControlPlane routes;
     };
 
     overlayRoute = {
@@ -70,14 +63,24 @@ nix eval --impure --no-warn-dirty --json --expr '
               ];
             }
           ];
-          runtimeTargets.core-target.effectiveRuntimeRealization.interfaces."overlay-east-west" = {
+          runtimeTargets."core-target".effectiveRuntimeRealization.interfaces."overlay-east-west" = {
             logicalNode = "core";
             backingRef.name = "east-west";
             sourceKind = "overlay";
             routes.ipv4 = routes;
           };
           overlays.east-west = {
+            provider = "nebula";
             peerSites = [ "enterprise.remote" ];
+            runtimeNodes.core = {
+              groups = [ "core" ];
+              container.targetContainer = "core";
+              service = {
+                interface = "nebula1";
+                name = "nebula-runtime";
+                listenHost = "127.0.0.1";
+              };
+            };
             nodes.core = {
               addr4 = "100.96.0.1/24";
               addr6 = "fd42:dead:beef::1/64";
@@ -98,19 +101,24 @@ nix eval --impure --no-warn-dirty --json --expr '
           enterprise = "enterprise";
           siteName = "remote";
           overlays.east-west = {
+            provider = "nebula";
             terminateOn = [ "remote-core" ];
             nodes.remote-core = {
               addr4 = "100.96.0.2/24";
               addr6 = "fd42:dead:beef::2/64";
             };
+            runtimeNodes.remote-core = {
+              groups = [ "core" ];
+              container.targetContainer = "remote-core";
+              service = {
+                interface = "nebula1";
+                name = "nebula-runtime";
+                listenHost = "127.0.0.1";
+              };
+            };
           };
         };
       };
-    };
-
-    render = routes: api.buildNebulaPlan {
-      controlPlane = mkControlPlane routes;
-      inventory = baseInventory;
     };
 
     goodPlan = render [ overlayRoute delegatedDefault underlayReadiness ];

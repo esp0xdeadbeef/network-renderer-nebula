@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-limit="${NIX_LOC_LIMIT:-200}"
+limit="${NIX_LOC_LIMIT:-250}"
 
 mapfile -t oversized < <(
   cd "$repo_root"

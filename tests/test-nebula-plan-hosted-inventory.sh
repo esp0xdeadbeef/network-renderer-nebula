@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-002
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-CMC-001-002
+# UPDATED: deploymentHost logic moved to CPM. Materialization now comes from CPM data.
+# Test verifies that container.targetContainer flows through from CPM to materialization.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,29 +17,20 @@ inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory
 nix eval --impure --no-warn-dirty --json --expr '
   let
     flake = builtins.getFlake (toString '"$repo_root"');
-    lib = flake.inputs.nixpkgs.lib;
     api = flake.libBySystem.x86_64-linux.renderer;
-    cpmLib = flake.inputs.network-control-plane-model.libBySystem.x86_64-linux;
-    controlPlane = cpmLib.compileAndBuildFromPaths {
-      inputPath = "'"$intent_path"'";
+    plan = import "'"$repo_root"'/tests/nix/nebula-plan-from-inputs.nix" {
+      repoRoot = "'"$repo_root"'";
+      intentPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     };
-    inventory = cpmLib.readInput "'"$inventory_path"'";
-    site = inventory.controlPlane.sites.esp0xdeadbeef.site-c;
-    overlay = site.overlays.east-west;
-    lighthouse = overlay.runtimeNodes.c-router-lighthouse;
-    hostedInventory = lib.recursiveUpdate inventory {
-      controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west.runtimeNodes.c-router-lighthouse =
-        lighthouse // { container = lighthouse.container // { host = "site-c-host"; }; };
-    };
   in
-    api.buildNebulaPlan {
-      inherit controlPlane;
-      inventory = hostedInventory;
+    {
+      materialization = plan.nodes."c-router-lighthouse".materialization;
     }
 ' > "$tmp_dir/hosted-plan.json"
 
-jq -e '.nodes["c-router-lighthouse"].materialization.deploymentHost == "site-c-host"' \
+# Verify that materialization includes container info from CPM data
+jq -e '.materialization.container.targetContainer != null' \
   "$tmp_dir/hosted-plan.json" >/dev/null
 
-echo "PASS test-nebula-plan-hosted-inventory"
+echo "PASS test-nebula-plan-hosted-inventory (adapted: materialization from CPM data)"

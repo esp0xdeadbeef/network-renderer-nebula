@@ -9,7 +9,7 @@ renderer_dirty="@RENDERER_DIRTY@"
 usage() {
   cat <<'EOF'
 usage:
-  network-renderer-nebula render-node --cpm FILE [--inventory FILE] --node NAME [--out DIR]
+  network-renderer-nebula render-node --cpm FILE --node NAME [--out DIR]
   network-renderer-nebula render-node --cpm FILE --node NAME --extra-node --overlay ID --addr4 CIDR --addr6 CIDR [--group NAME ...] [--out DIR]
 EOF
 }
@@ -27,7 +27,6 @@ if [[ "${cmd}" != "render-node" ]]; then
 fi
 
 cpm=""
-inventory=""
 node=""
 overlay=""
 addr4=""
@@ -40,10 +39,6 @@ while (($# > 0)); do
   case "$1" in
     --cpm)
       cpm="${2:-}"
-      shift 2
-      ;;
-    --inventory)
-      inventory="${2:-}"
       shift 2
       ;;
     --node)
@@ -330,9 +325,6 @@ expr="$(cat <<EOF
   import (builtins.toPath "${self_path}/s88/Enterprise/cli/render-node.nix") {
     inherit lib renderer;
     cpmPath = builtins.getEnv "NEBULA_RENDERER_CPM";
-    inventoryPath =
-      let value = builtins.getEnv "NEBULA_RENDERER_INVENTORY"; in
-      if value == "" then null else value;
     nodeName = builtins.getEnv "NEBULA_RENDERER_NODE";
     overlayId =
       let value = builtins.getEnv "NEBULA_RENDERER_OVERLAY"; in
@@ -351,7 +343,6 @@ EOF
 
 json="$(
   NEBULA_RENDERER_CPM="${cpm}" \
-  NEBULA_RENDERER_INVENTORY="${inventory}" \
   NEBULA_RENDERER_NODE="${node}" \
   NEBULA_RENDERER_OVERLAY="${overlay}" \
   NEBULA_RENDERER_EXTRA_NODE="${extra_node}" \

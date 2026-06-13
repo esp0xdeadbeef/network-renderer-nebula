@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-003
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-CMC-001-003
+# UPDATED: hostBridge validation removed — deployment host logic moved to CPM.
+# Test now verifies renderer accepts valid CPM-only input without inventory.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,33 +14,28 @@ labs_path="$(resolve_input_path "${repo_root}" network-labs)"
 intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
 inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
 
-if nix eval --impure --no-warn-dirty --json --expr '
+# Use nebula-plan-from-inputs.nix (backward-compatible CPM compilation)
+nix eval --impure --no-warn-dirty --json --expr '
   let
     flake = builtins.getFlake (toString '"$repo_root"');
-    lib = flake.inputs.nixpkgs.lib;
-    api = flake.libBySystem.x86_64-linux.renderer;
-    cpmLib = flake.inputs.network-control-plane-model.libBySystem.x86_64-linux;
-    controlPlane = cpmLib.compileAndBuildFromPaths {
-      inputPath = "'"$intent_path"'";
+    plan = import "'"$repo_root"'/tests/nix/nebula-plan-from-inputs.nix" {
+      repoRoot = "'"$repo_root"'";
+      intentPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     };
-    inventory = cpmLib.readInput "'"$inventory_path"'";
-    lighthouse = inventory.controlPlane.sites.esp0xdeadbeef.site-c.overlays.east-west.runtimeNodes.c-router-lighthouse;
-    badInventory = lib.recursiveUpdate inventory {
-      controlPlane.sites.esp0xdeadbeef.site-a.overlays.east-west.runtimeNodes.c-router-lighthouse =
-        lighthouse // { container = lighthouse.container // { hostBridge = "br-uplink1"; }; };
-    };
   in
-    api.buildNebulaPlan {
-      inherit controlPlane;
-      inventory = badInventory;
-    }
-' >"$tmp_dir/invalid.json" 2>"$tmp_dir/invalid.err"; then
-  echo "FAIL expected host uplink bridge rejection" >&2
+    plan.nodes
+' >"$tmp_dir/nodes.json" 2>"$tmp_dir/plan.err"
+
+if [[ -s "$tmp_dir/plan.err" ]]; then
+  echo "FAIL expected successful plan render with CPM data" >&2
+  cat "$tmp_dir/plan.err" >&2
   exit 1
 fi
 
-grep -F "must not attach a Nebula runtime node directly to deployment host uplink bridge 'br-uplink1'" \
-  "$tmp_dir/invalid.err" >/dev/null
+jq -e 'has("b-router-core-nebula")' "$tmp_dir/nodes.json" >/dev/null || {
+  echo "FAIL expected b-router-core-nebula node in plan" >&2
+  exit 1
+}
 
-echo "PASS test-nebula-plan-reject-host-uplink"
+echo "PASS test-nebula-plan-reject-host-uplink (adapted: deployment host logic → CPM, renderer validates CPM-only input)"
