@@ -9,7 +9,7 @@ let
       (tenant:
         lib.filter
           (prefix:
-            (prefix.allocation or "runtime") == "runtime"
+            (prefix.allocation or (throw "FS-310-HDS-010-SDS-010-SMS-110: prefix.allocation required by CPM provider contract, cannot default to runtime")) == "runtime"
             && builtins.isString (prefix.sourceFile or null)
             && prefix.sourceFile != "")
           (listOrEmpty (tenant.routedPrefixes or null)))
@@ -23,12 +23,12 @@ let
 
   routeSpec = route: {
     sourceFile = route.sourceFile;
-    family = route.family or 6;
+    family = route.family or (throw "FS-310-HDS-010-SDS-010-SMS-110: route.family required by CPM provider contract, cannot default to 6");
   };
 
   prefixSpec = prefix: {
     sourceFile = prefix.sourceFile;
-    family = prefix.family or 6;
+    family = prefix.family or (throw "FS-310-HDS-010-SDS-010-SMS-110: prefix.family required by CPM provider contract, cannot default to 6");
   };
 in
 iface:

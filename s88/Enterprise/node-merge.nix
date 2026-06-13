@@ -9,7 +9,7 @@ let
       (toString (route.via6 or null))
       (toString (route.via or null))
       (toString (route.routeSourceFile or null))
-      (if route.install or true then "install" else "noinstall")
+      (if route.install or false then "install" else "noinstall")
     ];
 
   uniqueBy =

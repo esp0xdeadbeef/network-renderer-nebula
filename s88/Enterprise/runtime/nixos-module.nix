@@ -52,7 +52,7 @@ let
     renderedStaticHostMap
     // lib.filterAttrs (address: _: !(builtins.hasAttr address renderedStaticHostMap)) lighthouseStaticHostMap;
   relay = runtimeNode.relay or { };
-  listenHost = runtimeNode.service.listenHost or "[::]";
+  listenHost = runtimeNode.service.listenHost or (throw "FS-310-HDS-010-SDS-010-SMS-110: service.listenHost required by CPM provider contract, cannot default to [::]");
   rawListenPort = runtimeNode.service.port or runtimeNode.lighthouse.port or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.port or lighthouse.port from CPM");
   listenPort = if builtins.isInt rawListenPort then rawListenPort else lib.toInt rawListenPort;
   rawLighthousePort = runtimeNode.lighthouse.port or (throw "network-renderer-nebula: runtime node ${nodeName} missing lighthouse.port from CPM");

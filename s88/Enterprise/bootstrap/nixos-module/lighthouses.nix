@@ -20,7 +20,7 @@ let
       (builtins.elemAt overlayAddresses 1)
       (toString (lighthouse.endpoint or null))
       (toString (lighthouse.endpoint6 or null))
-      (builtins.toString (lighthouse.port or 4242))
+      (builtins.toString (lighthouse.port or (throw "FS-310-HDS-010-SDS-010-SMS-110: lighthouse.port required by CPM provider contract, cannot default to 4242")))
     ];
 
   lighthouseFingerprints = lib.unique (map lighthouseFingerprint overlayNames);
@@ -60,7 +60,7 @@ let
         node = baseLighthouse.node or null;
         endpoint = baseLighthouse.endpoint or null;
         endpoint6 = baseLighthouse.endpoint6 or null;
-        port = builtins.toString (baseLighthouse.port or 4242);
+        port = builtins.toString (baseLighthouse.port or (throw "FS-310-HDS-010-SDS-010-SMS-110: lighthouse.port required by CPM provider contract, cannot default to 4242"));
         certCidr4 = builtins.elemAt overlayAddresses 0;
         certCidr6 = builtins.elemAt overlayAddresses 1;
         overlayIp4 = builtins.elemAt overlayIps 0;
@@ -71,7 +71,7 @@ let
         ];
         unsafeNetworks = unsafeNetworks;
         internal = builtins.isString (baseLighthouse.node or null) && builtins.hasAttr baseLighthouse.node runtimeNodes;
-        certBaseName = "${logicalName}-${baseLighthouse.node or "lighthouse"}";
+        certBaseName = "${logicalName}-${baseLighthouse.node or (throw "FS-310-HDS-010-SDS-010-SMS-110: lighthouse.node required by CPM provider contract, cannot default to lighthouse")}";
         serviceName = "nebula-lighthouse-${logicalName}";
         interfaceName = "nebula${builtins.toString index}";
         overlayNetworks4Csv = builtins.elemAt overlayAddresses 0;
