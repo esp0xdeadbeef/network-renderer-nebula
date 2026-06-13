@@ -43,24 +43,4 @@ rec {
   withPrefixLength = cidr: prefixLength: "${stripPrefixLength cidr}/${builtins.toString prefixLength}";
 
   uniqueStrings = values: lib.unique (lib.filter (value: builtins.isString value && value != "") values);
-
-  collectHostUplinkBridgeNames =
-    inventory:
-    let
-      hosts = ((inventory.deployment or { }).hosts or { });
-    in
-    lib.unique (
-      builtins.concatLists (
-        map
-          (
-            hostName:
-            let
-              host = hosts.${hostName};
-              uplinks = host.uplinks or { };
-            in
-            map (uplinkName: uplinks.${uplinkName}.bridge or null) (sortedAttrNames uplinks)
-          )
-          (sortedAttrNames hosts)
-      )
-    );
 }

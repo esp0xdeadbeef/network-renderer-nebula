@@ -1,10 +1,10 @@
 { lib, helpers }:
 
 { controlPlane
-, inventory ? { }
 , caName ? "nebula-ca"
 ,
 }:
+
 let
   cpm =
     if controlPlane ? control_plane_model && builtins.isAttrs controlPlane.control_plane_model then
@@ -12,18 +12,11 @@ let
     else
       throw "network-renderer-nebula: controlPlane.control_plane_model is required";
 
-  entries = import ./overlay-entries.nix {
-    inherit lib helpers inventory;
-    cpmData = cpm.data or { };
-  };
+  cpmData = cpm.data or { };
 
-  hostUplinkBridgeNames = helpers.collectHostUplinkBridgeNames inventory;
-  inherit
-    (import ./deployment-hosts.nix {
-      inherit lib helpers inventory;
-    })
-    runtimeNodeDeploymentHostFor
-    ;
+  entries = import ./overlay-entries.nix {
+    inherit lib helpers cpmData;
+  };
 
   rawOverlays = builtins.listToAttrs (
     map
@@ -34,8 +27,6 @@ let
             lib
             helpers
             caName
-            hostUplinkBridgeNames
-            runtimeNodeDeploymentHostFor
             entry
             ;
         }
