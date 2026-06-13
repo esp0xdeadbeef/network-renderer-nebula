@@ -3,6 +3,7 @@
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-005-SMS-001-008
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-005-SMS-001-CMC-001-005
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-005-SMS-001-CMC-001-008
+# UPDATED: merged inventory into controlPlane — renderer consumes CPM output only.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,16 +25,15 @@ if nix eval --impure --no-warn-dirty --json --expr '
       inputPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     };
-    inventory = cpmLib.readInput "'"$inventory_path"'";
-    nebulaCore = inventory.controlPlane.sites.espbranch.site-b.overlays.east-west.runtimeNodes.b-router-core-nebula;
-    badInventory = lib.recursiveUpdate inventory {
-      controlPlane.sites.espbranch.site-b.overlays.east-west.runtimeNodes.b-router-core-nebula =
-        nebulaCore // { relay.relays = [ "missing-relay-node" ]; };
+    # Inject a bad relay reference into the CPM data tree
+    badControlPlane = lib.recursiveUpdate controlPlane {
+      control_plane_model.data.espbranch.site-b.overlays.east-west.runtimeNodes.b-router-core-nebula = {
+        relay.relays = [ "missing-relay-node" ];
+      };
     };
   in
     api.buildNebulaPlan {
-      inherit controlPlane;
-      inventory = badInventory;
+      controlPlane = badControlPlane;
     }
 ' >"$tmp_dir/invalid-relay.json" 2>"$tmp_dir/invalid-relay.err"; then
   echo "FAIL expected unknown relay node rejection" >&2

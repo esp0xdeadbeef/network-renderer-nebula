@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-004
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-CMC-001-004
+# UPDATED: buildNebulaPublicIngressRuntimeFacts now requires cpmData parameter
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,13 +25,120 @@ api.buildNebulaPublicIngressRuntimeFacts {
     hostGateway4 = "172.31.254.1";
     coreAddress4Bare = "172.31.254.3";
   };
-  inventory.realization.nodes.edge-nebula = {
-    host = "validator-host";
-    logicalNode = {
-      enterprise = "acme";
-      site = "edge";
-      name = "edge-nebula";
+  controlPlane = {
+    control_plane_model.data.acme.edge = {
+      services = [
+        {
+          name = "relay-nebula";
+          trafficType = "nebula";
+          providerEndpoints = [
+            {
+              ipv4 = [ "10.90.10.100" ];
+            }
+          ];
+        }
+        {
+          name = "client-https";
+          trafficType = "tcp-443";
+          providerEndpoints = [
+            {
+              ipv4 = [ "10.90.20.10" ];
+            }
+          ];
+        }
+        {
+          name = "wireguard-provider";
+          trafficType = "wireguard";
+          providerEndpoints = [
+            {
+              ipv4 = [ ];
+              ipv6 = [ ];
+            }
+          ];
+        }
+      ];
+      relations = [
+        {
+          action = "allow";
+          from = {
+            kind = "external";
+            name = "wan";
+          };
+          to = {
+            kind = "service";
+            name = "client-https";
+          };
+        }
+        {
+          action = "allow";
+          from = {
+            kind = "external";
+            uplinks = [ "wan" ];
+          };
+          to = {
+            kind = "service";
+            name = "wireguard-provider";
+          };
+        }
+      ];
     };
+  };
+  cpmData.acme.edge = {
+    services = [
+      {
+        name = "relay-nebula";
+        trafficType = "nebula";
+        providerEndpoints = [
+          {
+            ipv4 = [ "10.90.10.100" ];
+          }
+        ];
+      }
+      {
+        name = "client-https";
+        trafficType = "tcp-443";
+        providerEndpoints = [
+          {
+            ipv4 = [ "10.90.20.10" ];
+          }
+        ];
+      }
+      {
+        name = "wireguard-provider";
+        trafficType = "wireguard";
+        providerEndpoints = [
+          {
+            ipv4 = [ ];
+            ipv6 = [ ];
+          }
+        ];
+      }
+    ];
+    relations = [
+      {
+        action = "allow";
+        from = {
+          kind = "external";
+          name = "wan";
+        };
+        to = {
+          kind = "service";
+          name = "client-https";
+        };
+      }
+      {
+        action = "allow";
+        from = {
+          kind = "external";
+          uplinks = [ "wan" ];
+        };
+        to = {
+          kind = "service";
+          name = "wireguard-provider";
+        };
+      }
+    ];
+    runtimeTargets."edge-nebula".placement.host = "validator-host";
   };
   forwarding.enterprise.acme.site.edge.hostNatIngress = {
     hostReservedPorts = [
@@ -40,60 +148,14 @@ api.buildNebulaPublicIngressRuntimeFacts {
       }
     ];
   };
-  controlPlane.control_plane_model.data.acme.edge.services = [
-    {
-      name = "relay-nebula";
-      trafficType = "nebula";
-      providerEndpoints = [
-        {
-          ipv4 = [ "10.90.10.100" ];
-        }
-      ];
-    }
-    {
-      name = "client-https";
-      trafficType = "tcp-443";
-      providerEndpoints = [
-        {
-          ipv4 = [ "10.90.20.10" ];
-        }
-      ];
-    }
-    {
-      name = "wireguard-provider";
-      trafficType = "wireguard";
-      providerEndpoints = [
-        {
-          ipv4 = [ ];
-          ipv6 = [ ];
-        }
-      ];
-    }
-  ];
-  controlPlane.control_plane_model.data.acme.edge.relations = [
-    {
-      action = "allow";
-      from = {
-        kind = "external";
-        name = "wan";
-      };
-      to = {
-        kind = "service";
-        name = "client-https";
-      };
-    }
-    {
-      action = "allow";
-      from = {
-        kind = "external";
-        uplinks = [ "wan" ];
-      };
-      to = {
-        kind = "service";
-        name = "wireguard-provider";
-      };
-    }
-  ];
+  inventory.realization.nodes.edge-nebula = {
+    host = "validator-host";
+    logicalNode = {
+      enterprise = "acme";
+      site = "edge";
+      name = "edge-nebula";
+    };
+  };
 }
 ' >"${tmp_json}"
 

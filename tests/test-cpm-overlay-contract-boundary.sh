@@ -32,6 +32,7 @@ nix eval --impure --no-warn-dirty --expr '
       control_plane_model.data.enterprise.site = {
         runtimeTargets = { };
         overlays.east-west = {
+          provider = "nebula";
           nodes.core = {
             addr4 = "100.96.0.10";
             addr6 = "fd42:dead:beef::10";
@@ -46,24 +47,27 @@ nix eval --impure --no-warn-dirty --expr '
             ipv4.prefix = "100.96.0.0/24";
             ipv6.prefix = "fd42:dead:beef::/64";
           };
+          runtimeNodes.core = {
+            groups = [ "core" ];
+            service = {
+              name = "nebula-runtime";
+              interface = "nebula1";
+              listenHost = "127.0.0.1";
+            };
+            container.targetContainer = "core";
+            unsafeRoutes = [
+              {
+                route = "0.0.0.0/1";
+                via4 = "100.96.0.1";
+                install = true;
+              }
+            ];
+          };
         };
-      };
-    };
-    badInventory = {
-      controlPlane.sites.enterprise.site.overlays.east-west = {
-        provider = "nebula";
-        runtimeNodes.core.unsafeRoutes = [
-          {
-            route = "0.0.0.0/1";
-            via4 = "100.96.0.1";
-            install = true;
-          }
-        ];
       };
     };
     plan = api.buildNebulaPlan {
       controlPlane = badControlPlane;
-      inventory = badInventory;
     };
     result = builtins.tryEval plan.nodes.core.unsafeRoutes;
   in
