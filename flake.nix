@@ -49,16 +49,17 @@
         systemLib // {
           renderer = systemLib.renderer // {
             hostModule =
-              rendererInput:
+              { controlPlane
+              , hostName
+              , ...
+              }:
               let
-                controlPlane = cpmLib.compileAndBuildFromPaths {
-                  inputPath = rendererInput.intent;
-                  inventoryPath = rendererInput.inventory;
-                };
-                inventory = cpmLib.readInput rendererInput.inventory;
+                # CPM output is the sole source of truth (SMS-100).
+                # Renderers consume pre-compiled CPM; callers must provide
+                # controlPlane already compiled from intent/inventory.
+                cpmData = controlPlane.control_plane_model.data or { };
 
                 # Check if this site has any nebula overlays before proceeding
-                cpmData = controlPlane.control_plane_model.data or { };
                 siteOverlays = lib.concatLists (
                   lib.mapAttrsToList
                     (_enterprise: enterpriseData:
@@ -82,25 +83,16 @@
               else
               let
                 plan = systemLib.renderer.buildNebulaPlan {
-                  inherit controlPlane inventory;
+                  inherit controlPlane;
                 };
                 hostedPlan = systemLib.renderer.selectHostedNebulaRuntimePlan {
                   nebulaRuntimePlan = plan;
-                  inherit inventory;
-                  hostName = rendererInput.hostName;
+                  inherit cpmData hostName;
                 };
-
-                # Only include nodes actually deployed on this host
-                hostedNodes = lib.filterAttrs
-                  (_nodeName: node:
-                    (node.materialization.deploymentHost or null) == rendererInput.hostName
-                  )
-                  (hostedPlan.nodes or { });
                 containerNameForNode =
                   nodeName:
                   systemLib.renderer.runtimeContainerNameForHost {
-                    inherit inventory;
-                    hostName = rendererInput.hostName;
+                    inherit cpmData hostName;
                     logicalName = nodeName;
                   };
               in
@@ -118,7 +110,7 @@
                       in
                       { container = cName; module = mod; }
                     )
-                    (hostedNodes);
+                    (hostedPlan.nodes or { });
 
                 grouped =
                   lib.foldl

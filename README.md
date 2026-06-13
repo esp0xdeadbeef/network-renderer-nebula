@@ -47,8 +47,7 @@ All behavior requirements originate from the FS-460 spec chain.
 network-labs (intent + inventory) → network-compiler → NFM → CPM → network-renderer-nebula
 ```
 
-Required inputs: CPM bundle JSON (containing `nebulaRuntimePlan` or `controlPlane` plus `inventory`).
-Inventory is a required input per SMS-010 — the pipeline must include it.
+Required inputs: CPM output JSON (containing generic overlay runtime data — `controlPlane`/`control_plane_model` plus CPM-processed inventory). Per FS-983, the renderer consumes data through CPM's provider-neutral overlay output; inventory data arrives as CPM-processed records, not as raw `inventory.nix` parsing.
 
 ### SMS-010 Key Requirements
 
@@ -115,9 +114,8 @@ nix run github:esp0xdeadbeef/network-renderer-nebula -- \
   render-node --cpm ./cpm-bundle.json --node b-router-core-nebula
 ```
 
-`--cpm` must point to JSON containing either `nebulaRuntimePlan`, or
-`controlPlane`/`control_plane_model` plus `inventory`. If inventory is kept in a
-separate JSON file, pass `--inventory ./inventory.json`.
+`--cpm` must point to JSON containing CPM's provider-neutral overlay output (`controlPlane`/`control_plane_model` plus CPM-processed inventory). If CPM-processed inventory is kept in a
+separate JSON file, pass `--inventory ./inventory.json` (CPM-emitted inventory, not raw `inventory.nix`).
 
 Unmanaged members such as laptops may be rendered only with explicit overlay and
 address input:

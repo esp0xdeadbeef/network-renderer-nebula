@@ -11,7 +11,6 @@
 , prefixLength4
 , prefixLength6
 , lighthousePlan
-, validateMaterialization
 , }:
 
 let
@@ -33,7 +32,7 @@ builtins.listToAttrs (
       nodeName:
       let
         runtimePath =
-          "inventory.controlPlane.sites.${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
+          "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
         runtimeNode = requireAttr runtimePath (runtimeNodes.${nodeName} or null);
         nebulaRuntimePath =
           "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nebula.runtimeNodes.${nodeName}";
@@ -174,7 +173,13 @@ builtins.listToAttrs (
             name = runtimeNode.service.name or (throw "FS-310-HDS-010-SDS-010-SMS-110: service.name required by CPM provider contract, cannot default to nebula-runtime");
             interface = runtimeNode.service.interface or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.interface from CPM");
           };
-          materialization = validateMaterialization nodeName runtimePath runtimeNode;
+          materialization = builtins.removeAttrs runtimeNode [
+            "groups"
+            "host"
+            "relay"
+            "unsafeRoutes"
+            "service"
+          ];
           inherit relay;
           staticHostMap = (runtimeNode.staticHostMap or { }) // lighthouseStaticHostMap;
           staticHostMapSecretEndpoints =

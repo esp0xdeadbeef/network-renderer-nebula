@@ -1,34 +1,47 @@
 { lib }:
 
 { nebulaRuntimePlan
-, inventory
+, cpmData
 , hostName
 ,
 }:
+
 let
-  realizationNodes = (((inventory.realization or { }).nodes or { }));
+  attrsOrEmpty = value: if builtins.isAttrs value then value else { };
+
+  # Collect all runtimeTargets from CPM data and find which enterprise::site pairs
+  # have targets placed on this host
   selectedSiteKeys =
     lib.unique (
       lib.filter
         (key: key != null)
         (
-          lib.mapAttrsToList
-            (
-              _nodeName: node:
-                if (node.host or null) == hostName then
-                  let
-                    ent = node.logicalNode.enterprise or null;
-                    site = node.logicalNode.site or null;
-                  in
-                    if builtins.isString ent && builtins.isString site
-                    then "${ent}::${site}"
-                    else null
-                else
-                  null
-            )
-            realizationNodes
+          lib.concatLists (
+            lib.mapAttrsToList
+              (enterpriseName: enterpriseSites:
+                lib.concatLists (
+                  lib.mapAttrsToList
+                    (siteName: siteData:
+                      let
+                        targets = attrsOrEmpty (siteData.runtimeTargets or null);
+                      in
+                      lib.mapAttrsToList
+                        (_targetName: target:
+                          if ((target.placement or { }).host or null) == hostName then
+                            "${enterpriseName}::${siteName}"
+                          else
+                            null
+                        )
+                        targets
+                    )
+                    (attrsOrEmpty enterpriseSites)
+                )
+              )
+              (attrsOrEmpty cpmData)
+          )
         )
     );
+
   isSelectedRuntimeNode =
     _nodeName: node:
     builtins.elem "${node.enterpriseName or null}::${node.siteName or null}" selectedSiteKeys;

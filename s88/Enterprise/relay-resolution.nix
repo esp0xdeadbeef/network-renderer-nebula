@@ -10,7 +10,7 @@ let
           throw ''
             network-renderer-nebula: runtimeNodes.*.relay.relays references unknown runtime node '${nodeName}'
 
-            Model relay targets as runtimeNodes in inventory so the renderer can resolve them to explicit Nebula overlay addresses.
+            Model relay targets as runtimeNodes in the CPM control_plane_model so the renderer can resolve them to explicit Nebula overlay addresses.
           '';
     in
     helpers.stripPrefixLength (builtins.elemAt node.overlayAddresses 0);
