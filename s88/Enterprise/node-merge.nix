@@ -4,11 +4,11 @@ let
   routeKey =
     route:
     lib.concatStringsSep "|" [
-      (route.route or "")
-      (route.via4 or "")
-      (route.via6 or "")
-      (route.via or "")
-      (route.routeSourceFile or "")
+      (route.route or (throw "FS-310-HDS-010-SDS-010-SMS-110: route.route is required by CPM contract, cannot default to empty string"))
+      (toString (route.via4 or null))
+      (toString (route.via6 or null))
+      (toString (route.via or null))
+      (toString (route.routeSourceFile or null))
       (if route.install or true then "install" else "noinstall")
     ];
 
@@ -71,8 +71,8 @@ let
   dynamicFirewallCidrKey =
     spec:
     lib.concatStringsSep "|" [
-      (spec.sourceFile or "")
-      (toString (spec.family or ""))
+      (toString (spec.sourceFile or null))
+      (toString (spec.family or null))
     ];
 
   firewallRulesForNetworks =
@@ -103,7 +103,7 @@ in
           allUnsafeRoutes = builtins.concatLists (map (entry: entry.value.unsafeRoutes or [ ]) entries);
           advertisedUnsafeNetworks =
             helpers.uniqueStrings (
-              map (route: route.route or "")
+              map (route: route.route or (throw "FS-310-HDS-010-SDS-010-SMS-110: route.route is required by CPM contract, cannot default to empty string"))
                 (lib.filter
                   (route:
                     (overlayIp4 != null && (route.via4 or route.via or null) == overlayIp4)

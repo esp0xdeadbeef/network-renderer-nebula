@@ -25,20 +25,20 @@ let
   selectedSiteKeys =
     lib.unique (
       lib.filter
-        (key: key.enterpriseName != "" && key.siteName != "")
+        (key: builtins.isString key.enterpriseName && key.enterpriseName != "" && builtins.isString key.siteName && key.siteName != "")
         (
           lib.mapAttrsToList
             (
               _nodeName: node:
                 if (node.host or null) == hostName then
                   {
-                    enterpriseName = (node.logicalNode or { }).enterprise or "";
-                    siteName = (node.logicalNode or { }).site or "";
+                    enterpriseName = (node.logicalNode or { }).enterprise or null;
+                    siteName = (node.logicalNode or { }).site or null;
                   }
                 else
                   {
-                    enterpriseName = "";
-                    siteName = "";
+                    enterpriseName = null;
+                    siteName = null;
                   }
             )
             realizationNodes
