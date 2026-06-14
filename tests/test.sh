@@ -45,6 +45,7 @@ tests=(
   test-public-ingress-runtime-facts.sh
   test-nebula-runtime-module.sh
   test-fs460-boundary-scan.sh
+  test-fs460-hds010-sds010-sms021-nebula-cpm-only-consumption.sh
 )
 
 tmp_dir="$(mktemp -d)"
