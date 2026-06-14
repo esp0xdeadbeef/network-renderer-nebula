@@ -2,7 +2,7 @@
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-002
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-CMC-001-002
 # UPDATED: deploymentHost logic moved to CPM. Materialization now comes from CPM data.
-# Test verifies that container.targetContainer flows through from CPM to materialization.
+# Test verifies that container profile flows through from CPM to materialization.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,7 +30,7 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/hosted-plan.json"
 
 # Verify that materialization includes container info from CPM data
-jq -e '.materialization.container.targetContainer != null' \
+jq -e '.materialization.container.profile != null' \
   "$tmp_dir/hosted-plan.json" >/dev/null
 
 echo "PASS test-nebula-plan-hosted-inventory (adapted: materialization from CPM data)"

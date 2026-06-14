@@ -32,7 +32,11 @@ nix eval --impure --no-warn-dirty --json --expr '
     nodeName = "home-example-router-core-nebula";
     module = api.buildNebulaRuntimeNixosModule {
       inherit pkgs nodeName;
-      runtimeNode = plan.nodes.${nodeName};
+      runtimeNode = plan.nodes.${nodeName} // {
+        service = (plan.nodes.${nodeName}.service or {}) // {
+          listenHost = "100.96.10.1";
+        };
+      };
       externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/hetzner-lighthouse-public-ipv4";
       externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/hetzner-public-ipv6";
     };

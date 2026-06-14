@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-004
 # GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-CMC-001-004
-# UPDATED: buildNebulaPublicIngressRuntimeFacts now requires cpmData parameter
+# UPDATED: buildNebulaPublicIngressRuntimeFacts no longer accepts inventory — site selection is now cpmData-driven
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -147,14 +147,6 @@ api.buildNebulaPublicIngressRuntimeFacts {
         dports = [ 22 ];
       }
     ];
-  };
-  inventory.realization.nodes.edge-nebula = {
-    host = "validator-host";
-    logicalNode = {
-      enterprise = "acme";
-      site = "edge";
-      name = "edge-nebula";
-    };
   };
 }
 ' >"${tmp_json}"

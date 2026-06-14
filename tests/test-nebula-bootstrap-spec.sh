@@ -59,6 +59,7 @@ nix eval --impure --no-warn-dirty --json --expr '
           name = "test";
           lighthouse = {
             node = "exit";
+            port = "4242";
             overlayAddresses = [ "100.96.0.1/24" "fd42:test::1/64" ];
             overlayIps = [ "100.96.0.1" "fd42:test::1" ];
           };
@@ -68,6 +69,7 @@ nix eval --impure --no-warn-dirty --json --expr '
           overlayAddresses = [ "100.96.0.1/24" "fd42:test::1/64" ];
           lighthouse = {
             node = "exit";
+            port = "4242";
             overlayAddresses = [ "100.96.0.1/24" "fd42:test::1/64" ];
             overlayIps = [ "100.96.0.1" "fd42:test::1" ];
           };
