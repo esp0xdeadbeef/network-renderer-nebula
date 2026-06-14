@@ -58,6 +58,7 @@ nix eval --impure --no-warn-dirty --json --expr '
         service = {
           interface = "nebula1";
           name = "nebula-runtime";
+          listenHost = "100.96.10.2";
         };
         overlayAddresses = [
           "100.96.10.2/24"
@@ -139,6 +140,7 @@ nix eval --impure --no-warn-dirty --json --expr '
         service = {
           interface = "nebula1";
           name = "nebula-runtime";
+          listenHost = "100.96.10.254";
         };
         overlayAddresses = [
           "100.96.10.254/24"

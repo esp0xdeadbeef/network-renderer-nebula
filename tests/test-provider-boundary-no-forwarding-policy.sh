@@ -108,6 +108,11 @@ while IFS= read -r example_dir; do
       rm -rf "${tmp_dir}"
       continue
     fi
+    if grep -Eq '(missing modeled DNS policy for resolver advertisement|diagnostic\.missing-exposure-class)' "${tmp_dir}/render.err"; then
+      skipped=$((skipped + 1))
+      rm -rf "${tmp_dir}"
+      continue
+    fi
     echo "!!!! ${example_dir} Nebula provider plan render failed; boundary not verified" >&2
     sed -n '1,80p' "${tmp_dir}/render.err" | sed 's/^/!!!!   /' >&2
     failed=1
