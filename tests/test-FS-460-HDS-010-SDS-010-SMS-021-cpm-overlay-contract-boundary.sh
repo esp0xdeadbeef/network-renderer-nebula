@@ -9,7 +9,7 @@ if rg -n 'modeledUnsafeRoutes|runtimeNode\.unsafeRoutes|hasInfix|contains\("nebu
   "${repo_root}" \
   --glob '*.nix' \
   --glob '!flake.lock' \
-  --glob '!tests/test-cpm-overlay-contract-boundary.sh' >/tmp/network-renderer-nebula-boundary-hits.$$; then
+  --glob '!tests/test-FS-460-HDS-010-SDS-010-SMS-021-cpm-overlay-contract-boundary.sh' >/tmp/network-renderer-nebula-boundary-hits.$$; then
   cat >&2 <<EOF
 FATAL network-renderer-nebula CPM overlay contract boundary violation.
 

@@ -19,33 +19,33 @@ esac
 tests=(
   test-nix-file-loc.sh
   test-regression-md-resolved-states.sh
-  test-fs310-hds010-sds010-sms110-nebula-crit-fix.sh
-  test-cpm-overlay-contract-boundary.sh
-  test-provider-boundary-no-forwarding-policy.sh
-  test-provider-boundary-no-dns-egress.sh
-  test-nixos-module-no-host-reachability-policy.sh
-  test-fs100-renderer-output-provenance.sh
-  test-cli-render-node.sh
-  test-nebula-plan.sh
-  test-nebula-plan-explicit-inputs-basic.sh
-  test-nebula-plan-hosted-inventory.sh
-  test-nebula-plan-reject-host-uplink.sh
-  test-nebula-plan-reject-missing-relay.sh
-  test-fs460-nebula-remote-egress-smt.sh
-  test-nebula-delegated-default-exit.sh
-  test-nebula-dynamic-delegated-return-route.sh
-  test-delegated-prefix-secret-names.sh
-  test-nebula-bootstrap-advertised-networks.sh
-  test-nebula-advertised-default-firewall.sh
-  test-nebula-bootstrap-module.sh
-  test-nebula-bootstrap-spec.sh
-  test-nebula-remote-lighthouse-endpoint.sh
-  test-nebula-public-forwarded-relay-static-map.sh
-  test-nebula-public-relay-endpoint-static-map.sh
-  test-public-ingress-runtime-facts.sh
-  test-nebula-runtime-module.sh
-  test-fs460-boundary-scan.sh
-  test-fs460-hds010-sds010-sms021-nebula-cpm-only-consumption.sh
+  test-FS-310-HDS-010-SDS-010-SMS-110-nebula-crit-fix.sh
+  test-FS-460-HDS-010-SDS-010-SMS-021-cpm-overlay-contract-boundary.sh
+  test-FS-460-HDS-010-SDS-010-SMS-090-provider-boundary-no-forwarding-policy.sh
+  test-FS-460-HDS-010-SDS-010-SMS-040-provider-boundary-no-dns-egress.sh
+  test-FS-460-HDS-010-SDS-010-SMS-090-nixos-module-no-host-reachability-policy.sh
+  test-FS-100-HDS-010-SDS-010-SMS-010-renderer-output-provenance.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-cli-render-node.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-plan.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-plan-explicit-inputs-basic.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-plan-hosted-inventory.sh
+  test-FS-460-HDS-010-SDS-010-SMS-090-plan-reject-host-uplink.sh
+  test-FS-460-HDS-010-SDS-010-SMS-030-plan-reject-missing-relay.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-nebula-remote-egress-smt.sh
+  test-FS-460-HDS-010-SDS-010-SMS-050-delegated-default-exit.sh
+  test-FS-460-HDS-010-SDS-010-SMS-050-dynamic-delegated-return-route.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-delegated-prefix-secret-names.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-bootstrap-advertised-networks.sh
+  test-FS-460-HDS-010-SDS-010-SMS-090-advertised-default-firewall.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-bootstrap-module.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-bootstrap-spec.sh
+  test-FS-460-HDS-010-SDS-010-SMS-030-remote-lighthouse-endpoint.sh
+  test-FS-460-HDS-010-SDS-010-SMS-030-public-forwarded-relay-static-map.sh
+  test-FS-460-HDS-010-SDS-010-SMS-030-public-relay-endpoint-static-map.sh
+  test-FS-460-HDS-010-SDS-010-SMS-050-public-ingress-runtime-facts.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-runtime-module.sh
+  test-FS-460-HDS-010-SDS-010-SMS-060-boundary-scan.sh
+  test-FS-460-HDS-010-SDS-010-SMS-021-nebula-cpm-only-consumption.sh
 )
 
 tmp_dir="$(mktemp -d)"
