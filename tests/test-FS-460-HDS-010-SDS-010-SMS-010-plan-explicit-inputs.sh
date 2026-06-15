@@ -3,10 +3,10 @@ set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tests=(
-  test-nebula-plan-explicit-inputs-basic.sh
-  test-nebula-plan-hosted-inventory.sh
-  test-nebula-plan-reject-host-uplink.sh
-  test-nebula-plan-reject-missing-relay.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-plan-explicit-inputs-basic.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-plan-hosted-inventory.sh
+  test-FS-460-HDS-010-SDS-010-SMS-090-plan-reject-host-uplink.sh
+  test-FS-460-HDS-010-SDS-010-SMS-030-plan-reject-missing-relay.sh
 )
 
 tmp_dir="$(mktemp -d)"

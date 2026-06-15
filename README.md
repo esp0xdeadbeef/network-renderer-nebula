@@ -207,7 +207,7 @@ This discovers and runs all `tests/test-*.sh` files. Individual tests can be
 run directly:
 
 ```bash
-bash tests/test-nebula-plan.sh
-bash tests/test-fs460-nebula-remote-egress-smt.sh
-bash tests/test-cli-render-node.sh
+bash tests/test-FS-460-HDS-010-SDS-010-SMS-010-plan.sh
+bash tests/test-FS-460-HDS-010-SDS-010-SMS-010-nebula-remote-egress-smt.sh
+bash tests/test-FS-460-HDS-010-SDS-010-SMS-010-cli-render-node.sh
 ```
