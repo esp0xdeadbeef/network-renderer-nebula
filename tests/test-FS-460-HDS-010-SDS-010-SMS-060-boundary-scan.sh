@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-060-090 (coordinated)
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-060-070-090 (coordinated)
 # GAMP-SCOPE: software-module-test
 # Focused construction test: Nebula renderer boundary source scan.
 #
-# Covers 4 SMS rows:
+# Covers 3 SMS rows:
 #   SMS-060: Fail-closed contract — no hardcoded defaults for missing CPM fields
 #   SMS-070: Hardcoded value prevention — no `or` defaults for network parameters
-#   SMS-080: Output containment — output artifacts only at CPM-authorized paths
 #   SMS-090: Policy boundary — no firewall/route/DNS policy invention
+# SMS-080 now has dedicated test: test-FS-460-HDS-010-SDS-010-SMS-080-output-containment.sh
+# (covers full 6 module failure conditions + seeded negative per SMS-080 spec)
 #
 # All violations found are documented as KNOWN_GAPS.
 # Test PASSES with existing gaps; fails only on NEW violations.
@@ -19,7 +20,7 @@ trap 'rm -rf "${tmp_dir}"' EXIT
 all_checks_passed=true
 src_dir="${repo_root}/s88"
 
-echo "--- FS-460 Nebula renderer boundary source scan (SMS-060-090) ---"
+echo "--- FS-460 Nebula renderer boundary source scan (SMS-060-070-090) ---"
 echo ""
 
 # ============================================================
@@ -39,9 +40,10 @@ fi
 echo ""
 
 # ============================================================
-# Predicate 2 (SMS-080): Output containment — no hardcoded paths
+# Predicate 2: Output containment — no hardcoded paths
+# (SMS-080 now covered by dedicated test: test-FS-460-HDS-010-SDS-010-SMS-080-output-containment.sh)
 # ============================================================
-echo "--- SMS-080: Output containment scan ---"
+echo "--- Output containment scan (filesystem paths) ---"
 # Scan for hardcoded output paths (should use CPM-authorized paths)
 path_hits="$(find "${src_dir}" -name '*.nix' -print0 2>/dev/null | xargs -0 grep -nE '(outPath|builtins\.toFile|writeText|writeFile)' 2>/dev/null | grep -v 'tests/' || true)"
 path_count=$(echo "${path_hits}" | wc -l); [[ -z "${path_hits}" ]] && path_count=0
@@ -83,7 +85,7 @@ echo ""
 # Report
 # ============================================================
 if [[ "${all_checks_passed}" == "true" ]]; then
-  echo "PASS: FS-460 Nebula renderer boundary scan (SMS-060-090) complete."
+  echo "PASS: FS-460 Nebula renderer boundary scan (SMS-060-070-090) complete."
   exit 0
 else
   echo "FAIL: Scanner verification failed."
