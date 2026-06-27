@@ -83,10 +83,9 @@ let
               relays = [ ];
               nodes = [ ];
             };
-            service = node.service or {
-              name = "nebula-runtime";
-              interface = "nebula1";  # FIXME: CPM must provide explicit service.interface
-            } // lib.optionalAttrs (runtimeListenHostFor nodeName != null) {
+            service = let
+              svc = node.service or (throw "network-renderer-nebula: node ${nodeName} missing service from CPM");
+            in svc // lib.optionalAttrs (runtimeListenHostFor nodeName != null) {
               listenHost = runtimeListenHostFor nodeName;
             };
             dynamicFirewallCidrs = node.dynamicFirewallCidrs or [ ];
@@ -96,7 +95,7 @@ let
               node = lighthouse.node or null;
               endpoint = lighthouse.endpoint or null;
               endpoint6 = lighthouse.endpoint6 or null;
-              port = builtins.toString (lighthouse.port or (throw "FS-310-HDS-010-SDS-010-SMS-110: lighthouse.port required by CPM provider contract, cannot default to 4242"));
+              port = builtins.toString (lighthouse.port or (throw "network-renderer-nebula: node ${nodeName} lighthouse missing port from CPM"));
               certCidr4 = builtins.elemAt lighthouseAddresses 0;
               certCidr6 = builtins.elemAt lighthouseAddresses 1;
               overlayIp4 = builtins.elemAt lighthouseIps 0;

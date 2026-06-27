@@ -4,7 +4,7 @@
     overlays = { };
     nodes = { };
   }
-, consumerName ? (throw "network-renderer-nebula: buildNebulaBootstrapNixosModule requires consumerName")
+, consumerName ? (throw "network-renderer-nebula: buildNebulaBootstrapNixosModule requires consumerName (was hardcoded as \"s-router-test\")")
 , externalLighthouseReturnIpv4Cidrs ? [ ]
 , externalLighthousePublicIpv4SecretPath ? null
 , externalLighthousePublicIpv6SecretPath ? null

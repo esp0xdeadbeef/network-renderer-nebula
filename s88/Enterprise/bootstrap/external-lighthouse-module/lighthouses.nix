@@ -32,8 +32,8 @@ let
     lib.concatStringsSep "|" [
       (builtins.elemAt addresses 0)
       (builtins.elemAt addresses 1)
-      (lighthouse.endpoint or (throw "FS-310-HDS-010-SDS-010-SMS-110: lighthouse.endpoint is required by CPM contract, cannot default to empty string"))
-      (toString (lighthouse.endpoint6 or null))
+      (lighthouse.endpoint or "")
+      (lighthouse.endpoint6 or "")
       (builtins.toString (lighthouse.port or (throw "network-renderer-nebula: external lighthouse ${overlayId} missing port from CPM")))
     ];
   lighthouseFingerprints = lib.unique (map fingerprintFor overlayNames);
@@ -47,7 +47,7 @@ let
           matching = matchingOverlaysFor fingerprint;
           base = nebulaRuntimePlan.overlays.${builtins.head matching};
         in
-          !(builtins.isString (base.lighthouse.node or null) && builtins.hasAttr base.lighthouse.node (nebulaRuntimePlan.nodes or { }))
+          !(builtins.hasAttr (base.lighthouse.node or "") (nebulaRuntimePlan.nodes or { }))
       )
       lighthouseFingerprints;
 in

@@ -1,6 +1,7 @@
 { lib
 , renderer
 , cpmPath
+, inventoryPath ? null
 , nodeName
 , overlayId ? null
 , extraNode ? false
@@ -13,6 +14,11 @@
 let
   readJson = path: builtins.fromJSON (builtins.readFile path);
   input = readJson cpmPath;
+  inventory =
+    if inventoryPath != null then
+      readJson inventoryPath
+    else
+      input.inventory or null;
 
   hasRuntimePlan = builtins.isAttrs (input.nebulaRuntimePlan or null);
   hasControlPlane = builtins.isAttrs (input.controlPlane or null) || builtins.isAttrs (input.control_plane_model or null);
@@ -21,15 +27,16 @@ let
   runtimePlan =
     if hasRuntimePlan then
       input.nebulaRuntimePlan
-    else if hasControlPlane then
+    else if hasControlPlane && builtins.isAttrs inventory then
       renderer.buildNebulaPlan
         {
-          inherit controlPlane;
+          inherit controlPlane inventory;
         }
     else
       throw ''
         network-renderer-nebula: --cpm must point to JSON containing either
-        nebulaRuntimePlan, or controlPlane/control_plane_model.
+        nebulaRuntimePlan, or controlPlane/control_plane_model plus inventory.
+        Pass --inventory when inventory is not embedded in the CPM bundle.
       '';
 
   selectedOverlayId =
@@ -80,7 +87,7 @@ let
       groups = lib.unique (groups ++ [ "unmanaged" ]);
       service = {
         name = "nebula-runtime";
-        interface = "nebula1";  # renderer-owned naming convention for unmanaged extras
+        interface = "nebula1";  # unmanaged nodes keep hardcoded interface: renderer owns the interface naming convention for unmanaged extras
       };
       materialization = {
         unmanaged = true;

@@ -37,6 +37,7 @@ nix eval --impure --no-warn-dirty --json --expr '
     module = api.buildNebulaBootstrapNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
+      consumerName = "s-router-test";
       externalPortForwardNodeNames = [ "c-router-nebula-core" ];
       externalRuntimeNodeNames = [ "c-router-nebula-core" ];
       runtimeListenHosts = {
@@ -48,6 +49,7 @@ nix eval --impure --no-warn-dirty --json --expr '
     operatorModule = api.buildNebulaBootstrapNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
+      consumerName = "s-router-test";
       externalPortForwardNodeNames = [ "c-router-nebula-core" ];
       externalRuntimeNodeNames = [ "c-router-nebula-core" ];
       runtimeListenHosts = {
@@ -58,6 +60,7 @@ nix eval --impure --no-warn-dirty --json --expr '
     externalModule = api.buildExternalLighthouseNixosModule {
       inherit pkgs;
       nebulaRuntimePlan = plan;
+      consumerName = "s-router-test";
     };
   in
   {
