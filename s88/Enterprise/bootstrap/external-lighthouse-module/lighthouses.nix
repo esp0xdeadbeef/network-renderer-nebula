@@ -58,14 +58,16 @@ lib.imap0
       matching = matchingOverlaysFor fingerprint;
       base = nebulaRuntimePlan.overlays.${builtins.head matching};
       logicalName = sanitizeName base.name;
-      certBaseName = "${logicalName}-${base.lighthouse.node or "lighthouse"}";
+      lighthouseNode = base.lighthouse.node or (throw "FS-460-HDS-010-SDS-010-SMS-041: lighthouse.node required by CPM provider contract, cannot default to lighthouse");
+      listenHost = base.lighthouse.listenHost or (throw "FS-460-HDS-010-SDS-010-SMS-041: external lighthouse listenHost required by CPM provider contract, cannot default to [::]");
+      certBaseName = "${logicalName}-${lighthouseNode}";
     in
     {
       name = logicalName;
-      inherit certBaseName;
+      inherit certBaseName listenHost;
       serviceName = "nebula-lighthouse-${logicalName}";
       interfaceName = "nebula${builtins.toString index}";
-      port = toPort (base.lighthouse.port or (throw "network-renderer-nebula: external lighthouse ${base.name} missing port from CPM"));
+      port = toPort (base.lighthouse.port or (throw "FS-460-HDS-010-SDS-010-SMS-041: external lighthouse ${base.name} missing port from CPM"));
       overlayNetwork4 = builtins.elemAt base.lighthouse.overlayAddresses 0;
       overlayNetwork6 = builtins.elemAt base.lighthouse.overlayAddresses 1;
     }

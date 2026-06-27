@@ -31,6 +31,7 @@ tests=(
   test-FS-460-HDS-010-SDS-010-SMS-010-plan-hosted-inventory.sh
   test-FS-460-HDS-010-SDS-010-SMS-090-plan-reject-host-uplink.sh
   test-FS-460-HDS-010-SDS-010-SMS-030-plan-reject-missing-relay.sh
+  test-FS-460-HDS-010-SDS-010-SMS-041-nebula-fail-closed-contract.sh
   test-FS-460-HDS-010-SDS-010-SMS-010-nebula-remote-egress-smt.sh
   test-FS-460-HDS-010-SDS-010-SMS-050-delegated-default-exit.sh
   test-FS-460-HDS-010-SDS-010-SMS-050-dynamic-delegated-return-route.sh
