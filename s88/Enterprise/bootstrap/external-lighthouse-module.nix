@@ -19,7 +19,7 @@ let
     isLighthouse = true;
     lighthouses = [ ];
     listen = {
-      host = "[::]";
+      host = lh.listenHost;
       port = lh.port;
     };
     tun = {
