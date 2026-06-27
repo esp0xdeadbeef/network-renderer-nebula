@@ -158,13 +158,14 @@ nix eval --impure --no-warn-dirty --json --expr '
     };
     service = module.systemd.services."nebula@runtime";
     lighthouseService = lighthouseModule.systemd.services."nebula@runtime";
+    tcpdumpService = module.systemd.services.s88-runtime-tcpdump;
     network = module.services.nebula.networks.runtime;
   in
   {
     tmpfiles = module.systemd.tmpfiles.rules;
     firewall = module.networking.firewall or { };
     nftablesRuleset = module.networking.nftables.ruleset or null;
-    inherit network service lighthouseService;
+    inherit network service lighthouseService tcpdumpService;
   }
 ' > "$tmp_dir/runtime-module.json"
 
@@ -202,6 +203,17 @@ jq -e '
   (.service.serviceConfig.ExecStart.content.content | contains("/run/nebula-runtime/runtime.yml")) and
   .service.serviceConfig.User.content == "root" and
   .service.serviceConfig.Group.content == "root"
+' "$tmp_dir/runtime-module.json" >/dev/null
+
+jq -e '
+  (.tcpdumpService.after | index("network.target") != null) and
+  (.tcpdumpService.wantedBy | index("multi-user.target") != null) and
+  (.tcpdumpService.serviceConfig.ExecStart | contains("/bin/tcpdump -i any -nn -s 0 -U -w /run/s88-runtime-tcpdump/b-router-core-nebula.pcap")) and
+  .tcpdumpService.serviceConfig.RuntimeDirectory == "s88-runtime-tcpdump" and
+  .tcpdumpService.serviceConfig.Restart == "always" and
+  .tcpdumpService.serviceConfig.RestartSec == "2s" and
+  .tcpdumpService.serviceConfig.User == "root" and
+  .tcpdumpService.serviceConfig.Group == "root"
 ' "$tmp_dir/runtime-module.json" >/dev/null
 
 jq -e '

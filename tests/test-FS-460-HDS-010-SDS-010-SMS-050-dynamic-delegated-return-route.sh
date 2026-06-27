@@ -8,8 +8,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "${tmp_dir}"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-public-overlay-service/intent.nix"
+inventory_path="${labs_path}/examples/s-router-public-overlay-service/inventory-nixos.nix"
 plan_json="${tmp_dir}/plan.json"
 
 nix eval --impure --no-warn-dirty --json --expr '
@@ -24,29 +24,57 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "${plan_json}"
 
 jq -e '
-  .nodes["c-router-nebula-core"].unsafeRoutes as $routes
+  . as $plan
+  | $plan.nodes["c-router-nebula-core"].dynamicFirewallCidrs as $site_c_firewall
+  | $plan.nodes["c-router-nebula-core"].dynamicUnsafeRoutes as $site_c_dynamic_routes
+  | $plan.nodes["b-router-core-nebula"].dynamicUnsafeRoutes as $branch_dynamic_routes
   | {
       ok:
         (
-          $routes
-          | map(select(
-              .routeSourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"
-              and .via6 == "fd42:dead:beef:ee::2"
-              and .install == true
-            ))
-          | length
-        ) == 1,
+          (
+            $site_c_firewall
+            | map(select(
+                .sourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"
+                and .family == 6
+              ))
+            | length
+          ) == 1
+          and ($site_c_dynamic_routes | length) == 0
+          and (
+            $branch_dynamic_routes
+            | map(select(
+                .sourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"
+                and .family == 6
+              ))
+            | length
+          ) == 1
+          and (
+            $plan.nodes["c-router-nebula-core"].unsafeRoutes
+            | map(select(.routeSourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"))
+            | length
+          ) == 0
+        ),
       expected: {
-        node: "c-router-nebula-core",
-        dynamicRouteSourceFile: "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile",
-        via6: "fd42:dead:beef:ee::2"
+        sourceFile: "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile",
+        siteC: "dynamicFirewallCidrs",
+        branch: "dynamicUnsafeRoutes",
+        forbiddenHardcodedRouteSourceFile: true
       },
-      observedUnsafeRoutes: $routes
+      observed: {
+        siteCFirewall: $site_c_firewall,
+        siteCDynamicUnsafeRoutes: $site_c_dynamic_routes,
+        branchDynamicUnsafeRoutes: $branch_dynamic_routes,
+        siteCUnsafeRouteSourceFiles:
+          (
+            $plan.nodes["c-router-nebula-core"].unsafeRoutes
+            | map(select(.routeSourceFile == "/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile"))
+          )
+      }
     }
 ' "${plan_json}" > "${tmp_dir}/observed.json"
 
 if ! jq -e '.ok == true' "${tmp_dir}/observed.json" >/dev/null; then
-  echo "FAIL nebula-dynamic-delegated-return-route: expected example site-C Nebula core to carry branch hostile delegated runtime IPv6 prefix back to branch Nebula core" >&2
+  echo "FAIL nebula-dynamic-delegated-return-route: expected dynamic source-file authority to remain dynamic instead of becoming a hardcoded unsafe route" >&2
   jq . "${tmp_dir}/observed.json" >&2
   exit 1
 fi

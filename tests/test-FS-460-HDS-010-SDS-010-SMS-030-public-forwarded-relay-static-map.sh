@@ -1,33 +1,55 @@
 #!/usr/bin/env bash
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-030
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "${repo_root}/tests/lib/input-path.sh"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
-
 nix eval --impure --no-warn-dirty --json --expr '
   let
-    flake = builtins.getFlake (toString '"$repo_root"');
+    flake = builtins.getFlake ("path:'"${repo_root}"'");
     system = "x86_64-linux";
     api = flake.libBySystem.${system}.renderer;
     pkgs = import flake.inputs.nixpkgs { inherit system; };
-    plan = import "'"$repo_root"'/tests/nix/nebula-plan-from-inputs.nix" {
-      repoRoot = "'"$repo_root"'";
-      intentPath = "'"$intent_path"'";
-      inventoryPath = "'"$inventory_path"'";
-      inherit system;
-    };
-    nodeName = "c-router-nebula-core";
+    nodeName = "relay-core";
     module = api.buildNebulaRuntimeNixosModule {
       inherit pkgs nodeName;
-      runtimeNode = plan.nodes.${nodeName} // {
-        service = (plan.nodes.${nodeName}.service or { }) // {
+      runtimeNode = {
+        overlayAddresses = [ "100.96.10.3/24" "fd42:dead:beef:ee::3/64" ];
+        groups = [ "relay" "core" ];
+        lighthouse = {
+          node = "remote-lighthouse";
+          port = 4242;
+          overlayIps = [ "100.96.10.254" "fd42:dead:beef:ee::254" ];
+          endpoints = [ "198.51.100.10:4242" ];
+        };
+        relay = {
+          amRelay = true;
+          useRelays = false;
+          relays = [ ];
+          nodes = [ ];
+        };
+        service = {
+          interface = "nebula1";
+          name = "nebula-runtime";
           listenHost = "172.31.254.4";
+          port = 4243;
+          mtu = 1200;
+        };
+        staticHostMap = {
+          "100.96.10.254" = [ "198.51.100.10:4242" ];
+          "fd42:dead:beef:ee::254" = [ "[2001:db8:51::10]:4242" ];
+        };
+        nebulaNetwork.settings.nebulaFirewallRules = {
+          inbound = [
+            { host = "any"; local_cidr = "10.90.10.0/24"; port = "any"; proto = "any"; }
+            { host = "any"; local_cidr = "fd42:dead:cafe:10::/64"; port = "any"; proto = "any"; }
+          ];
+          outbound = [
+            { host = "any"; local_cidr = "10.90.10.0/24"; port = "any"; proto = "any"; }
+            { host = "any"; local_cidr = "fd42:dead:cafe:10::/64"; port = "any"; proto = "any"; }
+          ];
         };
       };
     };
@@ -37,9 +59,15 @@ nix eval --impure --no-warn-dirty --json --expr '
 
 jq -e '
   .listen.host == "172.31.254.4" and
-  .staticHostMap != {} and
+  .listen.port == 4243 and
+  .staticHostMap["100.96.10.254"] == ["198.51.100.10:4242"] and
+  .staticHostMap["fd42:dead:beef:ee::254"] == ["[2001:db8:51::10]:4242"] and
   .isRelay == true and
-  .settings.relay.am_relay == true
+  .settings.relay.am_relay == true and
+  ([.firewall.inbound[]? | select(has("local_cidr") | not)] | length) == 0 and
+  ([.firewall.outbound[]? | select(has("local_cidr") | not)] | length) == 0 and
+  ([.firewall.inbound[]? | select(.local_cidr == "10.90.10.0/24")] | length) == 1 and
+  ([.firewall.inbound[]? | select(.local_cidr == "fd42:dead:cafe:10::/64")] | length) == 1
 ' "$tmp_dir/network.json" >/dev/null
 
 source_file="${repo_root}/s88/Enterprise/runtime/nixos-module.nix"

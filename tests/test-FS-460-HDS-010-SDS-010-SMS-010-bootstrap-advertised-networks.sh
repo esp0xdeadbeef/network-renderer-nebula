@@ -7,8 +7,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-public-overlay-service/intent.nix"
+inventory_path="${labs_path}/examples/s-router-public-overlay-service/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -41,13 +41,13 @@ jq -e '
   .spec.runtimeNodes["c-router-lighthouse"].isLighthouse == true and
   .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
   (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
-  .spec.runtimeNodes["c-router-nebula-core"].relay.amRelay == true and
-  .spec.runtimeNodes["b-router-core-nebula"].relay.relays == ["100.96.10.3"] and
+  .spec.runtimeNodes["c-router-nebula-core"].relay.amRelay == false and
+  .spec.runtimeNodes["b-router-core-nebula"].relay.relays == [] and
   (.spec.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
   (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.60.10.0/24") != null) and
   (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("10.50.0.0/32") == null) and
   (.spec.runtimeNodes["b-router-core-nebula"].advertisedUnsafeNetworks | index("fd42:dead:feed:10::/64") != null) and
-  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworks | index("10.70.10.0/24") == null) and
+  (.spec.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworkSourceFiles | index("/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile") != null) and
   .spec.lighthouses["east-west"].internal == true and
   (.spec.lighthouses["east-west"].unsafeNetworks | index("fd42:dead:beef:10::/64") != null) and
   .sopsSecrets["nebula-profile-b-router-core-nebula-key"].path == "/persist/nebula-runtime/profiles/b-router-core-nebula/b-router-core-nebula.key"

@@ -1,62 +1,122 @@
 #!/usr/bin/env bash
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-003-SMS-001-001
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-003-SMS-001-002
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-003-SMS-001-003
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-003-SMS-001-CMC-001-001
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-003-SMS-001-CMC-001-002
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-003-SMS-001-CMC-001-003
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-030
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "${repo_root}/tests/lib/input-path.sh"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/tri-site-s-router-overlay-egress/intent.nix"
-inventory_path="${labs_path}/examples/tri-site-s-router-overlay-egress/inventory.nix"
-
 nix eval --impure --no-warn-dirty --json --expr '
   let
-    repo = "'"$repo_root"'";
-    flake = builtins.getFlake (toString repo);
+    flake = builtins.getFlake ("path:'"${repo_root}"'");
     system = "x86_64-linux";
     api = flake.libBySystem.${system}.renderer;
     pkgs = import flake.inputs.nixpkgs { inherit system; };
-    plan = import (repo + "/tests/nix/nebula-plan-from-inputs.nix") {
-      repoRoot = repo;
-      intentPath = "'"$intent_path"'";
-      inventoryPath = "'"$inventory_path"'";
-      inherit system;
+    nodeName = "home-core";
+    relayNodeName = "edge-relay";
+    relayRuntimeNode = {
+      overlayAddresses = [ "100.96.10.3/24" "fd42:dead:beef:ee::3/64" ];
+      groups = [ "relay" "core" ];
+      lighthouse = {
+        node = "remote-lighthouse";
+        port = 4242;
+        overlayIps = [ "100.96.10.254" "fd42:dead:beef:ee::254" ];
+        endpoints = [ "198.51.100.10:4242" ];
+      };
+      relay = {
+        amRelay = true;
+        useRelays = false;
+        relays = [ ];
+        nodes = [ ];
+      };
+      service = {
+        interface = "nebula1";
+        name = "nebula-runtime";
+        listenHost = "172.31.254.4";
+        port = 4243;
+        mtu = 1200;
+        publicEndpoints = [
+          {
+            endpointSourceFile = "/run/secrets/hetzner-public-ipv4";
+            port = 4243;
+          }
+        ];
+      };
+      staticHostMap = {
+        "100.96.10.254" = [ "198.51.100.10:4242" ];
+      };
+      nebulaNetwork.settings.nebulaFirewallRules = {
+        inbound = [
+          { host = "any"; local_cidr = "10.90.10.0/24"; port = "any"; proto = "any"; }
+          { host = "any"; local_cidr = "fd42:dead:cafe:10::/64"; port = "any"; proto = "any"; }
+        ];
+        outbound = [
+          { host = "any"; local_cidr = "10.90.10.0/24"; port = "any"; proto = "any"; }
+          { host = "any"; local_cidr = "fd42:dead:cafe:10::/64"; port = "any"; proto = "any"; }
+        ];
+      };
     };
-    nodeName = "home-example-router-core-nebula";
+    nodeRuntimeNode = {
+      overlayAddresses = [ "100.96.10.1/24" "fd42:dead:beef:ee::1/64" ];
+      groups = [ "core" ];
+      lighthouse = {
+        node = "remote-lighthouse";
+        port = 4242;
+        overlayIps = [ "100.96.10.254" "fd42:dead:beef:ee::254" ];
+        endpoints = [ "198.51.100.10:4242" ];
+      };
+      relay = {
+        amRelay = false;
+        useRelays = true;
+        relays = [ "100.96.10.3" ];
+        nodes = [ relayNodeName ];
+      };
+      service = {
+        interface = "nebula1";
+        name = "nebula-runtime";
+        listenHost = "100.96.10.1";
+        port = 4242;
+        mtu = 1200;
+      };
+      staticHostMap = {
+        "100.96.10.3" = [ "127.0.0.1:4243" ];
+        "100.96.10.254" = [ "198.51.100.10:4242" ];
+      };
+      staticHostMapSecretEndpoints = {
+        "100.96.10.3" = [
+          {
+            sourceFile = "/run/secrets/hetzner-public-ipv4";
+            port = "4243";
+          }
+        ];
+      };
+      nebulaNetwork.settings.nebulaFirewallRules = {
+        inbound = [ ];
+        outbound = [ ];
+      };
+    };
     module = api.buildNebulaRuntimeNixosModule {
       inherit pkgs nodeName;
-      runtimeNode = plan.nodes.${nodeName} // {
-        service = (plan.nodes.${nodeName}.service or {}) // {
-          listenHost = "100.96.10.1";
-        };
-      };
+      runtimeNode = nodeRuntimeNode;
       externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/hetzner-lighthouse-public-ipv4";
       externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/hetzner-public-ipv6";
     };
-    relayNodeName = "edge-example-router-nebula-core";
     relayModule = api.buildNebulaRuntimeNixosModule {
       inherit pkgs;
       nodeName = relayNodeName;
-      runtimeNode = plan.nodes.${relayNodeName};
+      runtimeNode = relayRuntimeNode;
     };
     relayDynamicModule = api.buildNebulaRuntimeNixosModule {
       inherit pkgs;
       nodeName = relayNodeName;
-      runtimeNode = plan.nodes.${relayNodeName};
+      runtimeNode = relayRuntimeNode;
       externalRemoteLighthouseEndpoint4SecretPath = "/run/secrets/hetzner-lighthouse-public-ipv4";
       externalRemoteLighthouseEndpoint6SecretPath = "/run/secrets/hetzner-public-ipv6";
     };
   in
     {
-      node = plan.nodes.${nodeName};
-      relay = plan.nodes.${relayNodeName};
+      node = nodeRuntimeNode;
+      relay = relayRuntimeNode;
       network = module.services.nebula.networks.runtime;
       relayNetwork = relayModule.services.nebula.networks.runtime;
       relayDynamicPreStart = relayDynamicModule.systemd.services."nebula@runtime".preStart;
@@ -65,7 +125,7 @@ nix eval --impure --no-warn-dirty --json --expr '
 ' > "$tmp_dir/result.json"
 
 jq -e '
-  .node.relay.nodes == ["edge-example-router-nebula-core"] and
+  .node.relay.nodes == ["edge-relay"] and
   .node.relay.relays == ["100.96.10.3"] and
   .node.staticHostMap["100.96.10.3"] == ["127.0.0.1:4243"] and
   .node.staticHostMapSecretEndpoints["100.96.10.3"] == [
