@@ -46,6 +46,7 @@ tests=(
   test-FS-460-HDS-010-SDS-010-SMS-010-runtime-module.sh
   test-FS-460-HDS-010-SDS-010-SMS-060-boundary-scan.sh
   test-FS-460-HDS-010-SDS-010-SMS-021-nebula-cpm-only-consumption.sh
+  run-fs982-sms110.sh
 )
 
 tmp_dir="$(mktemp -d)"
