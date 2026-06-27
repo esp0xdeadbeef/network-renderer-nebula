@@ -59,6 +59,7 @@ nix eval --impure --no-warn-dirty --json --expr '
           interface = "nebula1";
           name = "nebula-runtime";
           listenHost = "100.96.10.2";
+          mtu = 1200;
         };
         overlayAddresses = [
           "100.96.10.2/24"
@@ -141,6 +142,7 @@ nix eval --impure --no-warn-dirty --json --expr '
           interface = "nebula1";
           name = "nebula-runtime";
           listenHost = "100.96.10.254";
+          mtu = 1200;
         };
         overlayAddresses = [
           "100.96.10.254/24"
