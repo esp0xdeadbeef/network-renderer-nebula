@@ -4,7 +4,7 @@
     overlays = { };
     nodes = { };
   }
-, consumerName ? (throw "network-renderer-nebula: buildNebulaBootstrapExternalLighthouseModule requires consumerName")
+, consumerName ? (throw "network-renderer-nebula: buildNebulaBootstrapExternalLighthouseModule requires consumerName (was hardcoded as \"s-router-test\")")
 ,
 }:
 let

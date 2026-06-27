@@ -23,7 +23,7 @@ let
     let
       relayNode = requireAttr "nebula.nodes.${relayNodeName}" (nodes.${relayNodeName} or null);
       relayService = relayNode.service or { };
-      defaultPort = builtins.toString (relayService.port or relayNode.lighthouse.port or (throw "network-renderer-nebula: relay node ${relayNodeName} missing port from CPM"));
+      defaultPort = builtins.toString (relayService.port or relayNode.lighthouse.port or (throw "network-renderer-nebula: relay node ${relayNodeName} missing service.port or lighthouse.port from CPM"));
       endpointPath = "nebula.nodes.${relayNodeName}.service.publicEndpoints";
     in
     map
