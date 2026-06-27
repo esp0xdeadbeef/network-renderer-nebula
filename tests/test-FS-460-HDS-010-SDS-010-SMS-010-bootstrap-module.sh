@@ -19,8 +19,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-public-overlay-service/intent.nix"
+inventory_path="${labs_path}/examples/s-router-public-overlay-service/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -88,9 +88,9 @@ jq -e '
   .spec.runtimeNodes["c-router-lighthouse"].materialization.container.hostBridge == "dmz" and
   (.spec.runtimeNodes["c-router-lighthouse"].unsafeRoutes | length) == 0 and
   (.spec.runtimeNodes["c-router-lighthouse"].groupsCsv | split(",") | index("lighthouse") != null) and
-  .spec.runtimeNodes["c-router-nebula-core"].relay.amRelay == true and
-  .spec.runtimeNodes["s-router-core-nebula"].relay.relays == ["100.96.10.3"] and
-  .spec.runtimeNodes["b-router-core-nebula"].relay.relays == ["100.96.10.3"] and
+  .spec.runtimeNodes["c-router-nebula-core"].relay.amRelay == false and
+  .spec.runtimeNodes["s-router-core-nebula"].relay.relays == [] and
+  .spec.runtimeNodes["b-router-core-nebula"].relay.relays == [] and
   .spec.runtimeNodes["c-router-nebula-core"].service.listenHost == "172.31.254.4" and
   .spec.lighthouses["east-west"].internal == true and
   .sopsSecrets["nebula-profile-c-router-nebula-core-ca-crt"].path == "/persist/nebula-runtime/profiles/c-router-nebula-core/ca.crt" and

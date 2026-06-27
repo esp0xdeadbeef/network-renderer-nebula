@@ -1,60 +1,133 @@
 #!/usr/bin/env bash
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-005
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-CMC-001-005
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-050
 set -euo pipefail
-# LAB-SMT-ID: LAB-SMT-014
-# LAB-SMT-SCOPE: examples-only; see network-labs/tests/SMT.md
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "${repo_root}/tests/lib/input-path.sh"
-
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "${tmp_dir}"' EXIT
 
-labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
-plan_json="${tmp_dir}/plan.json"
-
 nix eval --impure --no-warn-dirty --json --expr '
   let
-    flake = builtins.getFlake (toString '"$repo_root"');
+    flake = builtins.getFlake ("path:'"${repo_root}"'");
+    api = flake.libBySystem.x86_64-linux.renderer;
+
+    delegatedDefault = {
+      proto = "overlay";
+      overlay = "east-west";
+      peerSite = "enterprise.remote";
+      family = 4;
+      dst = "0.0.0.0/0";
+      policyOnly = true;
+      intent.kind = "delegated-public-egress";
+    };
+
+    mkControlPlane = route: {
+      control_plane_model.data.enterprise = {
+        local = {
+          enterprise = "enterprise";
+          siteName = "local";
+          domains.tenants = [
+            {
+              name = "client";
+              routedPrefixes = [
+                {
+                  family = "ipv4";
+                  allocation = "runtime";
+                  sourceFile = "/run/secrets/client-public-prefix-v4";
+                }
+              ];
+            }
+          ];
+          runtimeTargets."core-target".effectiveRuntimeRealization.interfaces."overlay-east-west" = {
+            logicalNode = "core";
+            backingRef.name = "east-west";
+            sourceKind = "overlay";
+            routes.ipv4 = [ route ];
+          };
+          overlays.east-west = {
+            provider = "nebula";
+            peerSites = [ "enterprise.remote" ];
+            runtimeNodes.core = {
+              groups = [ "core" ];
+              container.targetContainer = "core";
+              service = {
+                interface = "nebula1";
+                name = "nebula-runtime";
+                listenHost = "127.0.0.1";
+              };
+            };
+            nodes.core = {
+              addr4 = "100.96.0.1/24";
+              addr6 = "fd42:dead:beef::1/64";
+            };
+            nebula.lighthouse = {
+              node = "core";
+              endpoint = "198.51.100.10";
+              endpoint6 = "2001:db8::10";
+              port = 4242;
+            };
+            ipam = {
+              ipv4.prefix = "100.96.0.0/24";
+              ipv6.prefix = "fd42:dead:beef::/64";
+            };
+          };
+        };
+        remote = {
+          enterprise = "enterprise";
+          siteName = "remote";
+          overlays.east-west = {
+            provider = "nebula";
+            terminateOn = [ "remote-core" ];
+            nodes.remote-core = {
+              addr4 = "100.96.0.2/24";
+              addr6 = "fd42:dead:beef::2/64";
+            };
+            runtimeNodes.remote-core = {
+              groups = [ "core" ];
+              container.targetContainer = "remote-core";
+              service = {
+                interface = "nebula1";
+                name = "nebula-runtime";
+                listenHost = "127.0.0.1";
+              };
+            };
+          };
+        };
+      };
+    };
+
+    render = route: api.buildNebulaPlan { controlPlane = mkControlPlane route; };
+    good = render delegatedDefault;
+    mislabeledDefault = builtins.tryEval (render (delegatedDefault // { intent.kind = "overlay-reachability"; })).nodes.core.unsafeRoutes;
   in
-  import "'"${repo_root}"'/tests/nix/nebula-plan-from-inputs.nix" {
-    repoRoot = "'"${repo_root}"'";
-    intentPath = "'"${intent_path}"'";
-    inventoryPath = "'"${inventory_path}"'";
+  {
+    unsafeRoutes = good.nodes.core.unsafeRoutes;
+    dynamicFirewallCidrs = good.nodes.core.dynamicFirewallCidrs;
+    dynamicUnsafeRoutes = good.nodes.core.dynamicUnsafeRoutes;
+    mislabeledDefaultRejected = !mislabeledDefault.success;
   }
-' > "${plan_json}"
+' > "${tmp_dir}/observed.json"
 
 jq -e '
-  .nodes["b-router-core-nebula"].unsafeRoutes as $routes
+  . as $observed
+  | $observed.unsafeRoutes as $routes
   | {
       ok:
         (
-          ($routes | map(select(.route == "0.0.0.0/1" and .via4 == "100.96.10.3" and .install == false)) | length) == 1
-          and ($routes | map(select(.route == "128.0.0.0/1" and .via4 == "100.96.10.3" and .install == false)) | length) == 1
-          and ($routes | map(select(.route == "::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == false)) | length) == 1
-          and ($routes | map(select(.route == "8000::/1" and .via6 == "fd42:dead:beef:ee::3" and .install == false)) | length) == 1
+          ($routes | map(select(.route == "0.0.0.0/1" and .via4 == "100.96.0.2" and .install == false)) | length) == 1
+          and ($routes | map(select(.route == "128.0.0.0/1" and .via4 == "100.96.0.2" and .install == false)) | length) == 1
           and (($routes | map(.route) | index("0.0.0.0/0")) == null)
-          and (($routes | map(.route) | index("::/0")) == null)
+          and ($observed.dynamicFirewallCidrs | map(select(.sourceFile == "/run/secrets/client-public-prefix-v4" and .family == "ipv4")) | length) == 1
+          and ($observed.dynamicUnsafeRoutes | length) == 0
+          and $observed.mislabeledDefaultRejected == true
         ),
-      expected: {
-        node: "b-router-core-nebula",
-        peerSite: "esp0xdeadbeef.site-c",
-        splitRoutes: ["0.0.0.0/1", "128.0.0.0/1", "::/1", "8000::/1"],
-        install: false,
-        via4: "100.96.10.3",
-        via6: "fd42:dead:beef:ee::3",
-        forbiddenRawDefault: ["0.0.0.0/0", "::/0"]
-      },
-      observedUnsafeRoutes: $routes
+      observed: $observed
     }
-' "${plan_json}" > "${tmp_dir}/observed.json"
+' "${tmp_dir}/observed.json" > "${tmp_dir}/checked.json"
 
-if ! jq -e '.ok == true' "${tmp_dir}/observed.json" >/dev/null; then
-  echo "FAIL nebula-delegated-default-exit: expected example delegated IPv6 public egress to materialize as split unsafe routes via site-C overlay core" >&2
-  jq . "${tmp_dir}/observed.json" >&2
+if ! jq -e '.ok == true' "${tmp_dir}/checked.json" >/dev/null; then
+  echo "FAIL nebula-delegated-default-exit: delegated public egress default must split into non-installing routes and preserve source authority" >&2
+  jq . "${tmp_dir}/checked.json" >&2
   exit 1
 fi
 

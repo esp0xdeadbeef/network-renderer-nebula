@@ -11,8 +11,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-public-overlay-service/intent.nix"
+inventory_path="${labs_path}/examples/s-router-public-overlay-service/inventory-nixos.nix"
 
 # Use nebula-plan-from-inputs.nix (backward-compatible CPM compilation)
 nix eval --impure --no-warn-dirty --json --expr '

@@ -17,8 +17,8 @@ tmp_dir="$(mktemp -d)"
 trap 'chmod -R u+w "$tmp_dir" 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-public-overlay-service/intent.nix"
+inventory_path="${labs_path}/examples/s-router-public-overlay-service/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -31,7 +31,6 @@ nix eval --impure --no-warn-dirty --json --expr '
       inputPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     };
-    inventory = cpmLib.readInput "'"$inventory_path"'";
   }
 ' >"$tmp_dir/cpm-bundle.json"
 
@@ -53,10 +52,9 @@ jq -e '
   .selectedOverlayId == "espbranch::site-b::east-west" and
   .runtimeNode.overlayAddresses[0] == "100.96.10.2/24" and
   .runtimeNode.staticHostMap["100.96.10.254"][0] == "198.51.100.10:4242" and
+  .runtimeNode.staticHostMap["100.96.10.254"][1] == "[2001:db8:51::10]:4242" and
   .runtimeNode.staticHostMap["fd42:dead:beef:ee::254"][0] == "198.51.100.10:4242" and
-  .runtimeNode.staticHostMapSecretEndpoints["100.96.10.254"][0].sourceFile == "/run/secrets/site-c-lighthouse-public-ipv4" and
-  .runtimeNode.staticHostMapSecretEndpoints["100.96.10.254"][1].sourceFile == "/run/secrets/site-c-lighthouse-public-ipv6" and
-  .runtimeNode.staticHostMapSecretEndpoints["fd42:dead:beef:ee::254"][0].port == "4242" and
+  .runtimeNode.staticHostMapSecretEndpoints == {} and
   (.runtimeNode.unsafeRoutes | length) > 0 and
   (.runtimeNode.materialization.unmanaged // false | not)
 ' "$tmp_dir/modeled/runtime-node.json" >/dev/null

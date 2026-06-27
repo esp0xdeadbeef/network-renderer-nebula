@@ -63,6 +63,7 @@ api.buildNebulaPublicIngressRuntimeFacts {
           from = {
             kind = "external";
             name = "wan";
+            trafficClass = "internet-egress";
           };
           to = {
             kind = "service";
@@ -74,6 +75,7 @@ api.buildNebulaPublicIngressRuntimeFacts {
           from = {
             kind = "external";
             uplinks = [ "wan" ];
+            trafficClass = "internet-egress";
           };
           to = {
             kind = "service";
@@ -120,6 +122,7 @@ api.buildNebulaPublicIngressRuntimeFacts {
         from = {
           kind = "external";
           name = "wan";
+          trafficClass = "internet-egress";
         };
         to = {
           kind = "service";
@@ -131,6 +134,7 @@ api.buildNebulaPublicIngressRuntimeFacts {
         from = {
           kind = "external";
           uplinks = [ "wan" ];
+          trafficClass = "internet-egress";
         };
         to = {
           kind = "service";

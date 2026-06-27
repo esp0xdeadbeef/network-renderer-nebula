@@ -17,8 +17,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 labs_path="$(resolve_input_path "${repo_root}" network-labs)"
-intent_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/intent.nix"
-inventory_path="${labs_path}/examples/s-router-overlay-dns-lane-policy/inventory-nixos.nix"
+intent_path="${labs_path}/examples/s-router-public-overlay-service/intent.nix"
+inventory_path="${labs_path}/examples/s-router-public-overlay-service/inventory-nixos.nix"
 
 nix eval --impure --no-warn-dirty --json --expr '
   let
@@ -42,8 +42,9 @@ nix eval --impure --no-warn-dirty --json --expr '
 jq -e '
   .runtimeNodes["c-router-lighthouse"].isLighthouse == true and
   .runtimeNodes["c-router-nebula-core"].service.listenHost == "172.31.254.4" and
-  .runtimeNodes["b-router-core-nebula"].relay.relays == ["100.96.10.3"] and
+  .runtimeNodes["b-router-core-nebula"].relay.relays == [] and
   (.runtimeNodes["b-router-core-nebula"].unsafeRoutes | length) > 0 and
+  (.runtimeNodes["c-router-nebula-core"].advertisedUnsafeNetworkSourceFiles | index("/run/secrets/access-node-ipv6-prefix-espbranch-site-b-b-router-access-hostile") != null) and
   .lighthouses["east-west"].internal == true
 ' "$tmp_dir/spec.json" >/dev/null
 
@@ -74,6 +75,10 @@ nix eval --impure --no-warn-dirty --json --expr '
             overlayIps = [ "100.96.0.1" "fd42:test::1" ];
           };
           groups = [ "core" ];
+          service = {
+            interface = "nebula1";
+            name = "nebula-runtime";
+          };
           dynamicFirewallCidrs = [
             {
               family = "ipv6";
