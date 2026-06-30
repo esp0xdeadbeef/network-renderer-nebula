@@ -44,6 +44,7 @@ tests=(
   test-FS-460-HDS-010-SDS-010-SMS-030-public-forwarded-relay-static-map.sh
   test-FS-460-HDS-010-SDS-010-SMS-030-public-relay-endpoint-static-map.sh
   test-FS-460-HDS-010-SDS-010-SMS-050-public-ingress-runtime-facts.sh
+  test-FS-460-HDS-010-SDS-010-SMS-010-host-profile-bindmounts.sh
   test-FS-460-HDS-010-SDS-010-SMS-010-runtime-module.sh
   test-FS-460-HDS-010-SDS-010-SMS-060-boundary-scan.sh
   test-FS-460-HDS-010-SDS-010-SMS-021-nebula-cpm-only-consumption.sh

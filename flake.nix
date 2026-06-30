@@ -95,10 +95,11 @@
                     inherit cpmData hostName;
                     logicalName = nodeName;
                   };
+                profileDirFor = nodeName: "/persist/nebula-runtime/profiles/${nodeName}";
               in
               { config, lib, pkgs, ... }:
               let
-                nodeModules =
+                nodeEntries =
                   lib.mapAttrsToList
                     (
                       nodeName: runtimeNode:
@@ -108,27 +109,61 @@
                           inherit pkgs nodeName runtimeNode;
                         };
                       in
-                      { container = cName; module = mod; }
+                      {
+                        container = cName;
+                        module = mod;
+                        profileDir = profileDirFor nodeName;
+                      }
                     )
                     (hostedPlan.nodes or { });
 
-                grouped =
+                groupedModules =
                   lib.foldl
-                    (
-                      acc: { container, module }:
-                      acc // {
-                        ${container} = (acc.${container} or [ ]) ++ [ module ];
-                      }
-                    )
+                    (acc: entry: acc // {
+                      ${entry.container} = (acc.${entry.container} or [ ]) ++ [ entry.module ];
+                    })
                     { }
-                    nodeModules;
+                    nodeEntries;
+
+                groupedProfileDirs =
+                  lib.foldl
+                    (acc: entry: acc // {
+                      ${entry.container} = (acc.${entry.container} or [ ]) ++ [ entry.profileDir ];
+                    })
+                    { }
+                    nodeEntries;
+
+                profileDirs = lib.unique (map (entry: entry.profileDir) nodeEntries);
+
+                bindMountsFor = dirs:
+                  builtins.listToAttrs (
+                    map
+                      (profileDir: {
+                        name = profileDir;
+                        value = {
+                          hostPath = profileDir;
+                          isReadOnly = true;
+                        };
+                      })
+                      (lib.unique dirs)
+                  );
               in
               {
+                systemd.tmpfiles.rules =
+                  lib.optionals (profileDirs != [ ]) (
+                    [
+                      "d /persist/nebula-runtime 0700 root root -"
+                      "d /persist/nebula-runtime/profiles 0700 root root -"
+                    ]
+                    ++ map (profileDir: "d ${profileDir} 0700 root root -") profileDirs
+                  );
+
                 containers = lib.mapAttrs
                   (containerName: modules: {
+                    bindMounts = bindMountsFor (groupedProfileDirs.${containerName} or [ ]);
                     config = lib.mkMerge modules;
                   })
-                  grouped;
+                  groupedModules;
               };
           };
         };
