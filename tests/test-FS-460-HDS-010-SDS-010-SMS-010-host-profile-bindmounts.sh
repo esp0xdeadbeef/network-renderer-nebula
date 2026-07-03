@@ -109,6 +109,7 @@ let
   lighthouseKeySecret = "/run/secrets/nebula-profile-lab-lighthouse-key";
   lighthouseCrtSecret = "/run/secrets/nebula-profile-lab-lighthouse-crt";
   lighthouseCaSecret = "/run/secrets/nebula-profile-lab-lighthouse-ca-crt";
+  tunDevice = "/dev/net/tun";
 in
   require (builtins.attrNames output.containers == [ "lab-client-nebula" "lab-lighthouse" ]) "hostModule must materialize hosted Nebula containers"
   && require (output.containers.lab-client-nebula.bindMounts.${clientDir}.hostPath == clientDir) "client profile bind mount host path mismatch"
@@ -119,6 +120,11 @@ in
   && require (output.containers.lab-client-nebula.bindMounts.${clientKeySecret}.isReadOnly == true) "client key secret bind mount must be read-only"
   && require (output.containers.lab-client-nebula.bindMounts.${clientCrtSecret}.isReadOnly == true) "client cert secret bind mount must be read-only"
   && require (output.containers.lab-client-nebula.bindMounts.${clientCaSecret}.isReadOnly == true) "client CA secret bind mount must be read-only"
+  && require (output.containers.lab-client-nebula.bindMounts.${tunDevice}.hostPath == tunDevice) "client TUN device bind mount host path mismatch"
+  && require (output.containers.lab-client-nebula.bindMounts.${tunDevice}.isReadOnly == false) "client TUN device bind mount must be writable"
+  && require (builtins.elem { node = tunDevice; modifier = "rw"; } output.containers.lab-client-nebula.allowedDevices) "client TUN device must be allowed"
+  && require (builtins.elem "CAP_NET_ADMIN" output.containers.lab-client-nebula.additionalCapabilities) "client must get CAP_NET_ADMIN"
+  && require (builtins.elem "CAP_NET_RAW" output.containers.lab-client-nebula.additionalCapabilities) "client must get CAP_NET_RAW"
   && require (output.containers.lab-lighthouse.bindMounts.${lighthouseDir}.hostPath == lighthouseDir) "lighthouse profile bind mount host path mismatch"
   && require (output.containers.lab-lighthouse.bindMounts.${lighthouseDir}.isReadOnly == true) "lighthouse profile bind mount must be read-only"
   && require (output.containers.lab-lighthouse.bindMounts.${lighthouseKeySecret}.hostPath == lighthouseKeySecret) "lighthouse key secret bind mount host path mismatch"
@@ -127,6 +133,11 @@ in
   && require (output.containers.lab-lighthouse.bindMounts.${lighthouseKeySecret}.isReadOnly == true) "lighthouse key secret bind mount must be read-only"
   && require (output.containers.lab-lighthouse.bindMounts.${lighthouseCrtSecret}.isReadOnly == true) "lighthouse cert secret bind mount must be read-only"
   && require (output.containers.lab-lighthouse.bindMounts.${lighthouseCaSecret}.isReadOnly == true) "lighthouse CA secret bind mount must be read-only"
+  && require (output.containers.lab-lighthouse.bindMounts.${tunDevice}.hostPath == tunDevice) "lighthouse TUN device bind mount host path mismatch"
+  && require (output.containers.lab-lighthouse.bindMounts.${tunDevice}.isReadOnly == false) "lighthouse TUN device bind mount must be writable"
+  && require (builtins.elem { node = tunDevice; modifier = "rw"; } output.containers.lab-lighthouse.allowedDevices) "lighthouse TUN device must be allowed"
+  && require (builtins.elem "CAP_NET_ADMIN" output.containers.lab-lighthouse.additionalCapabilities) "lighthouse must get CAP_NET_ADMIN"
+  && require (builtins.elem "CAP_NET_RAW" output.containers.lab-lighthouse.additionalCapabilities) "lighthouse must get CAP_NET_RAW"
   && require (builtins.elem "d /persist/nebula-runtime 0700 root root -" output.systemd.tmpfiles.rules) "host tmpfiles must create Nebula runtime root"
   && require (builtins.elem "d /persist/nebula-runtime/profiles 0700 root root -" output.systemd.tmpfiles.rules) "host tmpfiles must create Nebula profile root"
   && require (builtins.elem "d /persist/nebula-runtime/profiles/lab-client-nebula 0700 root root -" output.systemd.tmpfiles.rules) "host tmpfiles must create client profile directory"
