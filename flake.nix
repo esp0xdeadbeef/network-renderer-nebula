@@ -174,6 +174,12 @@
                       })
                       (lib.unique secretNames)
                   );
+                tunDeviceBindMounts = {
+                  "/dev/net/tun" = {
+                    hostPath = "/dev/net/tun";
+                    isReadOnly = false;
+                  };
+                };
               in
               {
                 systemd.tmpfiles.rules =
@@ -189,7 +195,18 @@
                   (containerName: modules: {
                     bindMounts =
                       (bindMountsFor (groupedProfileDirs.${containerName} or [ ]))
-                      // (secretBindMountsFor (groupedSecretNames.${containerName} or [ ]));
+                      // (secretBindMountsFor (groupedSecretNames.${containerName} or [ ]))
+                      // tunDeviceBindMounts;
+                    allowedDevices = [
+                      {
+                        node = "/dev/net/tun";
+                        modifier = "rw";
+                      }
+                    ];
+                    additionalCapabilities = [
+                      "CAP_NET_ADMIN"
+                      "CAP_NET_RAW"
+                    ];
                     config = lib.mkMerge modules;
                   })
                   groupedModules;
