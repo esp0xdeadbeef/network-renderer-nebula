@@ -51,6 +51,7 @@
             hostModule =
               { controlPlane
               , hostName
+              , sopsProfileSecretPrefix ? "nebula-profile"
               , ...
               }:
               let
@@ -96,6 +97,11 @@
                     logicalName = nodeName;
                   };
                 profileDirFor = nodeName: "/persist/nebula-runtime/profiles/${nodeName}";
+                profileSecretNamesFor = nodeName: [
+                  "${sopsProfileSecretPrefix}-${nodeName}-ca-crt"
+                  "${sopsProfileSecretPrefix}-${nodeName}-crt"
+                  "${sopsProfileSecretPrefix}-${nodeName}-key"
+                ];
               in
               { config, lib, pkgs, ... }:
               let
@@ -113,6 +119,7 @@
                         container = cName;
                         module = mod;
                         profileDir = profileDirFor nodeName;
+                        secretNames = profileSecretNamesFor nodeName;
                       }
                     )
                     (hostedPlan.nodes or { });
@@ -133,6 +140,14 @@
                     { }
                     nodeEntries;
 
+                groupedSecretNames =
+                  lib.foldl
+                    (acc: entry: acc // {
+                      ${entry.container} = (acc.${entry.container} or [ ]) ++ entry.secretNames;
+                    })
+                    { }
+                    nodeEntries;
+
                 profileDirs = lib.unique (map (entry: entry.profileDir) nodeEntries);
 
                 bindMountsFor = dirs:
@@ -147,6 +162,18 @@
                       })
                       (lib.unique dirs)
                   );
+                secretBindMountsFor = secretNames:
+                  builtins.listToAttrs (
+                    map
+                      (secretName: {
+                        name = "/run/secrets/${secretName}";
+                        value = {
+                          hostPath = "/run/secrets/${secretName}";
+                          isReadOnly = true;
+                        };
+                      })
+                      (lib.unique secretNames)
+                  );
               in
               {
                 systemd.tmpfiles.rules =
@@ -160,7 +187,9 @@
 
                 containers = lib.mapAttrs
                   (containerName: modules: {
-                    bindMounts = bindMountsFor (groupedProfileDirs.${containerName} or [ ]);
+                    bindMounts =
+                      (bindMountsFor (groupedProfileDirs.${containerName} or [ ]))
+                      // (secretBindMountsFor (groupedSecretNames.${containerName} or [ ]));
                     config = lib.mkMerge modules;
                   })
                   groupedModules;
