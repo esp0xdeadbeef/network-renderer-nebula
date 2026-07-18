@@ -22,7 +22,7 @@ tests=(
   test-FS-310-HDS-010-SDS-010-SMS-110-nebula-crit-fix.sh
   test-FS-460-HDS-010-SDS-010-SMS-021-cpm-overlay-contract-boundary.sh
   test-FS-460-HDS-010-SDS-010-SMS-090-provider-boundary-no-forwarding-policy.sh
-  test-FS-460-HDS-010-SDS-010-SMS-040-provider-boundary-no-dns-egress.sh
+  test-FS-460-HDS-010-SDS-010-SMS-090-provider-boundary-no-dns-egress.sh
   test-FS-460-HDS-010-SDS-010-SMS-090-nixos-module-no-host-reachability-policy.sh
   test-FS-100-HDS-010-SDS-010-SMS-010-renderer-output-provenance.sh
   test-FS-460-HDS-010-SDS-010-SMS-010-cli-render-node.sh

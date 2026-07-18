@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-004
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-006-SMS-001-CMC-001-004
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-050
 # UPDATED: buildNebulaPublicIngressRuntimeFacts no longer accepts inventory — site selection is now cpmData-driven
 set -euo pipefail
 
