@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-002
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-CMC-001-002
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-010
 # UPDATED: deploymentHost logic moved to CPM. Materialization now comes from CPM data.
 # Test verifies that container profile flows through from CPM to materialization.
 set -euo pipefail

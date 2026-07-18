@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-003
-# GAMP-ID: USR-MODEL-001-FS-001-HDS-004-SDS-001-004-SMS-001-CMC-001-003
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-090
 # UPDATED: hostBridge validation removed — deployment host logic moved to CPM.
 # Test now verifies renderer accepts valid CPM-only input without inventory.
 set -euo pipefail
