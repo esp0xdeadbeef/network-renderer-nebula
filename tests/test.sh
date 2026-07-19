@@ -19,6 +19,7 @@ esac
 tests=(
   test-nix-file-loc.sh
   test-regression-md-resolved-states.sh
+  test-FS-310-HDS-010-SDS-010-SMS-020-all-systems-package-evaluation.sh
   test-FS-310-HDS-010-SDS-010-SMS-110-nebula-crit-fix.sh
   test-FS-460-HDS-010-SDS-010-SMS-021-cpm-overlay-contract-boundary.sh
   test-FS-460-HDS-010-SDS-010-SMS-090-provider-boundary-no-forwarding-policy.sh

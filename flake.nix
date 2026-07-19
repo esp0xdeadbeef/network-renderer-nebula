@@ -214,25 +214,9 @@
           };
         };
 
-      mkPackage =
-        system:
-        let
-          pkgs = import nixpkgs { inherit system; };
-          executable = pkgs.replaceVars ./bin/network-renderer-nebula {
-            SELF_PATH = self.outPath;
-            NIXPKGS_LIB_PATH = "${nixpkgs}/lib";
-            RENDERER_GIT_REV = self.rev or (self.dirtyRev or "unknown");
-            RENDERER_DIRTY = if self ? dirtyRev then "true" else "false";
-          };
-        in
-        pkgs.writeShellApplication {
-          name = "network-renderer-nebula";
-          runtimeInputs = [
-            pkgs.jq
-            pkgs.nix
-          ];
-          text = builtins.readFile executable;
-        };
+      mkPackage = import ./s88/Enterprise/package.nix {
+        inherit self nixpkgs;
+      };
     in
     {
       libBySystem = forAllSystems (
