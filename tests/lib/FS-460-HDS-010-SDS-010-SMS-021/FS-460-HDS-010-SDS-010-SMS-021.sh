@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-021
+set -euo pipefail
+
+repo_root="${SMS_TEST_REPO_ROOT:-$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)}"
+
+if rg -n 'modeledUnsafeRoutes|runtimeNode\.unsafeRoutes|hasInfix|contains\("nebula"\)|contains\("core"\)' \
+  "${repo_root}" \
+  --glob '*.nix' \
+  --glob '!flake.lock' \
+  --glob '!tests/FS-460-HDS-010-SDS-010-SMS-021.sh' >/tmp/network-renderer-nebula-boundary-hits.$$; then
+  cat >&2 <<EOF
+FATAL network-renderer-nebula CPM overlay contract boundary violation.
+
+Nebula route/firewall behavior must come from explicit CPM/provider contracts.
+Do not derive policy from runtime inventory unsafeRoutes or node-name strings.
+
+Current boundary hits:
+EOF
+  cat /tmp/network-renderer-nebula-boundary-hits.$$ >&2
+  rm -f /tmp/network-renderer-nebula-boundary-hits.$$
+  exit 1
+fi
+
+rm -f /tmp/network-renderer-nebula-boundary-hits.$$
+nix eval --impure --no-warn-dirty --expr '
+  let
+    flake = builtins.getFlake (toString '"$repo_root"');
+    api = flake.libBySystem.x86_64-linux.renderer;
+    badControlPlane = {
+      control_plane_model.data.enterprise.site = {
+        runtimeTargets = { };
+        overlays.east-west = {
+          provider = "nebula";
+          nodes.core = {
+            addr4 = "100.96.0.10";
+            addr6 = "fd42:dead:beef::10";
+          };
+          nebula.lighthouse = {
+            node = "core";
+            endpoint = "198.51.100.10";
+            endpoint6 = "2001:db8::10";
+            port = 4242;
+          };
+          ipam = {
+            ipv4.prefix = "100.96.0.0/24";
+            ipv6.prefix = "fd42:dead:beef::/64";
+          };
+          runtimeNodes.core = {
+            groups = [ "core" ];
+            service = {
+              name = "nebula-runtime";
+              interface = "nebula1";
+              listenHost = "127.0.0.1";
+            };
+            container.targetContainer = "core";
+            unsafeRoutes = [
+              {
+                route = "0.0.0.0/1";
+                via4 = "100.96.0.1";
+                install = true;
+              }
+            ];
+          };
+        };
+      };
+    };
+    plan = api.buildNebulaPlan {
+      controlPlane = badControlPlane;
+    };
+    result = builtins.tryEval plan.nodes.core.unsafeRoutes;
+  in
+    if result.success then
+      throw "network-renderer-nebula: missing CPM nebula.runtimeNodes.*.unsafeRoutes unexpectedly evaluated"
+    else
+      true
+' >/dev/null
+echo "PASS cpm-overlay-contract-boundary"

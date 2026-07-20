@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# GAMP-ID: FS-460-HDS-010-SDS-010-SMS-050
+# UPDATED: buildNebulaPublicIngressRuntimeFacts no longer accepts inventory — site selection is now cpmData-driven
+set -euo pipefail
+
+repo_root="${SMS_TEST_REPO_ROOT:-$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)}"
+tmp_json="$(mktemp)"
+trap 'rm -f "${tmp_json}"' EXIT
+
+nix eval --impure --json --expr '
+let
+  flake = builtins.getFlake (toString '"$repo_root"');
+  api = flake.libBySystem.x86_64-linux.renderer;
+in
+api.buildNebulaPublicIngressRuntimeFacts {
+  hostName = "validator-host";
+  lighthousePublicIPv4SecretPath = "/run/secrets/relay-public-ipv4";
+  runtimePublicIPv4SecretPath = "/run/secrets/runtime-public-ipv4";
+  runtimeContainerName = "edge-nebula";
+  runtimeNode.service.listenHost = "172.31.254.4";
+  runtimeNode.service.port = 443;
+  hostNatIngressTargetWan = {
+    hostAddress4 = "172.31.254.1/24";
+    hostGateway4 = "172.31.254.1";
+    coreAddress4Bare = "172.31.254.3";
+  };
+  controlPlane = {
+    control_plane_model.data.acme.edge = {
+      services = [
+        {
+          name = "relay-nebula";
+          trafficType = "nebula";
+          providerEndpoints = [
+            {
+              ipv4 = [ "10.90.10.100" ];
+            }
+          ];
+        }
+        {
+          name = "client-https";
+          trafficType = "tcp-443";
+          providerEndpoints = [
+            {
+              ipv4 = [ "10.90.20.10" ];
+            }
+          ];
+        }
+        {
+          name = "wireguard-provider";
+          trafficType = "wireguard";
+          providerEndpoints = [
+            {
+              ipv4 = [ ];
+              ipv6 = [ ];
+            }
+          ];
+        }
+      ];
+      relations = [
+        {
+          action = "allow";
+          from = {
+            kind = "external";
+            name = "wan";
+            trafficClass = "internet-egress";
+          };
+          to = {
+            kind = "service";
+            name = "client-https";
+          };
+        }
+        {
+          action = "allow";
+          from = {
+            kind = "external";
+            uplinks = [ "wan" ];
+            trafficClass = "internet-egress";
+          };
+          to = {
+            kind = "service";
+            name = "wireguard-provider";
+          };
+        }
+      ];
+    };
+  };
+  cpmData.acme.edge = {
+    services = [
+      {
+        name = "relay-nebula";
+        trafficType = "nebula";
+        providerEndpoints = [
+          {
+            ipv4 = [ "10.90.10.100" ];
+          }
+        ];
+      }
+      {
+        name = "client-https";
+        trafficType = "tcp-443";
+        providerEndpoints = [
+          {
+            ipv4 = [ "10.90.20.10" ];
+          }
+        ];
+      }
+      {
+        name = "wireguard-provider";
+        trafficType = "wireguard";
+        providerEndpoints = [
+          {
+            ipv4 = [ ];
+            ipv6 = [ ];
+          }
+        ];
+      }
+    ];
+    relations = [
+      {
+        action = "allow";
+        from = {
+          kind = "external";
+          name = "wan";
+          trafficClass = "internet-egress";
+        };
+        to = {
+          kind = "service";
+          name = "client-https";
+        };
+      }
+      {
+        action = "allow";
+        from = {
+          kind = "external";
+          uplinks = [ "wan" ];
+          trafficClass = "internet-egress";
+        };
+        to = {
+          kind = "service";
+          name = "wireguard-provider";
+        };
+      }
+    ];
+    runtimeTargets."edge-nebula".placement.host = "validator-host";
+  };
+  forwarding.enterprise.acme.site.edge.hostNatIngress = {
+    hostReservedPorts = [
+      {
+        proto = "tcp";
+        dports = [ 22 ];
+      }
+    ];
+  };
+}
+' >"${tmp_json}"
+
+jq -e '
+  .localLighthouseEndpoint4 == "10.90.10.100" and
+  .publicIngress.snatSourceCidr4 == "172.31.254.1/24" and
+  .publicIngress.services.acme.edge."relay-nebula".publicIPv4SecretPath == "/run/secrets/relay-public-ipv4" and
+  .publicIngress.services.acme.edge."relay-nebula".gateway4 == "172.31.254.3" and
+  .publicIngress.services.acme.edge."client-https".publicIPv4SecretPath == "/run/secrets/relay-public-ipv4" and
+  .publicIngress.services.acme.edge."client-https".gateway4 == "172.31.254.3" and
+  (.publicIngress.services.acme.edge."wireguard-provider" | not) and
+  .publicIngress.unsupportedServices.acme.edge[0].name == "wireguard-provider" and
+  .publicIngress.runtimeForwards[0].publicIPv4SecretPath == "/run/secrets/runtime-public-ipv4" and
+  .publicIngress.runtimeForwards[0].targetIPv4 == "172.31.254.4" and
+  .publicIngress.runtimeForwards[0].exceptTcpDports == [22] and
+  .publicIngress.runtimeForwards[0].containerInterface.container == "edge-nebula" and
+  .publicIngress.runtimeForwards[0].inputDports == [443] and
+  .publicIngress.runtimeForwards[0].containerInterface.inputDports == [443]
+' "${tmp_json}" >/dev/null
+
+echo "PASS public-ingress-runtime-facts"

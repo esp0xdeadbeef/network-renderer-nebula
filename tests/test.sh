@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="${SMS_TEST_REPO_ROOT:-$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)}"
 
 if [[ "${NETWORK_REPO_SWEEP:-0}" != "1" && "${NETWORK_REPO_DIRECT_TEST_OK:-0}" != "1" ]]; then
   echo "WARN: direct repo tests are partial; set NETWORK_REPO_DIRECT_TEST_OK=1 for intentional focused runs, or run network-codex-agent/scripts/s-router-full-lab-rebuild-loop.sh for the locked full network-* sweep plus live validation." >&2
@@ -16,41 +16,10 @@ case "${jobs}" in
     ;;
 esac
 
-tests=(
-  test-nix-file-loc.sh
-  test-regression-md-resolved-states.sh
-  test-FS-310-HDS-010-SDS-010-SMS-020-all-systems-package-evaluation.sh
-  test-FS-310-HDS-010-SDS-010-SMS-110-nebula-crit-fix.sh
-  test-FS-460-HDS-010-SDS-010-SMS-021-cpm-overlay-contract-boundary.sh
-  test-FS-460-HDS-010-SDS-010-SMS-090-provider-boundary-no-forwarding-policy.sh
-  test-FS-460-HDS-010-SDS-010-SMS-090-provider-boundary-no-dns-egress.sh
-  test-FS-460-HDS-010-SDS-010-SMS-090-nixos-module-no-host-reachability-policy.sh
-  test-FS-100-HDS-010-SDS-010-SMS-010-renderer-output-provenance.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-cli-render-node.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-plan.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-plan-explicit-inputs-basic.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-plan-hosted-inventory.sh
-  test-FS-460-HDS-010-SDS-010-SMS-090-plan-reject-host-uplink.sh
-  test-FS-460-HDS-010-SDS-010-SMS-030-plan-reject-missing-relay.sh
-  test-FS-460-HDS-010-SDS-010-SMS-041-nebula-fail-closed-contract.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-nebula-remote-egress-smt.sh
-  test-FS-460-HDS-010-SDS-010-SMS-050-delegated-default-exit.sh
-  test-FS-460-HDS-010-SDS-010-SMS-050-dynamic-delegated-return-route.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-delegated-prefix-secret-names.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-bootstrap-advertised-networks.sh
-  test-FS-460-HDS-010-SDS-010-SMS-090-advertised-default-firewall.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-bootstrap-module.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-bootstrap-spec.sh
-  test-FS-460-HDS-010-SDS-010-SMS-030-remote-lighthouse-endpoint.sh
-  test-FS-460-HDS-010-SDS-010-SMS-030-public-forwarded-relay-static-map.sh
-  test-FS-460-HDS-010-SDS-010-SMS-030-public-relay-endpoint-static-map.sh
-  test-FS-460-HDS-010-SDS-010-SMS-050-public-ingress-runtime-facts.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-host-profile-bindmounts.sh
-  test-FS-460-HDS-010-SDS-010-SMS-010-runtime-module.sh
-  test-FS-460-HDS-010-SDS-010-SMS-060-boundary-scan.sh
-  test-FS-460-HDS-010-SDS-010-SMS-021-nebula-cpm-only-consumption.sh
-  test-FS-460-HDS-010-SDS-010-SMS-080-output-containment.sh
-  run-fs982-sms110.sh
+mapfile -t tests < <(
+  find "${repo_root}/tests" -maxdepth 1 -regextype posix-extended \( -type f -o -type l \) \
+    \( -name 'test-*.sh' -o -regex '.*\/FS-[0-9]+-HDS-[0-9]+-SDS-[0-9]+-SMS-[0-9]+\.sh' \) \
+    ! -name 'test.sh' -printf '%f\n' | LC_ALL=C sort
 )
 
 tmp_dir="$(mktemp -d)"
