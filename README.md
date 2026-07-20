@@ -1,7 +1,9 @@
 # network-renderer-nebula
 
-`network-renderer-nebula` emits Nebula runtime materialization exclusively from
-CPM output. It consumes no raw intent, inventory, or forwarding-model files.
+`network-renderer-nebula` emits Nebula runtime materialization from one
+validated canonical network-realization bundle and, when required, one
+normalized Nebula platform-binding bundle. It consumes no raw intent,
+inventory, forwarding-model, or peer-renderer artifact as network authority.
 
 It is a provider renderer, not a forwarding model.
 
@@ -13,7 +15,7 @@ Migration, deviation, exception, transition, or temporary compatibility behavior
 must be explicit in the README, tests, and owning layer before it is accepted.
 
 ```text
-network-forwarding-model -> network-control-plane-model -> network-renderer-nebula
+network-control-plane-model -> network-realization-model -> schema validation -> network-renderer-nebula
 ```
 
 ## Spec Chain
@@ -71,10 +73,13 @@ Every renderer contract rule in this README traces to a URS requirement:
 ### Pipeline
 
 ```
-network-labs (intent + inventory) → network-compiler → NFM → CPM → network-renderer-nebula
+network-labs → compiler → NFM → CPM → realization → schema validation → Nebula renderer
 ```
 
-Required input: CPM output (single `controlPlane` attribute containing `control_plane_model` plus CPM-processed inventory). Per FS-983 and FS-310 SMS-100, the renderer consumes data exclusively through CPM's provider-neutral overlay output. No separate inventory file, no raw `inventory.nix` parsing, no upstream source file reads.
+The controlled API accepts one validated `bundle` and optional
+`platformBinding`. The former direct `controlPlane` entry remains only for
+superseded regression evidence. No separate inventory file, raw
+`inventory.nix` parsing, or upstream source-file read is permitted.
 
 ### SMS-010 Key Requirements
 
@@ -88,12 +93,12 @@ Construction tests: `network-renderer-nebula/tests/` (run via `bash run-all-test
 
 ## Contract
 
-- The forwarding model and CPM are the source of truth.
+- Canonical network meaning is the renderer's sole semantic authority.
   (URS L225: semantics preserved across model layers; URS L156: renderers materialize, don't create)
 - CPM decides overlay ownership, termination, prefixes, policy, and public-exit
   semantics.
   (URS L156: renderers materialize explicit platform-neutral policy)
-- This renderer consumes CPM output and emits Nebula runtime output.
+- This renderer consumes validated canonical output and emits Nebula runtime output.
   (URS L97: service gen belongs in owning renderer or upstream model contract)
 - Missing, partial, or inconsistent CPM input must fail evaluation.
   (URS L131: missing facts fail at owning layer; URS L303: overlay readiness required before payload)
@@ -149,9 +154,15 @@ URS L97 (thin host config).
 
 The flake exports as `libBySystem.<system>.renderer.<function>`:
 
-**Core rendering:**
+**Controlled canonical rendering:**
+
+- `renderer.canonical.hostModule` — bundle-only NixOS host integration
+- `renderer.canonical.validateInput` — bundle, scope, target, and binding gate
+
+**Retained internal and superseded direct rendering:**
+
 - `buildNebulaPlan` — produce a Nebula runtime plan from CPM output
-- `hostModule` — primary NixOS host integration (accepts `controlPlane`, emits containers)
+- `hostModule` — superseded direct-CPM NixOS regression entry
 - `buildNebulaRuntimeNixosModule` — per-node NixOS module with Nebula daemon
 
 **Bootstrap & lighthouse:**
@@ -170,17 +181,18 @@ The flake exports as `libBySystem.<system>.renderer.<function>`:
 - `delegatedPrefixSecretNames` — secret names for delegated prefixes
 - `buildRuntimeSecretMounts` — secret mount paths for runtime nodes
 
-The flake also exports a CLI for standalone runtime-node materialization from
-explicit CPM data:
+The flake also retains a CLI for standalone direct-CPM regression
+materialization:
 
 ```bash
 nix run github:esp0xdeadbeef/network-renderer-nebula -- \
   render-node --cpm ./cpm-bundle.json --node b-router-core-nebula
 ```
 
-`--cpm` must point to JSON containing CPM's provider-neutral overlay output
+`--cpm` must point to JSON containing the historical CPM provider-neutral overlay output
 (`controlPlane`/`control_plane_model` plus CPM-processed inventory). All data
-reaches the renderer through CPM output — no separate inventory file is accepted.
+reaches that legacy CLI through CPM output. The CLI is not current controlled
+FS-166 evidence; no separate inventory file is accepted.
 
 Unmanaged members such as laptops may be rendered only with explicit overlay and
 address input:

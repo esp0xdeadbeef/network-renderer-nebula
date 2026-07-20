@@ -8,14 +8,19 @@
     network-control-plane-model.inputs.nixpkgs.follows = "nixpkgs";
 
     network-labs.url = "github:esp0xdeadbeef/network-labs";
+
+    network-realization-model.url = "github:esp0xdeadbeef/network-realization-model/759ed91eb1ea7524951cba99357828223c26b2e7";
+    network-realization-model.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , network-control-plane-model
-    , network-labs
-    , ...
+    {
+      self,
+      nixpkgs,
+      network-control-plane-model,
+      network-labs,
+      network-realization-model,
+      ...
     }:
     let
       lib = nixpkgs.lib;
@@ -41,18 +46,19 @@
         };
 
       withHostModule =
-        systemLib:
-        system:
+        systemLib: system:
         let
           cpmLib = network-control-plane-model.libBySystem.${system};
         in
-        systemLib // {
-          renderer = systemLib.renderer // {
+        systemLib
+        // {
+          renderer = systemLib.renderer // rec {
             hostModule =
-              { controlPlane
-              , hostName
-              , sopsProfileSecretPrefix ? "nebula-profile"
-              , ...
+              {
+                controlPlane,
+                hostName,
+                sopsProfileSecretPrefix ? "nebula-profile",
+                ...
               }:
               let
                 # CPM output is the sole source of truth (SMS-100).
@@ -62,128 +68,133 @@
 
                 # Check if this site has any nebula overlays before proceeding
                 siteOverlays = lib.concatLists (
-                  lib.mapAttrsToList
-                    (_enterprise: enterpriseData:
-                      lib.concatLists (
-                        lib.mapAttrsToList
-                          (_site: siteData:
-                            let overlays = siteData.overlays or { };
-                            in builtins.attrNames overlays
-                          )
-                          enterpriseData
-                      )
+                  lib.mapAttrsToList (
+                    _enterprise: enterpriseData:
+                    lib.concatLists (
+                      lib.mapAttrsToList (
+                        _site: siteData:
+                        let
+                          overlays = siteData.overlays or { };
+                        in
+                        builtins.attrNames overlays
+                      ) enterpriseData
                     )
-                    cpmData
+                  ) cpmData
                 );
-                hasNebulaOverlay = builtins.any
-                  (name: lib.hasPrefix "nebula" name || lib.hasPrefix "nebula-" name)
-                  siteOverlays;
+                hasNebulaOverlay = builtins.any (
+                  name: lib.hasPrefix "nebula" name || lib.hasPrefix "nebula-" name
+                ) siteOverlays;
               in
               if !hasNebulaOverlay then
-                { config, lib, pkgs, ... }: { }
+                {
+                  config,
+                  lib,
+                  pkgs,
+                  ...
+                }:
+                { }
               else
-              let
-                plan = systemLib.renderer.buildNebulaPlan {
-                  inherit controlPlane;
-                };
-                hostedPlan = systemLib.renderer.selectHostedNebulaRuntimePlan {
-                  nebulaRuntimePlan = plan;
-                  inherit cpmData hostName;
-                };
-                containerNameForNode =
-                  nodeName:
-                  systemLib.renderer.runtimeContainerNameForHost {
-                    inherit cpmData hostName;
-                    logicalName = nodeName;
+                let
+                  plan = systemLib.renderer.buildNebulaPlan {
+                    inherit controlPlane;
                   };
-                profileDirFor = nodeName: "/persist/nebula-runtime/profiles/${nodeName}";
-                profileSecretNamesFor = nodeName: [
-                  "${sopsProfileSecretPrefix}-${nodeName}-ca-crt"
-                  "${sopsProfileSecretPrefix}-${nodeName}-crt"
-                  "${sopsProfileSecretPrefix}-${nodeName}-key"
-                ];
-              in
-              { config, lib, pkgs, ... }:
-              let
-                nodeEntries =
-                  lib.mapAttrsToList
-                    (
-                      nodeName: runtimeNode:
-                      let
-                        cName = containerNameForNode nodeName;
-                        mod = systemLib.renderer.buildNebulaRuntimeNixosModule {
-                          inherit pkgs nodeName runtimeNode;
-                        };
-                      in
-                      {
-                        container = cName;
-                        module = mod;
-                        profileDir = profileDirFor nodeName;
-                        secretNames = profileSecretNamesFor nodeName;
-                      }
-                    )
-                    (hostedPlan.nodes or { });
+                  hostedPlan = systemLib.renderer.selectHostedNebulaRuntimePlan {
+                    nebulaRuntimePlan = plan;
+                    inherit cpmData hostName;
+                  };
+                  containerNameForNode =
+                    nodeName:
+                    systemLib.renderer.runtimeContainerNameForHost {
+                      inherit cpmData hostName;
+                      logicalName = nodeName;
+                    };
+                  profileDirFor = nodeName: "/persist/nebula-runtime/profiles/${nodeName}";
+                  profileSecretNamesFor = nodeName: [
+                    "${sopsProfileSecretPrefix}-${nodeName}-ca-crt"
+                    "${sopsProfileSecretPrefix}-${nodeName}-crt"
+                    "${sopsProfileSecretPrefix}-${nodeName}-key"
+                  ];
+                in
+                {
+                  config,
+                  lib,
+                  pkgs,
+                  ...
+                }:
+                let
+                  nodeEntries = lib.mapAttrsToList (
+                    nodeName: runtimeNode:
+                    let
+                      cName = containerNameForNode nodeName;
+                      mod = systemLib.renderer.buildNebulaRuntimeNixosModule {
+                        inherit pkgs nodeName runtimeNode;
+                      };
+                    in
+                    {
+                      container = cName;
+                      module = mod;
+                      profileDir = profileDirFor nodeName;
+                      secretNames = profileSecretNamesFor nodeName;
+                    }
+                  ) (hostedPlan.nodes or { });
 
-                groupedModules =
-                  lib.foldl
-                    (acc: entry: acc // {
+                  groupedModules = lib.foldl (
+                    acc: entry:
+                    acc
+                    // {
                       ${entry.container} = (acc.${entry.container} or [ ]) ++ [ entry.module ];
-                    })
-                    { }
-                    nodeEntries;
+                    }
+                  ) { } nodeEntries;
 
-                groupedProfileDirs =
-                  lib.foldl
-                    (acc: entry: acc // {
+                  groupedProfileDirs = lib.foldl (
+                    acc: entry:
+                    acc
+                    // {
                       ${entry.container} = (acc.${entry.container} or [ ]) ++ [ entry.profileDir ];
-                    })
-                    { }
-                    nodeEntries;
+                    }
+                  ) { } nodeEntries;
 
-                groupedSecretNames =
-                  lib.foldl
-                    (acc: entry: acc // {
+                  groupedSecretNames = lib.foldl (
+                    acc: entry:
+                    acc
+                    // {
                       ${entry.container} = (acc.${entry.container} or [ ]) ++ entry.secretNames;
-                    })
-                    { }
-                    nodeEntries;
+                    }
+                  ) { } nodeEntries;
 
-                profileDirs = lib.unique (map (entry: entry.profileDir) nodeEntries);
+                  profileDirs = lib.unique (map (entry: entry.profileDir) nodeEntries);
 
-                bindMountsFor = dirs:
-                  builtins.listToAttrs (
-                    map
-                      (profileDir: {
+                  bindMountsFor =
+                    dirs:
+                    builtins.listToAttrs (
+                      map (profileDir: {
                         name = profileDir;
                         value = {
                           hostPath = profileDir;
                           isReadOnly = true;
                         };
-                      })
-                      (lib.unique dirs)
-                  );
-                secretBindMountsFor = secretNames:
-                  builtins.listToAttrs (
-                    map
-                      (secretName: {
+                      }) (lib.unique dirs)
+                    );
+                  secretBindMountsFor =
+                    secretNames:
+                    builtins.listToAttrs (
+                      map (secretName: {
                         name = "/run/secrets/${secretName}";
                         value = {
                           hostPath = "/run/secrets/${secretName}";
                           isReadOnly = true;
                         };
-                      })
-                      (lib.unique secretNames)
-                  );
-                tunDeviceBindMounts = {
-                  "/dev/net/tun" = {
-                    hostPath = "/dev/net/tun";
-                    isReadOnly = false;
+                      }) (lib.unique secretNames)
+                    );
+                  tunDeviceBindMounts = {
+                    "/dev/net/tun" = {
+                      hostPath = "/dev/net/tun";
+                      isReadOnly = false;
+                    };
                   };
-                };
-              in
-              {
-                systemd.tmpfiles.rules =
-                  lib.optionals (profileDirs != [ ]) (
+                in
+                {
+                  systemd.tmpfiles.rules = lib.optionals (profileDirs != [ ]) (
                     [
                       "d /persist/nebula-runtime 0700 root root -"
                       "d /persist/nebula-runtime/profiles 0700 root root -"
@@ -191,8 +202,7 @@
                     ++ map (profileDir: "d ${profileDir} 0700 root root -") profileDirs
                   );
 
-                containers = lib.mapAttrs
-                  (containerName: modules: {
+                  containers = lib.mapAttrs (containerName: modules: {
                     bindMounts =
                       (bindMountsFor (groupedProfileDirs.${containerName} or [ ]))
                       // (secretBindMountsFor (groupedSecretNames.${containerName} or [ ]))
@@ -208,9 +218,41 @@
                       "CAP_NET_RAW"
                     ];
                     config = lib.mkMerge modules;
-                  })
-                  groupedModules;
-              };
+                  }) groupedModules;
+                };
+
+            canonical = {
+              validateInput =
+                {
+                  bundle,
+                  platformBinding ? null,
+                }:
+                network-realization-model.lib.validateRendererInput {
+                  inherit bundle platformBinding;
+                  expectedTarget = "nebula";
+                };
+              hostModule =
+                {
+                  bundle,
+                  platformBinding ? null,
+                  ...
+                }@rendererInput:
+                let
+                  validated = canonical.validateInput { inherit bundle platformBinding; };
+                  forwarded = builtins.removeAttrs rendererInput [
+                    "bundle"
+                    "platformBinding"
+                  ];
+                in
+                hostModule (
+                  forwarded
+                  // {
+                    controlPlane = validated.controlPlaneEnvelope;
+                    canonicalBundleIdentity = validated.bundleIdentity;
+                    canonicalBindingIdentity = validated.bindingIdentity;
+                  }
+                );
+            };
           };
         };
 
@@ -219,10 +261,7 @@
       };
     in
     {
-      libBySystem = forAllSystems (
-        system:
-        withHostModule (mkSystemLib system) system
-      );
+      libBySystem = forAllSystems (system: withHostModule (mkSystemLib system) system);
 
       lib = withHostModule (mkSystemLib "x86_64-linux") "x86_64-linux";
 
@@ -237,5 +276,38 @@
           program = "${self.packages.${system}.default}/bin/network-renderer-nebula";
         };
       });
+
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          renderer = self.libBySystem.${system}.renderer;
+          bundle = network-realization-model.lib.realize {
+            input = import "${network-realization-model}/examples/cpm-result.nix";
+            requestScope = {
+              kind = "complete-artifact";
+              identity = "nebula-renderer-boundary";
+            };
+            rootLockIdentity = "network-renderer-nebula-flake-lock";
+            producerRevision = "network-realization-model-759ed91";
+          };
+          accepted = renderer.canonical.validateInput { inherit bundle; };
+          rawRejected =
+            !(builtins.tryEval (
+              builtins.deepSeq (renderer.canonical.validateInput {
+                bundle = {
+                  control_plane_model = { };
+                };
+              }) true
+            )).success;
+        in
+        assert accepted.bundleIdentity == bundle.bundleIdentity;
+        assert rawRejected;
+        {
+          canonical-renderer-input = pkgs.runCommand "network-renderer-nebula-canonical-input" { } ''
+            touch "$out"
+          '';
+        }
+      );
     };
 }
