@@ -3,7 +3,7 @@
 # GAMP-SCOPE: software-integration-test
 # FS-982-SMS-110-RUNTIME: scoped-artifact
 # FS-982-SMS-110-ARTIFACT: Nebula renderer runtime NixOS module artifact
-# FS-982-SMS-110-EVIDENCE: tests/test-FS-460-HDS-010-SDS-010-SMS-010-runtime-module.sh
+# FS-982-SMS-110-EVIDENCE: tests/FS-460-HDS-010-SDS-010-SMS-010.sh
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -13,7 +13,7 @@ fail() {
   exit 1
 }
 
-evidence="tests/test-FS-460-HDS-010-SDS-010-SMS-010-runtime-module.sh"
+evidence="tests/FS-460-HDS-010-SDS-010-SMS-010.sh"
 output="$(NETWORK_REPO_DIRECT_TEST_OK=1 bash "${repo_root}/${evidence}" 2>&1)" || {
   printf '%s\n' "${output}" >&2
   fail "${evidence} failed"

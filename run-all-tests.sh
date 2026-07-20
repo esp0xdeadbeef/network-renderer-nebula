@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # run-all-tests.sh — Run all Nebula renderer construction tests with auto-discovery.
 #
-# Discovers all test-*.sh files under tests/, runs each in a background
+# Discovers all canonical SMS entrypoints and generic test-*.sh files under
+# tests/, runs each in a background
 # subprocess, captures output, and reports PASS/FAIL per test.
 #
 # Sets NETWORK_REPO_DIRECT_TEST_OK=1 so that Nebula tests pass the
@@ -19,14 +20,14 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ============================================================
 # Auto-discover tests
 # ============================================================
-tests=()
-for f in "${repo_root}/tests/test-"*.sh; do
-  [[ -f "${f}" ]] || continue
-  tests+=("${f}")
-done
+mapfile -t tests < <(
+  find "${repo_root}/tests" -maxdepth 1 -regextype posix-extended \( -type f -o -type l \) \
+    \( -name 'test-*.sh' -o -regex '.*/FS-[0-9]+-HDS-[0-9]+-SDS-[0-9]+-SMS-[0-9]+\.sh' \) \
+    -printf '%p\n' | LC_ALL=C sort
+)
 
 if [[ "${#tests[@]}" -eq 0 ]]; then
-  echo "ERROR: no test-*.sh files found under ${repo_root}/tests/" >&2
+  echo "ERROR: no test entrypoints found under ${repo_root}/tests/" >&2
   exit 2
 fi
 
@@ -64,9 +65,12 @@ for pid in "${!pid_to_name[@]}"; do
   name="${pid_to_name[${pid}]}"
   log_file="${pid_to_log[${pid}]}"
 
-  # Wait for this specific PID
-  wait "${pid}" 2>/dev/null || true
-  status=$?
+  # Preserve the child status instead of converting failures to success.
+  if wait "${pid}" 2>/dev/null; then
+    status=0
+  else
+    status=$?
+  fi
 
   if [[ "${status}" -eq 0 ]]; then
     echo "PASS ${name}"
