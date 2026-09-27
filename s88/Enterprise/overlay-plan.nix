@@ -31,7 +31,11 @@ let
   nebula = requireAttr "${basePath}.nebula" (overlayCpm.nebula or null);
   lighthouse = requireAttr "${basePath}.nebula.lighthouse" (nebula.lighthouse or null);
   lighthouseNodeName = requireString "${basePath}.nebula.lighthouse.node" (lighthouse.node or null);
-  lighthouseNode = requireAttr "${basePath}.nodes.${lighthouseNodeName}" (overlayNodes.${lighthouseNodeName} or null);
+  # The lighthouse may be a node of another site (peer/client site), so its
+  # overlay address is carried on the lighthouse block itself. Fall back to a
+  # local node only when the lighthouse actually is this site's node.
+  lighthouseNode =
+    if builtins.hasAttr lighthouseNodeName overlayNodes then overlayNodes.${lighthouseNodeName} else { };
   ipam = requireAttr "${basePath}.ipam" (overlayCpm.ipam or null);
   ipam4 = requireAttr "${basePath}.ipam.ipv4" (ipam.ipv4 or null);
   ipam6 = requireAttr "${basePath}.ipam.ipv6" (ipam.ipv6 or null);
@@ -68,8 +72,8 @@ let
   port = builtins.toString (lighthouse.port or (throw "network-renderer-nebula: overlay ${overlayName} lighthouse missing port from CPM"));
   endpointSourceFile = lighthouse.endpointSourceFile or null;
   endpoint6SourceFile = lighthouse.endpoint6SourceFile or null;
-  lighthouseAddr4 = requireString "${basePath}.nodes.${lighthouseNodeName}.addr4" (lighthouseNode.addr4 or null);
-  lighthouseAddr6 = requireString "${basePath}.nodes.${lighthouseNodeName}.addr6" (lighthouseNode.addr6 or null);
+  lighthouseAddr4 = requireString "${basePath}.nebula.lighthouse.addr4" (lighthouse.addr4 or lighthouseNode.addr4 or null);
+  lighthouseAddr6 = requireString "${basePath}.nebula.lighthouse.addr6" (lighthouse.addr6 or lighthouseNode.addr6 or null);
 
   lighthousePlan = {
     node = lighthouseNodeName;
