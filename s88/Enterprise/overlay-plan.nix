@@ -68,7 +68,9 @@ let
       derivedNebulaRuntimeNodes;
 
   endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
-  endpoint6 = requireString "${basePath}.nebula.lighthouse.endpoint6" (lighthouse.endpoint6 or null);
+  # IPv6 endpoint is optional: a WAN may have no public IPv6 (SMS-010 lighthouse
+  # data; only the modeled facts are required).
+  endpoint6 = lighthouse.endpoint6 or "";
   port = builtins.toString (lighthouse.port or (throw "FS-460-HDS-010-SDS-010-SMS-010: overlay ${overlayName} lighthouse missing port from CPM"));
   endpointSourceFile = lighthouse.endpointSourceFile or null;
   endpoint6SourceFile = lighthouse.endpoint6SourceFile or null;
@@ -78,10 +80,9 @@ let
   lighthousePlan = {
     node = lighthouseNodeName;
     inherit endpoint endpoint6 port;
-    endpoints = [
-      "${endpoint}:${port}"
-      "[${endpoint6}]:${port}"
-    ];
+    endpoints =
+      [ "${endpoint}:${port}" ]
+      ++ (if endpoint6 != "" then [ "[${endpoint6}]:${port}" ] else [ ]);
     overlayAddresses = [
       (withPrefixLength lighthouseAddr4 prefixLength4)
       (withPrefixLength lighthouseAddr6 prefixLength6)
