@@ -15,17 +15,20 @@ systemLib
       }:
       let
         cpmData = controlPlane.control_plane_model.data or { };
-        siteOverlays = lib.concatLists (
+        overlayValues = lib.concatLists (
           lib.mapAttrsToList (
             _enterprise: enterpriseData:
             lib.concatLists (
-              lib.mapAttrsToList (_site: siteData: builtins.attrNames (siteData.overlays or { })) enterpriseData
+              lib.mapAttrsToList (_site: siteData: builtins.attrValues (siteData.overlays or { })) enterpriseData
             )
           ) cpmData
         );
+        # Gate on the modeled provider, not the overlay name: an overlay whose
+        # provider is "nebula" must be realized regardless of what it is called
+        # (e.g. "garnet"). Name-prefix matching silently skipped such overlays.
         hasNebulaOverlay = builtins.any (
-          name: lib.hasPrefix "nebula" name || lib.hasPrefix "nebula-" name
-        ) siteOverlays;
+          overlay: (overlay.provider or null) == "nebula"
+        ) overlayValues;
       in
       if !hasNebulaOverlay then
         {
