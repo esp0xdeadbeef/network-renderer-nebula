@@ -69,6 +69,18 @@ systemLib
             nodeName: runtimeNode:
             let
               container = containerNameForNode nodeName;
+              # Endpoint secrets referenced by the runtime config
+              # (staticHostMapSecretEndpoints[].sourceFile) are read INSIDE the
+              # container, so they must be bind-mounted too (not only the PKI
+              # profile secrets).
+              endpointSecretNames =
+                let
+                  specs = runtimeNode.staticHostMapSecretEndpoints or { };
+                  files = lib.concatMap (v: map (s: s.sourceFile or null) v) (builtins.attrValues specs);
+                in
+                map (p: lib.removePrefix "/run/secrets/" p) (
+                  lib.filter (p: builtins.isString p && lib.hasPrefix "/run/secrets/" p) files
+                );
             in
             {
               inherit container nodeName;
@@ -76,7 +88,7 @@ systemLib
                 inherit pkgs nodeName runtimeNode;
               };
               profileDir = profileDirFor nodeName;
-              secretNames = profileSecretNamesFor nodeName;
+              secretNames = profileSecretNamesFor nodeName ++ endpointSecretNames;
             }
           ) (hostedPlan.nodes or { });
 
