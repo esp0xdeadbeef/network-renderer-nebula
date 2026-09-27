@@ -31,9 +31,16 @@ builtins.listToAttrs (
     (
       nodeName:
       let
+        # SMS-021: node identity and node set come from the canonical overlay.
+        # `runtimeNodes` (provider passthrough) is an OPTIONAL source of
+        # target-only facts for a node, not the node set and not node identity.
         runtimePath =
           "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
-        runtimeNode = requireAttr runtimePath (runtimeNodes.${nodeName} or null);
+        runtimeNode =
+          let
+            v = runtimeNodes.${nodeName} or null;
+          in
+          if builtins.isAttrs v then v else { };
         nebulaRuntimePath =
           "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nebula.runtimeNodes.${nodeName}";
         nebulaRuntimeNode = requireAttr nebulaRuntimePath (nebulaRuntimeNodes.${nodeName} or null);
@@ -160,6 +167,12 @@ builtins.listToAttrs (
             dynamicUnsafeRoutes
             routePreparation
             ;
+          # FS-350/FS-803: the overlay node address carries the OVERLAY
+          # SUBNET prefix (the pool prefix, e.g. /24, /64), not a host /32.
+          # The overlay is one connected subnet shared by all participants;
+          # a host mask on the node would drop the subnet broadcast/route and
+          # the overlay would not come up. The per-node host address inside
+          # the pool is the identity; the pool prefix is the interface mask.
           overlayAddresses = [
             (withPrefixLength (requireString "${renderedPath}.addr4" (renderedNode.addr4 or null)) prefixLength4)
             (withPrefixLength (requireString "${renderedPath}.addr6" (renderedNode.addr6 or null)) prefixLength6)
@@ -167,12 +180,26 @@ builtins.listToAttrs (
           groups =
             if builtins.isList (runtimeNode.groups or null) then
               lib.filter builtins.isString runtimeNode.groups
+            else if builtins.isList (renderedNode.groups or null) then
+              lib.filter builtins.isString renderedNode.groups
             else
               [ ];
-          service = (runtimeNode.service or { }) // {
-            name = runtimeNode.service.name or (throw "FS-310-HDS-010-SDS-010-SMS-110: service.name required by CPM provider contract, cannot default to nebula-runtime");
-            interface = runtimeNode.service.interface or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.interface from CPM");
-          };
+          # FS-310-HDS-010-SDS-010-SMS-110: when a node carries service
+          # metadata, its name must be explicit (canonical node or validated
+          # binding passthrough), never defaulted from the node name. A node
+          # with no service metadata is not forced to invent one.
+          service =
+            let
+              s = (renderedNode.service or { }) // (runtimeNode.service or { });
+            in
+            if s == { } then
+              { }
+            else
+              s
+              // {
+                name =
+                  s.name or (throw "FS-310-HDS-010-SDS-010-SMS-110: service.name required by CPM provider contract, cannot default to nebula-runtime");
+              };
           materialization = builtins.removeAttrs runtimeNode [
             "groups"
             "host"
@@ -199,5 +226,5 @@ builtins.listToAttrs (
         };
       }
     )
-    (sortedAttrNames runtimeNodes)
+    (sortedAttrNames overlayNodes)
 )
