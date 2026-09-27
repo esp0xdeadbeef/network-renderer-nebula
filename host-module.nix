@@ -133,8 +133,10 @@ systemLib
                     description = "Materialize the Nebula PKI profile for ${nodeName}";
                     wantedBy = [ "multi-user.target" ];
                     before = [ "container@${containerNameForNode nodeName}.service" ];
-                    after = [ "sops-nix.service" ];
-                    requires = [ "sops-nix.service" ];
+                    # SOPS secrets are materialized by the boot activation
+                    # script, not a sops-nix.service unit on every host, so do
+                    # not depend on a named unit; the secrets are present by
+                    # multi-user.target.
                     serviceConfig.Type = "oneshot";
                     serviceConfig.RemainAfterExit = true;
                     script = ''
