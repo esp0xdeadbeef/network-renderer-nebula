@@ -67,30 +67,40 @@ let
       )
       derivedNebulaRuntimeNodes;
 
-  endpoint = requireString "${basePath}.nebula.lighthouse.endpoint" (lighthouse.endpoint or null);
-  # IPv6 endpoint is optional: a WAN may have no public IPv6 (SMS-010 lighthouse
-  # data; only the modeled facts are required).
+  # A lighthouse may be IPv4-only, IPv6-only, or dual-stack; require at least
+  # one modeled endpoint family (SMS-010 lighthouse data).
+  endpoint = lighthouse.endpoint or "";
   endpoint6 = lighthouse.endpoint6 or "";
   port = builtins.toString (lighthouse.port or (throw "FS-460-HDS-010-SDS-010-SMS-010: overlay ${overlayName} lighthouse missing port from CPM"));
   endpointSourceFile = lighthouse.endpointSourceFile or null;
   endpoint6SourceFile = lighthouse.endpoint6SourceFile or null;
-  lighthouseAddr4 = requireString "${basePath}.nebula.lighthouse.addr4" (lighthouse.addr4 or lighthouseNode.addr4 or null);
-  lighthouseAddr6 = requireString "${basePath}.nebula.lighthouse.addr6" (lighthouse.addr6 or lighthouseNode.addr6 or null);
+  _hasEndpoint =
+    (builtins.isString endpoint && endpoint != "")
+    || (builtins.isString endpoint6 && endpoint6 != "")
+    || (builtins.isString endpointSourceFile && endpointSourceFile != "")
+    || (builtins.isString endpoint6SourceFile && endpoint6SourceFile != "");
+  _endpointRequired =
+    if _hasEndpoint then
+      true
+    else
+      throw "FS-460-HDS-010-SDS-010-SMS-010: overlay ${overlayName} lighthouse must model at least one underlay endpoint (IPv4 or IPv6)";
+  # Overlay addresses are optional per family (a lighthouse may be v4-only,
+  # v6-only, or dual-stack). Keep position 0 = v4, 1 = v6; empty when absent.
+  lighthouseAddr4 = lighthouse.addr4 or lighthouseNode.addr4 or "";
+  lighthouseAddr6 = lighthouse.addr6 or lighthouseNode.addr6 or "";
 
   lighthousePlan = {
     node = lighthouseNodeName;
     inherit endpoint endpoint6 port;
     endpoints =
-      [ "${endpoint}:${port}" ]
+      (if endpoint != "" then [ "${endpoint}:${port}" ] else [ ])
       ++ (if endpoint6 != "" then [ "[${endpoint6}]:${port}" ] else [ ]);
-    overlayAddresses = [
-      (withPrefixLength lighthouseAddr4 prefixLength4)
-      (withPrefixLength lighthouseAddr6 prefixLength6)
-    ];
-    overlayIps = [
-      (stripPrefixLength lighthouseAddr4)
-      (stripPrefixLength lighthouseAddr6)
-    ];
+    overlayAddresses =
+      (if lighthouseAddr4 != "" then [ (withPrefixLength lighthouseAddr4 prefixLength4) ] else [ ])
+      ++ (if lighthouseAddr6 != "" then [ (withPrefixLength lighthouseAddr6 prefixLength6) ] else [ ]);
+    overlayIps =
+      (if lighthouseAddr4 != "" then [ (stripPrefixLength lighthouseAddr4) ] else [ ])
+      ++ (if lighthouseAddr6 != "" then [ (stripPrefixLength lighthouseAddr6) ] else [ ]);
   }
   // lib.optionalAttrs (builtins.isString endpointSourceFile && endpointSourceFile != "") {
     inherit endpointSourceFile;

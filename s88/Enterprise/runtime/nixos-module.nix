@@ -12,9 +12,12 @@ let
   interfaceName = runtimeNode.service.interface or (throw "network-renderer-nebula: runtime node ${nodeName} missing service.interface from CPM");
   pkiBase = "/persist/nebula-runtime/profiles/${nodeName}";
   isLighthouse = (runtimeNode.lighthouse.node or null) == nodeName;
+  # A lighthouse may be IPv4-only, IPv6-only, or dual-stack: derive each family
+  # by shape rather than by list position, and drop absent families.
   lighthouseIps = runtimeNode.lighthouse.overlayIps or [ ];
-  lighthouseIp4 = builtins.elemAt lighthouseIps 0;
-  lighthouseIp6 = builtins.elemAt lighthouseIps 1;
+  isV6 = a: builtins.match ".*:.*" a != null;
+  lighthouseIp4 = builtins.head (lib.filter (a: !(isV6 a)) (lighthouseIps ++ [ "" ]));
+  lighthouseIp6 = builtins.head (lib.filter isV6 (lighthouseIps ++ [ "" ]));
   lighthouseEndpoints = runtimeNode.lighthouse.endpoints or [ ];
   overlayAddresses = runtimeNode.overlayAddresses or [ ];
   duplicateAddressCleanup = import ./duplicate-address-cleanup.nix {
@@ -44,7 +47,7 @@ let
     if isLighthouse then
       { }
     else
-      {
+      lib.filterAttrs (address: _: address != "") {
         ${lighthouseIp4} = lighthouseEndpoints;
         ${lighthouseIp6} = lighthouseEndpoints;
       };
@@ -113,7 +116,7 @@ in
       if isLighthouse then
         [ ]
       else
-        [
+        lib.filter (a: a != "") [
           lighthouseIp4
           lighthouseIp6
         ];
