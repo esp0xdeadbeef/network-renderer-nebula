@@ -69,8 +69,10 @@ in
   if endpoint6 and not is_ipv4_literal(listen_host):
       endpoints.append(format_endpoint(endpoint6, lighthouse_port))
   if endpoints:
-      replacements[lighthouse_ip4] = endpoints
-      replacements[lighthouse_ip6] = endpoints
+      if lighthouse_ip4:
+          replacements[lighthouse_ip4] = endpoints
+      if lighthouse_ip6:
+          replacements[lighthouse_ip6] = endpoints
 
   for overlay_ip, specs in secret_endpoint_specs.items():
       spec_endpoints = []
