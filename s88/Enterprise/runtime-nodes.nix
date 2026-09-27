@@ -49,7 +49,7 @@ builtins.listToAttrs (
         renderedNode = requireAttr renderedPath (overlayNodes.${nodeName} or null);
         _noInventoryUnsafeRoutes =
           if runtimeNode ? unsafeRoutes then
-            throw "${runtimePath}.unsafeRoutes is policy; CPM must provide overlay route contracts"
+            throw "FS-460-HDS-010-SDS-010-SMS-030: ${runtimePath}.unsafeRoutes is policy; CPM must provide overlay route contracts"
           else
             true;
         unsafeRouteInput = nebulaRuntimeNode.unsafeRoutes or null;
@@ -61,21 +61,21 @@ builtins.listToAttrs (
           else if builtins.isList unsafeRouteInput then
             normalizeUnsafeRoutes unsafeRouteInput
           else
-            throw "${nebulaRuntimePath}.unsafeRoutes must be an explicit list";
+            throw "FS-460-HDS-010-SDS-010-SMS-030: ${nebulaRuntimePath}.unsafeRoutes must be an explicit list";
         dynamicFirewallCidrs =
           if dynamicFirewallCidrsInput == null then
             [ ]
           else if builtins.isList dynamicFirewallCidrsInput then
             lib.unique dynamicFirewallCidrsInput
           else
-            throw "${nebulaRuntimePath}.dynamicFirewallCidrs must be an explicit list";
+            throw "FS-460-HDS-010-SDS-010-SMS-030: ${nebulaRuntimePath}.dynamicFirewallCidrs must be an explicit list";
         dynamicUnsafeRoutes =
           if dynamicUnsafeRoutesInput == null then
             [ ]
           else if builtins.isList dynamicUnsafeRoutesInput then
             lib.unique dynamicUnsafeRoutesInput
           else
-            throw "${nebulaRuntimePath}.dynamicUnsafeRoutes must be an explicit list";
+            throw "FS-460-HDS-010-SDS-010-SMS-030: ${nebulaRuntimePath}.dynamicUnsafeRoutes must be an explicit list";
         unsafeRouteToNebula = route:
           let
             via = route.via6 or route.via4 or route.via or null;

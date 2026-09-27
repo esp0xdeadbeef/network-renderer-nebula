@@ -71,7 +71,7 @@ systemLib
               container = containerNameForNode nodeName;
             in
             {
-              inherit container;
+              inherit container nodeName;
               module = systemLib.renderer.buildNebulaRuntimeNixosModule {
                 inherit pkgs nodeName runtimeNode;
               };
@@ -114,6 +114,39 @@ systemLib
               "d /persist/nebula-runtime/profiles 0700 root root -"
             ]
             ++ map (profileDir: "d ${profileDir} 0700 root root -") profileDirs
+          );
+
+          # FS-460-HDS-010-SDS-010-SMS-010: the container reads its PKI from
+          # /persist/nebula-runtime/profiles/<node>/{ca.crt,<node>.crt,<node>.key}.
+          # Populate each node profile dir from its SOPS-backed secrets
+          # (nebula-profile-<node>-{ca-crt,crt,key}) before the container starts.
+          systemd.services = builtins.listToAttrs (
+            map
+              (nodeName:
+                let
+                  dir = profileDirFor nodeName;
+                  secrets = profileSecretNamesFor nodeName;
+                in
+                {
+                  name = "nebula-profile-${nodeName}";
+                  value = {
+                    description = "Materialize the Nebula PKI profile for ${nodeName}";
+                    wantedBy = [ "multi-user.target" ];
+                    before = [ "container@${containerNameForNode nodeName}.service" ];
+                    after = [ "sops-nix.service" ];
+                    requires = [ "sops-nix.service" ];
+                    serviceConfig.Type = "oneshot";
+                    serviceConfig.RemainAfterExit = true;
+                    script = ''
+                      set -euo pipefail
+                      install -d -m 0700 ${dir}
+                      install -m 0400 /run/secrets/${builtins.elemAt secrets 0} ${dir}/ca.crt
+                      install -m 0400 /run/secrets/${builtins.elemAt secrets 1} ${dir}/${nodeName}.crt
+                      install -m 0400 /run/secrets/${builtins.elemAt secrets 2} ${dir}/${nodeName}.key
+                    '';
+                  };
+                })
+              (map (e: e.nodeName) nodeEntries)
           );
 
           containers = lib.mapAttrs (containerName: modules: {
