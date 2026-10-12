@@ -81,14 +81,18 @@ builtins.listToAttrs (
             via = route.via6 or route.via4 or route.via or null;
             mtu = route.mtu or (if (route.via6 or null) != null then 1280 else 1200);  # FIXME: CPM must provide explicit mtu per route
           in
-          {
-            route = route.route;
-            inherit mtu;
-            install = route.install or true;
-          }
-          // lib.optionalAttrs (via != null) {
-            inherit via;
-          };
+          # Nebula requires every unsafe_routes entry to carry a via (next hop).
+          # Emitting one with install=true and no via makes nebula refuse to
+          # start, which under systemd becomes an endless restart loop; fail
+          # closed instead (FS-460 fail-closed, SMS-030).
+          if via == null then
+            throw "FS-460-HDS-010-SDS-010-SMS-030: unsafe route ${builtins.toJSON route.route} has no via (via4/via6/via)"
+          else
+            {
+              route = route.route;
+              inherit mtu via;
+              install = route.install or true;
+            };
         unsafeFirewallRules = map
           (route: {
             port = "any";  # FIXME: CPM must provide traffic class scoped port

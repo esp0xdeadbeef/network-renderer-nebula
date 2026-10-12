@@ -28,10 +28,19 @@
           continue
       cidr = read_prefix(spec)
       cidrs.append(cidr)
-      route = {"route": cidr, "mtu": spec.get("mtu") or (1280 if ":" in cidr else 1200), "install": True}  # FIXME: CPM must provide explicit mtu per route
       via = spec.get("via6") or spec.get("via4") or spec.get("via")
-      if via:
-          route["via"] = via
+      # A nebula unsafe_route with install=True requires a via (next hop).
+      # Rendering one without a via makes nebula refuse to start, which under
+      # systemd becomes an endless restart loop.  Fail closed here instead
+      # (FS-460 fail-closed) rather than emitting an invalid entry.
+      if not via:
+          raise SystemExit(
+              "FS-460-HDS-010-SDS-010-SMS-030: dynamic unsafe route " + cidr +
+              " (sourceFile " + str(spec.get("sourceFile", "")) + ")" +
+              " has no via; the CPM must provide via4/via6/via"
+          )
+      route = {"route": cidr, "mtu": spec.get("mtu") or (1280 if ":" in cidr else 1200), "install": True}  # FIXME: CPM must provide explicit mtu per route
+      route["via"] = via
       routes.append(route)
 
   if not routes:
