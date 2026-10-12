@@ -51,18 +51,52 @@ let
       )
     );
 
+  # CPM emits route/prefix `family` as an integer (4/6) for overlay routes and
+  # as a string ("ipv4"/"ipv6") for delegated-public-egress prefixes; both are
+  # valid canonical forms, so normalize before matching.  A route that cannot be
+  # given a `via` is not a usable nebula unsafe route: emitting it with
+  # install:true and no via makes nebula refuse to start (FS-460 fail-closed),
+  # so fail here instead of producing an invalid entry.
+  normalizeFamily =
+    family:
+    if family == 4 || family == "ipv4" then
+      "ipv4"
+    else if family == 6 || family == "ipv6" then
+      "ipv6"
+    else
+      throw "FS-460-HDS-010-SDS-010-SMS-030: dynamic unsafe route family must be 4/6 or 'ipv4'/'ipv6', got ${builtins.toJSON family}";
+
   routeForCidr =
     peer: cidr:
-    {
-      sourceFile = cidr.sourceFile;
-      family = cidr.family or null;
-    }
-    // lib.optionalAttrs ((cidr.family or null) == "ipv6" && builtins.isString (peer.addr6 or null)) {
-      via6 = stripPrefixLength peer.addr6;
-    }
-    // lib.optionalAttrs ((cidr.family or null) == "ipv4" && builtins.isString (peer.addr4 or null)) {
-      via4 = stripPrefixLength peer.addr4;
-    };
+    let
+      family = normalizeFamily (cidr.family or null);
+      via =
+        if family == "ipv6" then
+          peer.addr6 or null
+        else
+          peer.addr4 or null;
+      missingVia =
+        "FS-460-HDS-010-SDS-010-SMS-030: "
+        + family
+        + " dynamic unsafe route for "
+        + builtins.toJSON cidr.sourceFile
+        + " has no peer "
+        + family
+        + " address to use as its via";
+      viaField =
+        if family == "ipv6" then
+          { via6 = stripPrefixLength via; }
+        else
+          { via4 = stripPrefixLength via; };
+    in
+    if !(builtins.isString via) then
+      throw missingVia
+    else
+      {
+        sourceFile = cidr.sourceFile;
+        family = cidr.family or null;
+      }
+      // viaField;
 
   dynamicUnsafeRoutesForPeerSite =
     nodeName: peerSite:
