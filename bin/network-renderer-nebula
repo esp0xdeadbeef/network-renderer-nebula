@@ -5,6 +5,7 @@ self_path="@SELF_PATH@"
 nixpkgs_lib_path="@NIXPKGS_LIB_PATH@"
 renderer_git_rev="@RENDERER_GIT_REV@"
 renderer_dirty="@RENDERER_DIRTY@"
+renderer_lock_summary_embedded='@RENDERER_LOCK_SUMMARY@'
 
 usage() {
   cat <<'EOF'
@@ -93,7 +94,14 @@ fi
 renderer_lock_summary() {
   local lock_path="${self_path}/flake.lock"
   if [[ ! -r "${lock_path}" ]]; then
-    printf '{"available":false}\n'
+    # Nix excludes flake.lock from the flake's store source tree, so the running
+    # wrapper cannot read it from self_path.  Fall back to the lock summary the
+    # package embedded at build time (FS-100-HDS-010-SDS-010-SMS-010).
+    if [[ -n "${renderer_lock_summary_embedded}" ]]; then
+      printf '%s\n' "${renderer_lock_summary_embedded}"
+    else
+      printf '{"available":false}\n'
+    fi
     return
   fi
 

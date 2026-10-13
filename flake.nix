@@ -6,6 +6,11 @@
 
     network-control-plane-model.url = "github:esp0xdeadbeef/network-control-plane-model";
     network-control-plane-model.inputs.nixpkgs.follows = "nixpkgs";
+    # Unify the control-plane model's network-labs with ours: without this the
+    # pinned control-plane model keeps its own network-labs, whose lock points
+    # back at the control-plane model -- a circular flake import that breaks
+    # `nix flake lock`/`metadata` here.  Same shape as network-renderer-nixos.
+    network-control-plane-model.inputs.network-labs.follows = "network-labs";
 
     network-labs.url = "github:esp0xdeadbeef/network-labs";
 
