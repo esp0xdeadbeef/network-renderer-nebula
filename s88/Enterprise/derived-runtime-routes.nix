@@ -96,11 +96,12 @@ let
       explicitVia =
         let
           family = route.family or null;
+          stripMaybe = value: if lib.hasInfix "/" value then stripPrefixLength value else value;
         in
         if family == 4 && builtins.isString (route.via4 or null) then
-          { via4 = stripPrefixLength route.via4; }
+          { via4 = stripMaybe route.via4; }
         else if family == 6 && builtins.isString (route.via6 or null) then
-          { via6 = stripPrefixLength route.via6; }
+          { via6 = stripMaybe route.via6; }
         else
           { };
       peerSite = requireRoutePeerSite route;
