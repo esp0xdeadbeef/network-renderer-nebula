@@ -30,6 +30,29 @@ let
     else
       attrsOrEmpty ((cpmData.${builtins.elemAt parts 0} or { }).${builtins.elemAt parts 1} or null);
 
+  # The peer site's modeled overlay participant address -- the next hop for the
+  # overlay reachability routes toward that peer (URS: "Overlay transport shall
+  # model endpoint identity, permitted peers, ...").  A peer site is not
+  # necessarily compiled in this site's pass, so the address is modeled
+  # canonically on this overlay's provider block (nebula.lighthouse.addr4/6).
+  # The CPM emits it; the renderer must only read it, never invent it (SMS-070).
+  overlayCpmRecord = attrsOrEmpty ((overlayCpm.overlays or { }).${overlayName} or null);
+  peerOverlayAddress =
+    let
+      lh = attrsOrEmpty ((overlayCpmRecord.nebula or { }).lighthouse or null);
+    in
+    {
+      ipv4 = lh.addr4 or null;
+      ipv6 = lh.addr6 or null;
+    };
+
+  peerViaFor =
+    family:
+    let
+      raw = if family == "ipv4" then peerOverlayAddress.ipv4 else peerOverlayAddress.ipv6;
+    in
+    if builtins.isString raw && raw != "" then raw else null;
+
   targetDynamicFirewallCidrsIn =
     peerSiteCpm: nodeName: target:
     let
@@ -70,8 +93,17 @@ let
     peer: cidr:
     let
       family = normalizeFamily (cidr.family or null);
+      # Peer overlay next hop, in preference order: the peer's modeled overlay
+      # participant address on this overlay's provider block (available even
+      # when the peer site is not compiled here), then the compiled peer node
+      # address.  This is the modeled "endpoint identity" the URS requires.
       via =
-        if family == "ipv6" then
+        let
+          modeled = peerViaFor family;
+        in
+        if builtins.isString modeled then
+          modeled
+        else if family == "ipv6" then
           peer.addr6 or null
         else
           peer.addr4 or null;
@@ -82,7 +114,7 @@ let
         + builtins.toJSON cidr.sourceFile
         + " has no peer "
         + family
-        + " address to use as its via";
+        + " overlay address (nebula.lighthouse.addr4/6) to use as its via";
       viaField =
         if family == "ipv6" then
           { via6 = stripPrefixLength via; }
