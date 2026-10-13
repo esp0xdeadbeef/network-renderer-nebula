@@ -88,6 +88,21 @@ let
 
   viaForRoute = route:
     let
+      # Prefer the next hop the control-plane/forwarding model attached to the
+      # overlay reachability route (SDS/HDS/SMS-030): it is the modeled peer
+      # overlay endpoint and is present even when the peer site is not compiled
+      # in this pass.  Fall back to the compiled peer site's overlay node
+      # address when the route carries no explicit next hop.
+      explicitVia =
+        let
+          family = route.family or null;
+        in
+        if family == 4 && builtins.isString (route.via4 or null) then
+          { via4 = stripPrefixLength route.via4; }
+        else if family == 6 && builtins.isString (route.via6 or null) then
+          { via6 = stripPrefixLength route.via6; }
+        else
+          { };
       peerSite = requireRoutePeerSite route;
       peerOverlay = if builtins.isString peerSite then siteForPeer peerSite else null;
       terminateOn = if builtins.isAttrs peerOverlay then listOrEmpty (peerOverlay.terminateOn or null) else [ ];
@@ -95,7 +110,9 @@ let
       peerNode = if builtins.isString peerNodeName then attrsOrEmpty ((peerOverlay.nodes or { }).${peerNodeName} or null) else { };
       family = route.family or null;
     in
-    if family == 4 && builtins.isString (peerNode.addr4 or null) then
+    if explicitVia != { } then
+      explicitVia
+    else if family == 4 && builtins.isString (peerNode.addr4 or null) then
       { via4 = stripPrefixLength peerNode.addr4; }
     else if family == 6 && builtins.isString (peerNode.addr6 or null) then
       { via6 = stripPrefixLength peerNode.addr6; }
