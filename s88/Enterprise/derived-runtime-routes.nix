@@ -96,7 +96,15 @@ let
       explicitVia =
         let
           family = route.family or null;
-          stripMaybe = value: if lib.hasInfix "/" value then stripPrefixLength value else value;
+          # The modeled next hop the control-plane/forwarding model attaches is
+          # already bare ("10.80.0.1"); the compiled peer-node fallback below
+          # may still carry a prefix length.  Strip only when present.
+          stripMaybe =
+            value:
+            let
+              parts = lib.splitString "/" value;
+            in
+            if builtins.length parts > 1 then builtins.head parts else value;
         in
         if family == 4 && builtins.isString (route.via4 or null) then
           { via4 = stripMaybe route.via4; }
