@@ -75,6 +75,46 @@ let
       (toString (spec.family or null))
     ];
 
+  # FS-171 ("A consumer imports, it does not re-derive") and FS-310 ("If
+  # required policy input is missing or ambiguous, the renderer shall report the
+  # limitation or failure instead of repairing the model"): the same node can be
+  # present in more than one site's overlay instance, and each instance declares
+  # the target facts it carries.  Filling a fact from another instance is
+  # importing it; dropping it because an earlier instance omits it deletes
+  # modeled facts.  Two instances declaring the same key with different values
+  # is an ambiguous model and fails closed here instead of picking one.
+  mergeDeclaredFacts =
+    { nodeName, field, path }:
+    values:
+    let
+      declared = builtins.filter (value: value != null) values;
+    in
+    if declared == [ ] then
+      null
+    else if builtins.all builtins.isAttrs declared then
+      builtins.listToAttrs
+        (
+          map
+            (key: {
+              name = key;
+              value = mergeDeclaredFacts
+                {
+                  inherit nodeName field;
+                  path = "${path}.${key}";
+                }
+                (map (value: value.${key} or null) declared);
+            })
+            (helpers.uniqueStrings (builtins.concatMap builtins.attrNames declared))
+        )
+    else
+      let
+        first = builtins.head declared;
+      in
+      if builtins.all (value: value == first) declared then
+        first
+      else
+        throw "FS-310: node '${nodeName}' ${field} is declared with conflicting values at ${path}: ${builtins.toJSON declared}; the renderer shall report the ambiguity instead of repairing the model";
+
   firewallRulesForNetworks =
     networks:
     map
@@ -122,6 +162,29 @@ in
           unsafeRoutes = uniqueRoutes (builtins.concatLists (map (node: node.unsafeRoutes or [ ]) matching));
           inherit advertisedUnsafeNetworks;
           inherit dynamicFirewallCidrs;
+          materialization =
+            let
+              merged = mergeDeclaredFacts
+                {
+                  inherit nodeName;
+                  field = "materialization";
+                  path = "materialization";
+                }
+                (map (node: node.materialization or null) matching);
+            in
+            if merged == null then { } else merged;
+          groups = helpers.uniqueStrings (builtins.concatLists (map (node: node.groups or [ ]) matching));
+          service =
+            let
+              merged = mergeDeclaredFacts
+                {
+                  inherit nodeName;
+                  field = "service";
+                  path = "service";
+                }
+                (map (node: node.service or null) matching);
+            in
+            if merged == null then (base.service or { }) else merged;
           routePreparation = mergeRoutePreparation matching;
           nebulaNetwork =
             baseNebulaNetwork
