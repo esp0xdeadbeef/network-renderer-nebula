@@ -8,7 +8,7 @@ if rg -n 'modeledUnsafeRoutes|runtimeNode\.unsafeRoutes|hasInfix|contains\("nebu
   "${repo_root}" \
   --glob '*.nix' \
   --glob '!flake.lock' \
-  --glob '!tests/FS-460-HDS-010-SDS-010-SMS-021.sh' >/tmp/network-renderer-nebula-boundary-hits.$$; then
+  --glob '!tests/FS-460-HDS-010-SDS-010-SMS-021.sh' >"${TMPDIR:-/var/tmp}/network-renderer-nebula-boundary-hits.$$"; then
   cat >&2 <<EOF
 FATAL network-renderer-nebula CPM overlay contract boundary violation.
 
@@ -17,12 +17,12 @@ Do not derive policy from runtime inventory unsafeRoutes or node-name strings.
 
 Current boundary hits:
 EOF
-  cat /tmp/network-renderer-nebula-boundary-hits.$$ >&2
-  rm -f /tmp/network-renderer-nebula-boundary-hits.$$
+  cat "${TMPDIR:-/var/tmp}/network-renderer-nebula-boundary-hits.$$" >&2
+  rm -f "${TMPDIR:-/var/tmp}/network-renderer-nebula-boundary-hits.$$"
   exit 1
 fi
 
-rm -f /tmp/network-renderer-nebula-boundary-hits.$$
+rm -f "${TMPDIR:-/var/tmp}/network-renderer-nebula-boundary-hits.$$"
 nix eval --impure --no-warn-dirty --expr '
   let
     flake = builtins.getFlake (toString '"$repo_root"');
