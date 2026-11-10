@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # run-all-tests.sh — Run all Nebula renderer construction tests with auto-discovery.
 #
-# Discovers all canonical SMS entrypoints and generic test-*.sh files under
-# tests/, runs each in a background
-# subprocess, captures output, and reports PASS/FAIL per test.
+# Discovers every entrypoint through the shared scripts/lib/discover-tests.sh
+# contract and runs each in a background subprocess, captures output, and
+# reports PASS/FAIL per test.
 #
 # Sets NETWORK_REPO_DIRECT_TEST_OK=1 so that Nebula tests pass the
 # repo-spot-test guard.
@@ -20,11 +20,14 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ============================================================
 # Auto-discover tests
 # ============================================================
-mapfile -t tests < <(
-  find "${repo_root}/tests" -maxdepth 1 -regextype posix-extended \( -type f -o -type l \) \
-    \( -name 'test-*.sh' -o -regex '.*/FS-[0-9]+-HDS-[0-9]+-SDS-[0-9]+-SMS-[0-9]+\.sh' \) \
-    -printf '%p\n' | LC_ALL=C sort
-)
+# shellcheck source=scripts/lib/discover-tests.sh
+source "${repo_root}/scripts/lib/discover-tests.sh"
+mapfile -t test_names < <(discover_tests "${repo_root}")
+
+tests=()
+for test_name in "${test_names[@]}"; do
+  tests+=("${repo_root}/tests/${test_name}")
+done
 
 if [[ "${#tests[@]}" -eq 0 ]]; then
   echo "ERROR: no test entrypoints found under ${repo_root}/tests/" >&2
@@ -49,7 +52,7 @@ for test_path in "${tests[@]}"; do
   log_file="${tmp_dir}/${name}.log"
 
   # Run test in background with NETWORK_REPO_DIRECT_TEST_OK=1
-  NETWORK_REPO_DIRECT_TEST_OK=1 bash "${test_path}" >"${log_file}" 2>&1 &
+  NETWORK_REPO_DIRECT_TEST_OK=1 "$(discover_test_runner "${test_path}")" "${test_path}" >"${log_file}" 2>&1 &
   pid=$!
   pid_to_name["${pid}"]="${name}"
   pid_to_log["${pid}"]="${log_file}"
