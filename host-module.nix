@@ -145,10 +145,33 @@ systemLib
                     description = "Materialize the Nebula PKI profile for ${nodeName}";
                     wantedBy = [ "multi-user.target" ];
                     before = [ "container@${containerNameForNode nodeName}.service" ];
-                    # SOPS secrets are materialized by the boot activation
-                    # script, not a sops-nix.service unit on every host, so do
-                    # not depend on a named unit; the secrets are present by
-                    # multi-user.target.
+                    # Order after the unit that actually writes /run/secrets.
+                    #
+                    # This used to say the secrets come from "the boot
+                    # activation script", so no unit dependency was declared.
+                    # That is not what happens on the nixos-shell substrate:
+                    # sops-install-secrets.service is the writer, and without
+                    # an ordering edge this unit can run first and fail with
+                    #
+                    #   install: cannot stat '/run/secrets/nebula-profile-\
+                    #     <node>-ca-crt': No such file or directory
+                    #
+                    # Measured 2026-11-11 on the cobalt HAT: the unit failed at
+                    # 00:30:09, the secrets appeared in the same minute, the
+                    # service is oneshot with no Restart=, so it was never
+                    # retried and the guest finished boot in `degraded` state
+                    # with the nebula PKI profile missing. `systemctl restart`
+                    # then succeeded, which is what identifies it as ordering
+                    # rather than a missing secret.
+                    #
+                    # `sops-install-secrets.service` is the unit already used
+                    # for this purpose elsewhere in the platform
+                    # (nixos/virtual-machine/nixos-shell-vm/wifi-ap.nix). It is
+                    # `Type=`-less and exits after installing, so `after` is
+                    # the right edge -- `requires` would also be defensible but
+                    # would make this unit fail on a host that has no sops at
+                    # all, where the secrets are provided some other way.
+                    after = [ "sops-install-secrets.service" ];
                     serviceConfig.Type = "oneshot";
                     serviceConfig.RemainAfterExit = true;
                     script = ''
