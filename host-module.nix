@@ -145,33 +145,24 @@ systemLib
                     description = "Materialize the Nebula PKI profile for ${nodeName}";
                     wantedBy = [ "multi-user.target" ];
                     before = [ "container@${containerNameForNode nodeName}.service" ];
-                    # Order after the unit that actually writes /run/secrets.
+                    # Order after the unit that writes /run/secrets, or this
+                    # runs first and fails with
+                    #   install: cannot stat '/run/secrets/nebula-profile-<node>-ca-crt'
+                    # It is `oneshot` with no `Restart=`, so it is never retried:
+                    # the host boots `degraded` with no PKI, and a later
+                    # `systemctl restart` succeeds, which is what identifies
+                    # this as ordering rather than a missing secret. Measured
+                    # on the cobalt HAT.
                     #
-                    # This used to say the secrets come from "the boot
-                    # activation script", so no unit dependency was declared.
-                    # That is not what happens on the nixos-shell substrate:
-                    # sops-install-secrets.service is the writer, and without
-                    # an ordering edge this unit can run first and fail with
-                    #
-                    #   install: cannot stat '/run/secrets/nebula-profile-\
-                    #     <node>-ca-crt': No such file or directory
-                    #
-                    # Measured 2026-11-11 on the cobalt HAT: the unit failed at
-                    # 00:30:09, the secrets appeared in the same minute, the
-                    # service is oneshot with no Restart=, so it was never
-                    # retried and the guest finished boot in `degraded` state
-                    # with the nebula PKI profile missing. `systemctl restart`
-                    # then succeeded, which is what identifies it as ordering
-                    # rather than a missing secret.
-                    #
-                    # `sops-install-secrets.service` is the unit already used
-                    # for this purpose elsewhere in the platform
-                    # (nixos/virtual-machine/nixos-shell-vm/wifi-ap.nix). It is
-                    # `Type=`-less and exits after installing, so `after` is
-                    # the right edge -- `requires` would also be defensible but
-                    # would make this unit fail on a host that has no sops at
-                    # all, where the secrets are provided some other way.
-                    after = [ "sops-install-secrets.service" ];
+                    # Naming only one provider is not enough -- which one
+                    # exists is a property of the substrate, and `after` on a
+                    # unit that does not exist is a systemd no-op:
+                    #   sops-install-secrets.service  a host with sops-nix
+                    #   isp-fake-secrets.service      the HAT fixture
+                    after = [
+                      "sops-install-secrets.service"
+                      "isp-fake-secrets.service"
+                    ];
                     serviceConfig.Type = "oneshot";
                     serviceConfig.RemainAfterExit = true;
                     script = ''
