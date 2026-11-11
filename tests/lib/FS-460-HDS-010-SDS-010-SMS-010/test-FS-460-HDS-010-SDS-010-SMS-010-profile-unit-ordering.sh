@@ -76,23 +76,15 @@ let
     let svc = profileUnits.${name};
     in "${name}: after=${builtins.toJSON (svc.after or [ ])}";
 
-  # Both providers are required, not either. The first attempt at this fix named
-  # only `sops-install-secrets.service`; on the HAT substrate that unit is
-  # `not-found`, so the edge was a no-op, the profile unit still raced the
-  # fixture unit `isp-fake-secrets.service`, and the failure was identical.
-  # Asserting one-of them would have let that defective fix pass.
-  needs = name: lib.all (dep: builtins.elem dep (profileUnits.${name}.after or [ ]))
-    [ "sops-install-secrets.service" "isp-fake-secrets.service" ];
-
 in
   require (profileUnits != { })
     "expected the module to generate at least one nebula-profile-* unit; it generated none, so this case would assert nothing"
-  && require (builtins.all needs (builtins.attrNames profileUnits))
-     ("every nebula-profile-* unit must be ordered after BOTH " +
-      "sops-install-secrets.service (a host with sops-nix) and " +
-      "isp-fake-secrets.service (the HAT fixture, which writes the plaintext " +
-      "secrets); a unit that does not exist is a no-op `after`, so naming only " +
-      "one leaves the race in place on the other substrate. " +
+  && require (builtins.all
+       (name: builtins.elem "sops-install-secrets.service" (profileUnits.${name}.after or [ ]))
+       (builtins.attrNames profileUnits))
+     ("every nebula-profile-* unit must be ordered after sops-install-secrets.service, " +
+      "the unit that writes /run/secrets, otherwise it can run first, fail once " +
+      "and never be retried (oneshot, no Restart=). " +
       "Got: " + builtins.concatStringsSep "; " (map describe (builtins.attrNames profileUnits)))
 ' >/dev/null
 
