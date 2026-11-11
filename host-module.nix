@@ -145,24 +145,14 @@ systemLib
                     description = "Materialize the Nebula PKI profile for ${nodeName}";
                     wantedBy = [ "multi-user.target" ];
                     before = [ "container@${containerNameForNode nodeName}.service" ];
-                    # Order after the unit that writes /run/secrets, or this
-                    # runs first and fails with
+                    # Order after the unit that writes /run/secrets. Without
+                    # this edge the unit can run first and fails with
                     #   install: cannot stat '/run/secrets/nebula-profile-<node>-ca-crt'
                     # It is `oneshot` with no `Restart=`, so it is never retried:
                     # the host boots `degraded` with no PKI, and a later
                     # `systemctl restart` succeeds, which is what identifies
-                    # this as ordering rather than a missing secret. Measured
-                    # on the cobalt HAT.
-                    #
-                    # Naming only one provider is not enough -- which one
-                    # exists is a property of the substrate, and `after` on a
-                    # unit that does not exist is a systemd no-op:
-                    #   sops-install-secrets.service  a host with sops-nix
-                    #   isp-fake-secrets.service      the HAT fixture
-                    after = [
-                      "sops-install-secrets.service"
-                      "isp-fake-secrets.service"
-                    ];
+                    # this as ordering rather than a missing secret.
+                    after = [ "sops-install-secrets.service" ];
                     serviceConfig.Type = "oneshot";
                     serviceConfig.RemainAfterExit = true;
                     script = ''
