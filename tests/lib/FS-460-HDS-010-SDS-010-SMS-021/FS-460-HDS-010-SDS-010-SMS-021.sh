@@ -67,6 +67,7 @@ nix eval --impure --no-warn-dirty --expr '
     };
     plan = api.buildNebulaPlan {
       controlPlane = badControlPlane;
+      cpmData = badControlPlane.control_plane_model.data;
     };
     result = builtins.tryEval plan.nodes.core.unsafeRoutes;
   in

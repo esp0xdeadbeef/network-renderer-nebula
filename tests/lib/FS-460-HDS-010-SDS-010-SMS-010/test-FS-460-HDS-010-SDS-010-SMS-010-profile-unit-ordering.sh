@@ -61,6 +61,9 @@ let
   };
   nixosModule = api.hostModule {
     inherit controlPlane;
+    # The test builds the control-plane input itself; the site tree is that
+    # its site content. Production receives it as canonical site records.
+    cpmData = controlPlane.control_plane_model.data;
     hostName = "s-router-nixos";
   };
   output = nixosModule { config = {}; inherit lib pkgs; };

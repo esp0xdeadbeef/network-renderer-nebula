@@ -8,20 +8,33 @@ systemLib
   renderer = systemLib.renderer // rec {
     hostModule =
       {
-        controlPlane,
+        # The validated renderer input carries `canonicalContent`; a caller that
+        # holds the enterprise -> site tree directly (a test constructing its
+        # input, or a caller that already has published site facts) may pass
+        # `cpmData`. Neither is the control-plane model.
+        controlPlane ? null,
         hostName,
         sopsProfileSecretPrefix ? "nebula-profile",
+        canonicalContent ? { },
+        cpmData ? null,
         ...
       }:
       let
-        cpmData = controlPlane.control_plane_model.data or { };
+        # The enterprise -> site tree, rebuilt from the bundle's canonical site
+        # records rather than from the producer's model. See
+        # s88/Enterprise/canonical-site-tree.nix for why this is the identity on
+        # `data.<enterprise>.<site>` and why there is no fallback.
+        siteTree = if cpmData != null then cpmData else import ./s88/Enterprise/canonical-site-tree.nix { inherit lib; } {
+          canonical = canonicalContent;
+          expected = "nebula host module";
+        };
         overlayValues = lib.concatLists (
           lib.mapAttrsToList (
             _enterprise: enterpriseData:
             lib.concatLists (
               lib.mapAttrsToList (_site: siteData: builtins.attrValues (siteData.overlays or { })) enterpriseData
             )
-          ) cpmData
+          ) siteTree
         );
         # Gate on the modeled provider, not the overlay name: an overlay whose
         # provider is "nebula" must be realized regardless of what it is called
@@ -40,15 +53,20 @@ systemLib
         { }
       else
         let
-          plan = systemLib.renderer.buildNebulaPlan { inherit controlPlane; };
+          plan = systemLib.renderer.buildNebulaPlan {
+            inherit controlPlane canonicalContent;
+            cpmData = siteTree;
+          };
           hostedPlan = systemLib.renderer.selectHostedNebulaRuntimePlan {
             nebulaRuntimePlan = plan;
-            inherit cpmData hostName;
+            cpmData = siteTree;
+            inherit hostName;
           };
           containerNameForNode =
             nodeName:
             systemLib.renderer.runtimeContainerNameForHost {
-              inherit cpmData hostName;
+              cpmData = siteTree;
+            inherit hostName;
               logicalName = nodeName;
             };
           profileDirFor = nodeName: "/persist/nebula-runtime/profiles/${nodeName}";
@@ -219,7 +237,7 @@ systemLib
         hostModule (
           forwarded
           // {
-            controlPlane = validated.controlPlaneEnvelope;
+            canonicalContent = validated.canonical;
             canonicalBundleIdentity = validated.bundleIdentity;
             canonicalBindingIdentity = validated.bindingIdentity;
           }

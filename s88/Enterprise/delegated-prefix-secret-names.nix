@@ -1,17 +1,23 @@
 { lib }:
 
-{ controlPlanes }:
+{
+  # The enterprise -> site tree, as published by the bundle's canonical site
+  # records. Either form is accepted so a caller holding canonical content
+  # (`canonicalSites`) and a caller holding the tree itself (`cpmData`) both
+  # work; neither is the control-plane model, which this renderer must not read.
+  canonicalSites ? null,
+  cpmData ? null,
+}:
 let
-  controlPlaneDataList = builtins.map (
-    controlPlane:
-    let
-      controlPlaneModel = controlPlane.control_plane_model or { };
-    in
-    if builtins.isAttrs (controlPlaneModel.data or null) then
-      controlPlaneModel.data
+  controlPlaneDataList = [
+    (if cpmData != null then
+      cpmData
     else
-      controlPlane.data or { }
-  ) controlPlanes;
+      import ./canonical-site-tree.nix { inherit lib; } {
+        canonical = canonicalSites;
+        expected = "delegated-prefix secret names";
+      })
+  ];
 
   runtimeTargets = lib.foldl' (
     targetAcc: controlPlaneData:

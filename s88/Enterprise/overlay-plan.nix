@@ -26,7 +26,7 @@ let
     ;
 
   overlayId = "${enterpriseName}::${siteName}::${overlayName}";
-  basePath = "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}";
+  basePath = "canonical site ${enterpriseName}.${siteName}.overlays.${overlayName}";
   overlayNodes = requireAttr "${basePath}.nodes" (overlayCpm.nodes or null);
   nebula = requireAttr "${basePath}.nebula" (overlayCpm.nebula or null);
   lighthouse = requireAttr "${basePath}.nebula.lighthouse" (nebula.lighthouse or null);

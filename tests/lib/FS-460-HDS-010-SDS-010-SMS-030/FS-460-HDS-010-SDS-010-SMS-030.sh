@@ -31,6 +31,7 @@ if nix eval --impure --no-warn-dirty --json --expr '
   in
     api.buildNebulaPlan {
       controlPlane = badControlPlane;
+      cpmData = badControlPlane.control_plane_model.data;
     }
 ' >"$tmp_dir/invalid-relay.json" 2>"$tmp_dir/invalid-relay.err"; then
   echo "FAIL expected unknown relay node rejection" >&2

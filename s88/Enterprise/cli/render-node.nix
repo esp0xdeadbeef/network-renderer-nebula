@@ -15,8 +15,18 @@ let
   input = readJson cpmPath;
 
   hasRuntimePlan = builtins.isAttrs (input.nebulaRuntimePlan or null);
-  hasControlPlane = builtins.isAttrs (input.controlPlane or null) || builtins.isAttrs (input.control_plane_model or null);
+  hasControlPlane = builtins.isAttrs (input.controlPlane or null) || builtins.isAttrs (input.canonical or null);
   controlPlane = input.controlPlane or input;
+
+  # This CLI is an INPUT BOUNDARY: `--cpm` names a control-plane artifact on the
+  # command line, so reading its canonical collections here is the operator
+  # handing the renderer canonical content, not the renderer reaching into the
+  # model on its own. The plan itself maps `canonicalContent` only.
+  inputCanonical =
+    if builtins.isAttrs (input.canonical or null) then
+      input.canonical
+    else
+      { };
 
   runtimePlan =
     if hasRuntimePlan then
@@ -25,11 +35,12 @@ let
       renderer.buildNebulaPlan
         {
           inherit controlPlane;
+          canonicalContent = inputCanonical;
         }
     else
       throw ''
         network-renderer-nebula: --cpm must point to JSON containing either
-        nebulaRuntimePlan, or CPM controlPlane/control_plane_model data.
+        nebulaRuntimePlan, or a canonical control-plane projection.
       '';
 
   selectedOverlayId =

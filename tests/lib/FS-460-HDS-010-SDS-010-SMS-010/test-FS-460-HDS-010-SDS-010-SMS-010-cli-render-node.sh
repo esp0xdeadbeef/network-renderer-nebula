@@ -17,11 +17,17 @@ nix eval --impure --no-warn-dirty --json --expr '
     system = "x86_64-linux";
     cpmLib = flake.inputs.network-control-plane-model.libBySystem.${system};
   in
-  {
-    controlPlane = cpmLib.compileAndBuildFromPaths {
+  let
+    artifact = cpmLib.compileAndBuildFromPaths {
       inputPath = "'"$intent_path"'";
       inventoryPath = "'"$inventory_path"'";
     };
+  in
+  {
+    controlPlane = artifact;
+    # The CLI takes an artifact as INPUT; the canonical section it maps is
+    # projected from that artifact, exactly as the bundle carries it.
+    canonical = flake.inputs.network-realization-model.lib.canonicalFor artifact.control_plane_model;
   }
 ' >"$tmp_dir/cpm-bundle.json"
 

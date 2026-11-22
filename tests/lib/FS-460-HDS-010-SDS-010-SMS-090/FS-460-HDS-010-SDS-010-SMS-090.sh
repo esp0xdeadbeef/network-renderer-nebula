@@ -99,7 +99,10 @@ nix eval --impure --no-warn-dirty --json --expr '
         };
       };
     };
-    plan = api.buildNebulaPlan { controlPlane = cp; };
+    plan = api.buildNebulaPlan {
+      controlPlane = cp;
+      cpmData = cp.control_plane_model.data;
+    };
   in
   {
     local = plan.nodes.core;

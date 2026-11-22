@@ -35,17 +35,17 @@ builtins.listToAttrs (
         # `runtimeNodes` (provider passthrough) is an OPTIONAL source of
         # target-only facts for a node, not the node set and not node identity.
         runtimePath =
-          "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
+          "canonical site ${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
         runtimeNode =
           let
             v = runtimeNodes.${nodeName} or null;
           in
           if builtins.isAttrs v then v else { };
         nebulaRuntimePath =
-          "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nebula.runtimeNodes.${nodeName}";
+          "canonical site ${enterpriseName}.${siteName}.overlays.${overlayName}.nebula.runtimeNodes.${nodeName}";
         nebulaRuntimeNode = requireAttr nebulaRuntimePath (nebulaRuntimeNodes.${nodeName} or null);
         renderedPath =
-          "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}.nodes.${nodeName}";
+          "canonical site ${enterpriseName}.${siteName}.overlays.${overlayName}.nodes.${nodeName}";
         renderedNode = requireAttr renderedPath (overlayNodes.${nodeName} or null);
         _noInventoryUnsafeRoutes =
           if runtimeNode ? unsafeRoutes then

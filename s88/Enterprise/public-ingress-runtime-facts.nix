@@ -15,13 +15,15 @@
 }:
 
 let
+  # Rebuilt from the bundle's canonical site records; see
+  # ./canonical-site-tree.nix. There is no fallback to the producer's model: a
+  # fallback would restore the dependency this removes, and it would only fail
+  # on the site whose bundle lacked the field.
   cpmRoot =
-    if builtins.isAttrs (controlPlane.control_plane_model.data or null) then
-      controlPlane.control_plane_model.data
-    else if builtins.isAttrs (controlPlane.data or null) then
-      controlPlane.data
+    if builtins.isAttrs cpmData && cpmData != { } then
+      cpmData
     else
-      throw "network-renderer-nebula: controlPlane.control_plane_model.data is required";
+      throw "network-renderer-nebula: canonical site content is required (public-ingress facts)";
 
   attrsOrEmpty = value: if builtins.isAttrs value then value else { };
 

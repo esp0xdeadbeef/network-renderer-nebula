@@ -13,7 +13,7 @@ let
         enterpriseName:
         let
           enterpriseCpm =
-            requireAttr "control_plane_model.data.${enterpriseName}" (cpmData.${enterpriseName} or null);
+            requireAttr "canonical site tree ${enterpriseName}" (cpmData.${enterpriseName} or null);
         in
         builtins.concatLists (
           map
@@ -21,7 +21,7 @@ let
               siteName:
               let
                 siteCpm =
-                  requireAttr "control_plane_model.data.${enterpriseName}.${siteName}" (enterpriseCpm.${siteName} or null);
+                  requireAttr "canonical site tree ${enterpriseName}.${siteName}" (enterpriseCpm.${siteName} or null);
                 overlays = siteCpm.overlays or { };
               in
               map
@@ -29,7 +29,7 @@ let
                   overlayName:
                   let
                     overlayCpm =
-                      requireAttr "control_plane_model.data.${enterpriseName}.${siteName}.overlays.${overlayName}"
+                      requireAttr "canonical site tree ${enterpriseName}.${siteName}.overlays.${overlayName}"
                         (overlays.${overlayName} or null);
                   in
                   {

@@ -96,7 +96,15 @@ nix eval --impure --no-warn-dirty --json --expr '
       };
     };
 
-    render = route: api.buildNebulaPlan { controlPlane = mkControlPlane route; };
+    render =
+      route:
+      let
+        cp = mkControlPlane route;
+      in
+      api.buildNebulaPlan {
+        controlPlane = cp;
+        cpmData = cp.control_plane_model.data;
+      };
     good = render delegatedDefault;
     mislabeledDefault = builtins.tryEval (render (delegatedDefault // { intent.kind = "overlay-reachability"; })).nodes.core.unsafeRoutes;
   in

@@ -10,9 +10,17 @@ nix eval --impure --no-warn-dirty --json --expr '
     flake = builtins.getFlake ("path:'"${repo_root}"'");
     api = flake.libBySystem.x86_64-linux.renderer;
 
-    render = routes: api.buildNebulaPlan {
-      controlPlane = mkControlPlane routes;
-    };
+    # This test constructs its own control-plane input; hand the plan the site
+    # tree from that input. In production the tree arrives as the canonical
+    # canonical site section.
+    render = routes:
+      let
+        cp = mkControlPlane routes;
+      in
+      api.buildNebulaPlan {
+        controlPlane = cp;
+        cpmData = cp.control_plane_model.data;
+      };
 
     overlayRoute = {
       proto = "overlay";

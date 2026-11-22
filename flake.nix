@@ -93,11 +93,15 @@
             producerRevision = network-realization-model.rev;
           };
           accepted = renderer.canonical.validateInput { inherit bundle; };
+          # RR_RAW_CPM_INPUT: a bare control-plane artifact is not a renderer
+          # input. `validateInput` must reject it rather than accept it as a
+          # bundle that happens to be missing every required field.
           rawRejected =
             !(builtins.tryEval (
               builtins.deepSeq (renderer.canonical.validateInput {
                 bundle = {
-                  control_plane_model = { };
+                  kind = "network-control-plane-artifact";
+                  control_plane_envelope = { };
                 };
               }) true
             )).success;

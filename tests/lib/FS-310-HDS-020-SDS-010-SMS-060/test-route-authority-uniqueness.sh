@@ -44,7 +44,10 @@ REPO_ROOT="${repo_root}" nix eval --impure --json --expr '
       inputPath = example + "/intent.nix";
       inventoryPath = example + "/inventory-nixos.nix";
     };
-    plan = renderer.buildNebulaPlan { controlPlane = cpm; };
+    plan = renderer.buildNebulaPlan {
+      controlPlane = cpm;
+      cpmData = cpm.control_plane_model.data;
+    };
 
     routes = builtins.concatLists (map
       (nodeName:
