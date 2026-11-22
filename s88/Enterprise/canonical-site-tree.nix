@@ -32,19 +32,6 @@
 let
   sites = (canonical.canonicalSites or { }).sites or [ ];
 
-  requireNonEmpty =
-    name:
-    if builtins.length ((canonical.${name} or { }) // { }) >= 0 && (canonical ? ${name}) then
-      true
-    else
-      throw "network-renderer-nebula: canonical.${name} is required (${expected})";
-
-  _sites =
-    if builtins.length sites > 0 then
-      true
-    else
-      throw "network-renderer-nebula: canonical.canonicalSites.sites is empty (${expected})";
-
   place = tree: entry:
     tree
     // {
@@ -54,6 +41,17 @@ let
           ${entry.site} = entry.facts;
         };
     };
+  tree = builtins.foldl' place { } sites;
 in
-builtins.deepSeq [ requireNonEmpty "canonicalSites" _sites ]
-  (builtins.foldl' place { } sites)
+# A site that reaches the plan has an overlay to render, so an empty tree is a
+# bundle that carries no canonical site records. Fail closed and say why:
+# silently returning no plan is the "silent fail-open" FS-460 names (an s88
+# overlay unit waiting forever for a link no daemon creates).
+builtins.deepSeq
+  (
+    if tree == { } then
+      throw "network-renderer-nebula: ${expected} was asked to plan, but the bundle carries no canonical site records"
+    else
+      true
+  )
+  tree

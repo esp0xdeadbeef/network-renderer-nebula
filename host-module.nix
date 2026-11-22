@@ -24,10 +24,11 @@ systemLib
         # records rather than from the producer's model. See
         # s88/Enterprise/canonical-site-tree.nix for why this is the identity on
         # `data.<enterprise>.<site>` and why there is no fallback.
-        siteTree = if cpmData != null then cpmData else import ./s88/Enterprise/canonical-site-tree.nix { inherit lib; } {
-          canonical = canonicalContent;
-          expected = "nebula host module";
-        };
+        siteTree =
+          if cpmData != null then cpmData else import ./s88/Enterprise/canonical-site-tree.nix { inherit lib; } {
+            canonical = canonicalContent;
+            expected = "nebula host module";
+          };
         overlayValues = lib.concatLists (
           lib.mapAttrsToList (
             _enterprise: enterpriseData:
