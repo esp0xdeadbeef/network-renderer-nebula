@@ -38,9 +38,9 @@ builtins.listToAttrs (
           "canonical site ${enterpriseName}.${siteName}.overlays.${overlayName}.runtimeNodes.${nodeName}";
         runtimeNode =
           let
-            v = runtimeNodes.${nodeName} or null;
+            runtimeNodeRecord = runtimeNodes.${nodeName} or null;
           in
-          if builtins.isAttrs v then v else { };
+          if builtins.isAttrs runtimeNodeRecord then runtimeNodeRecord else { };
         nebulaRuntimePath =
           "canonical site ${enterpriseName}.${siteName}.overlays.${overlayName}.nebula.runtimeNodes.${nodeName}";
         nebulaRuntimeNode = requireAttr nebulaRuntimePath (nebulaRuntimeNodes.${nodeName} or null);
