@@ -89,7 +89,8 @@ let
   viaForRoute = route:
     let
       # Prefer the next hop the control-plane/forwarding model attached to the
-      # overlay reachability route (SDS/HDS/SMS-030): it is the modeled peer
+      # overlay reachability route (FS-460-HDS-010-SDS-010-SMS-030): it is the
+      # modeled peer
       # overlay endpoint and is present even when the peer site is not compiled
       # in this pass.  Fall back to the compiled peer site's overlay node
       # address when the route carries no explicit next hop.

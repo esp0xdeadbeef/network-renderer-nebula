@@ -35,7 +35,8 @@ let
   # model endpoint identity, permitted peers, ...").  A peer site is not
   # necessarily compiled in this site's pass, so the address is modeled
   # canonically on this overlay's provider block (nebula.lighthouse.addr4/6).
-  # The CPM emits it; the renderer must only read it, never invent it (SMS-070).
+  # The CPM emits it; the renderer must only read it, never invent it
+  # (FS-460-HDS-010-SDS-010-SMS-070).
   overlayCpmRecord = attrsOrEmpty ((overlayCpm.overlays or { }).${overlayName} or null);
   peerOverlayAddress =
     let

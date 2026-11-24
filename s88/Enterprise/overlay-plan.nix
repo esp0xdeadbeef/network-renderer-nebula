@@ -68,7 +68,8 @@ let
       derivedNebulaRuntimeNodes;
 
   # A lighthouse may be IPv4-only, IPv6-only, or dual-stack; require at least
-  # one modeled endpoint family (SMS-010 lighthouse data).
+  # one modeled endpoint family (FS-460-HDS-010-SDS-010-SMS-010 lighthouse
+  # data).
   endpoint = lighthouse.endpoint or "";
   endpoint6 = lighthouse.endpoint6 or "";
   port = builtins.toString (lighthouse.port or (throw "FS-460-HDS-010-SDS-010-SMS-010: overlay ${overlayName} lighthouse missing port from CPM"));

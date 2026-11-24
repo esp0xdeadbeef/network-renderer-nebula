@@ -4,11 +4,12 @@
 # Focused construction test: Nebula renderer boundary source scan.
 #
 # Covers 3 SMS rows:
-#   SMS-060: Fail-closed contract — no hardcoded defaults for missing CPM fields
-#   SMS-070: Hardcoded value prevention — no `or` defaults for network parameters
-#   SMS-090: Policy boundary — no firewall/route/DNS policy invention
-# SMS-080 now has dedicated test: FS-460-HDS-010-SDS-010-SMS-080.sh
-# (covers full 6 module failure conditions + seeded negative per SMS-080 spec)
+#   FS-460-HDS-010-SDS-010-SMS-060: Fail-closed contract — no hardcoded defaults for missing CPM fields
+#   FS-460-HDS-010-SDS-010-SMS-070: Hardcoded value prevention — no `or` defaults for network parameters
+#   FS-460-HDS-010-SDS-010-SMS-090: Policy boundary — no firewall/route/DNS policy invention
+# FS-460-HDS-010-SDS-010-SMS-080 now has dedicated test:
+# FS-460-HDS-010-SDS-010-SMS-080.sh
+# (covers full 6 module failure conditions + seeded negative per FS-460-HDS-010-SDS-010-SMS-080 spec)
 #
 # All violations found are documented as KNOWN_GAPS.
 # Test PASSES with existing gaps; fails only on NEW violations.
@@ -20,13 +21,13 @@ trap 'rm -rf "${tmp_dir}"' EXIT
 all_checks_passed=true
 src_dir="${repo_root}/s88"
 
-echo "--- FS-460 Nebula renderer boundary source scan (SMS-060-070-090) ---"
+echo "--- FS-460 Nebula renderer boundary source scan (FS-460-HDS-010-SDS-010-SMS-060-070-090) ---"
 echo ""
 
 # ============================================================
-# Predicate 1 (SMS-060 + SMS-070): Scan for `or` defaults
+# Predicate 1 (FS-460-HDS-010-SDS-010-SMS-060 + FS-460-HDS-010-SDS-010-SMS-070): Scan for `or` defaults
 # ============================================================
-echo "--- SMS-060/070: Fail-closed + hardcoded-value scan ---"
+echo "--- FS-460-HDS-010-SDS-010-SMS-060/070: Fail-closed + hardcoded-value scan ---"
 or_hits="$(find "${src_dir}" -name '*.nix' -print0 2>/dev/null | xargs -0 grep -n ' or ' 2>/dev/null | grep -vE '(or false|or 0[^0-9]|or \[\]|or \{\}|or null|or \""|or true|or 1[^0-9])' | grep -vE '^\s*#|file \? |import \./' || true)"
 or_count=$(echo "${or_hits}" | wc -l 2>/dev/null || echo 0)
 [[ -z "${or_hits}" ]] && or_count=0
@@ -41,7 +42,8 @@ echo ""
 
 # ============================================================
 # Predicate 2: Output containment — no hardcoded paths
-# (SMS-080 now covered by dedicated test: FS-460-HDS-010-SDS-010-SMS-080.sh)
+# (FS-460-HDS-010-SDS-010-SMS-080 now covered by dedicated test:
+#  FS-460-HDS-010-SDS-010-SMS-080.sh)
 # ============================================================
 echo "--- Output containment scan (filesystem paths) ---"
 # Scan for hardcoded output paths (should use CPM-authorized paths)
@@ -57,9 +59,9 @@ fi
 echo ""
 
 # ============================================================
-# Predicate 3 (SMS-090): Policy boundary — no firewall/route/DNS invention
+# Predicate 3 (FS-460-HDS-010-SDS-010-SMS-090): Policy boundary — no firewall/route/DNS invention
 # ============================================================
-echo "--- SMS-090: Policy boundary scan ---"
+echo "--- FS-460-HDS-010-SDS-010-SMS-090: Policy boundary scan ---"
 # Scan for policy-invention patterns
 policy_hits="$(find "${src_dir}" -name '*.nix' -print0 2>/dev/null | xargs -0 grep -nE '(firewall|nftables|iptables|route|dns|nameserver|forward-addr)' 2>/dev/null | grep -vE 'tests/|^\s*#' | grep -vE '(providerBootstrapDns|overlay.*route|route.*overlay)' || true)"
 policy_count=$(echo "${policy_hits}" | wc -l); [[ -z "${policy_hits}" ]] && policy_count=0
@@ -85,7 +87,7 @@ echo ""
 # Report
 # ============================================================
 if [[ "${all_checks_passed}" == "true" ]]; then
-  echo "PASS: FS-460 Nebula renderer boundary scan (SMS-060-070-090) complete."
+  echo "PASS: FS-460 Nebula renderer boundary scan (FS-460-HDS-010-SDS-010-SMS-060-070-090) complete."
   exit 0
 else
   echo "FAIL: Scanner verification failed."

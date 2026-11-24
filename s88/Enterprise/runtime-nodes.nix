@@ -31,7 +31,8 @@ builtins.listToAttrs (
     (
       nodeName:
       let
-        # SMS-021: node identity and node set come from the canonical overlay.
+        # FS-460-HDS-010-SDS-010-SMS-021: node identity and node set come from
+        # the canonical overlay.
         # `runtimeNodes` (provider passthrough) is an OPTIONAL source of
         # target-only facts for a node, not the node set and not node identity.
         runtimePath =
@@ -84,7 +85,7 @@ builtins.listToAttrs (
           # Nebula requires every unsafe_routes entry to carry a via (next hop).
           # Emitting one with install=true and no via makes nebula refuse to
           # start, which under systemd becomes an endless restart loop; fail
-          # closed instead (FS-460 fail-closed, SMS-030).
+          # closed instead (FS-460 fail-closed, FS-460-HDS-010-SDS-010-SMS-030).
           if via == null then
             throw "FS-460-HDS-010-SDS-010-SMS-030: unsafe route ${builtins.toJSON route.route} has no via (via4/via6/via)"
           else

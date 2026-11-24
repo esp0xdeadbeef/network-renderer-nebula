@@ -104,7 +104,7 @@ fi
 if [[ "$(jq -r '.duplicates | length' "${out}")" != "0" ]]; then
   printf 'FAIL %s: one route authority carries more than one next hop\n' "${trace_id}" >&2
   jq -r '.duplicates[] | "  \(.)"' "${out}" >&2
-  printf '  SMS-060: different next-hop sets for the same authority shall fail unless explicit multipath names the member set.\n' >&2
+  printf '  FS-310-HDS-020-SDS-010-SMS-060: different next-hop sets for the same authority shall fail unless explicit multipath names the member set.\n' >&2
   exit 1
 fi
 

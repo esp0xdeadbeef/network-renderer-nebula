@@ -64,8 +64,9 @@ Every renderer contract rule in this README traces to a URS requirement:
 ### Historical SMT Status (2026-06-13)
 
 - FS-460-HDS-010-SDS-010-SMS-010 (Coordinator): **OK** — All child atoms tested at `network-renderer-nebula@b37f358`
-- SMS-020 through SMS-050: **OK** — Full suite 29/29 passing
-- FS-310 SMS-100 proved the former CPM-only boundary. It does not by itself
+- FS-460-HDS-010-SDS-010-SMS-020 through FS-460-HDS-010-SDS-010-SMS-050: **OK** —
+  Full suite 29/29 passing
+- FS-310-HDS-010-SDS-010-SMS-100 proved the former CPM-only boundary. It does not by itself
   prove the current canonical renderer boundary or FS-168/FS-169 coverage.
 - All child SMS rows delegate to coordinator. Coordinator has no independent construction beyond child module contracts.
 
@@ -80,7 +81,7 @@ The controlled API accepts one validated `bundle` and optional
 superseded regression evidence. No separate inventory file, raw
 `inventory.nix` parsing, or upstream source-file read is permitted.
 
-### SMS-010 Key Requirements
+### FS-460-HDS-010-SDS-010-SMS-010 Key Requirements
 
 - Container definition MUST include `nebula` binary in nix store closure
 - Persistent systemd service required (no bash wrapper that exits)
@@ -122,7 +123,7 @@ These prohibitions implement the URS canonical-renderer, no-invention, and thin
 host-configuration boundaries.
 
 - Read `intent.nix`, `inventory.nix`, `inventory-nixos.nix`, or forwarding-model
-  files directly (FS-310 SMS-100).
+  files directly (FS-310-HDS-010-SDS-010-SMS-100).
 - Consume raw CPM or another renderer's output as network-semantic authority.
 - Decide forwarding policy, tenant reachability, overlay termination, public
   exit, DNS behavior, or prefix ownership.

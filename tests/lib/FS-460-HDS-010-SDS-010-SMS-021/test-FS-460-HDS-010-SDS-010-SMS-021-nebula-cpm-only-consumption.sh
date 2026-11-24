@@ -5,7 +5,8 @@
 # CPM-mediated overlay output. No direct intent/inventory imports, no
 # raw inventory tree walks, no upstream file path construction.
 #
-# SMS-021 is the Nebula per-renderer child of FS-310 SMS-100 (generic
+# FS-460-HDS-010-SDS-010-SMS-021 is the Nebula per-renderer child of
+# FS-310-HDS-010-SDS-010-SMS-100 (generic
 # renderer CPM-only consumption). Two active seeded negatives required.
 #
 # Diagnostic identifiers (SMS §Module Failure Conditions):
