@@ -10,7 +10,10 @@
 , runtimeContainerName
 , runtimeNode
 , runtimeForwardInterfaceName ? "public-ingress"
-, runtimeForwardHostBridge ? "br-wan"
+# FS-320-HDS-050-SDS-010-SMS-010: the host attachment surface is modeled authority.
+# A renderer-side default (`? "br-wan"`) is a substitution the model never authorized, and
+# it made a missing surface indistinguishable from a modeled one. Required, no default.
+, runtimeForwardHostBridge
 ,
 }:
 

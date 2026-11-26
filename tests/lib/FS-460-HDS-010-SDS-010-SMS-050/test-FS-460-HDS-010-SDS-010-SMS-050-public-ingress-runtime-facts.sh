@@ -14,6 +14,9 @@ let
 in
 api.buildNebulaPublicIngressRuntimeFacts {
   hostName = "validator-host";
+  # FS-320-HDS-050-SDS-010-SMS-010: the host attachment surface is modeled authority and
+  # has no renderer-side default, so every caller -- this fixture included -- supplies it.
+  runtimeForwardHostBridge = "br-wan";
   lighthousePublicIPv4SecretPath = "/run/secrets/relay-public-ipv4";
   runtimePublicIPv4SecretPath = "/run/secrets/runtime-public-ipv4";
   runtimeContainerName = "edge-nebula";
