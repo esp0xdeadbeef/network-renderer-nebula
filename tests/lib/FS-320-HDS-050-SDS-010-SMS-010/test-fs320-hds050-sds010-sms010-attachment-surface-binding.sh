@@ -3,15 +3,13 @@
 # GAMP-SCOPE: software-module-test
 #
 # Nebula renderer construction test for the attachment surface binding module
-# (SMS-010). Expected state: FAILING.
+# FS-320-HDS-050-SDS-010-SMS-010.
 #
 # The Nebula renderer materializes a runtime container whose public-ingress
 # path attaches to a host bridge. That bridge is a host-facing attachment
-# surface, and SMS-010 says the named surface is used as given. This renderer
-# currently supplies a renderer-local default for it:
-#
-#   s88/Enterprise/public-ingress-runtime-facts.nix
-#   , runtimeForwardHostBridge ? "br-wan"
+# surface, and FS-320-HDS-050-SDS-010-SMS-010 says the named surface is used as
+# given. This renderer used to supply a renderer-local default for it; the
+# argument is required now, and the test fails if a default comes back.
 #
 # A provider renderer has no more authority to choose a host attachment
 # surface than a forwarding renderer has to choose a NIC. The same rule
