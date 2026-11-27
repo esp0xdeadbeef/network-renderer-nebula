@@ -13,6 +13,7 @@
     network-control-plane-model.inputs.network-labs.follows = "network-labs";
 
     network-labs.url = "github:esp0xdeadbeef/network-labs";
+    network-labs.inputs.nixpkgs.follows = "nixpkgs";
 
     network-realization-model.url = "github:esp0xdeadbeef/network-realization-model";
     network-realization-model.inputs.nixpkgs.follows = "nixpkgs";
