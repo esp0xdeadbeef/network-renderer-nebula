@@ -14,6 +14,15 @@ intent_path="${labs_path}/examples/s-router-public-overlay-service/intent.nix"
 inventory_path="${labs_path}/examples/s-router-public-overlay-service/inventory-nixos.nix"
 
 # Use nebula-plan-from-inputs.nix (backward-compatible CPM compilation)
+# A NON-EMPTY STDERR IS NOT A FAILURE. `nix` writes warnings there, and inside the CI
+# sandbox it always writes one:
+#   warning: you don't have Internet access; disabling some network-dependent features
+# The test used to fail whenever *anything* appeared on stderr, so it was red in CI and
+# green locally for a reason that had nothing to do with the renderer (measured
+# 2026-11-27: FS-460-HDS-010-SDS-010-SMS-090 failed on the runner with only that warning in
+# plan.err). The exit status is the verdict; stderr is reported when the command fails, and
+# echoed as a warning otherwise.
+set +e
 nix eval --impure --no-warn-dirty --json --expr '
   let
     flake = builtins.getFlake (toString '"$repo_root"');
@@ -25,11 +34,17 @@ nix eval --impure --no-warn-dirty --json --expr '
   in
     plan.nodes
 ' >"$tmp_dir/nodes.json" 2>"$tmp_dir/plan.err"
+plan_status=$?
+set -e
 
-if [[ -s "$tmp_dir/plan.err" ]]; then
-  echo "FAIL expected successful plan render with CPM data" >&2
+if (( plan_status != 0 )); then
+  echo "FAIL expected successful plan render with CPM data (exit ${plan_status})" >&2
   cat "$tmp_dir/plan.err" >&2
   exit 1
+fi
+if [[ -s "$tmp_dir/plan.err" ]]; then
+  echo "note: plan render wrote to stderr; the exit status is 0, so this is a warning:" >&2
+  sed 's/^/  /' "$tmp_dir/plan.err" >&2
 fi
 
 jq -e 'has("b-router-core-nebula")' "$tmp_dir/nodes.json" >/dev/null || {
